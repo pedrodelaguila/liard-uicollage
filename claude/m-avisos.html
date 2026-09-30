@@ -1,0 +1,54 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Avisos</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .av-bar { display: flex; gap: 8px; align-items: center; margin: 2px 0 12px; flex-wrap: wrap; }
+  .av-bar .spacer { flex: 1; }
+  .day { font: 600 10.5px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3); margin: 16px 2px 6px; }
+  .ni { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; padding: 12px; border-bottom: 1px solid var(--line); position: relative; }
+  .ni:last-child { border-bottom: 0; }
+  .ni.unread { background: color-mix(in srgb, var(--brand-soft) 55%, var(--surface)); }
+  .ni.unread::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--brand); }
+  .ni .n-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; background: var(--surface-3); color: var(--ink-2); }
+  .ni.unread .n-ic { background: var(--stage); color: var(--volt); }
+  .ni strong { display: block; font-size: 14.5px; line-height: 1.3; }
+  .ni p { margin: 2px 0 6px; font-size: 13.5px; color: var(--ink-2); }
+  .ni small { color: var(--ink-3); font-family: var(--font-mono); font-size: 11px; }
+  .ni .acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .ni .acts .btn { height: 36px; }
+</style>
+</head>
+<body class="m" data-role="ENGINEER" data-active="avisos" data-title="Avisos" data-sub="">
+<div id="page"><div id="root"></div></div>
+<script>
+(function () {
+  const esc = L.esc; const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+  const role = L.role(); const s0 = L.store.get();
+  document.body.dataset.sub = role === 'SUPPLIER' ? L.supplier(s0.session.supplierId).name : s0.company.name + ' · Ingeniería';
+  if (role === 'SUPPLIER') document.body.dataset.role = 'SUPPLIER';
+  const ui = { f: L.pref('avisos:f') || 'todos' };
+  const icon = n => /pedido/i.test(n.title) ? 'truck' : /oferta|cotiza/i.test(n.title) ? 'compare' : /solicitud/i.test(n.title) ? 'inbox' : /aprob|adjudica/i.test(n.title) ? 'shield' : /procesad|plano/i.test(n.title) ? 'layers' : 'bell';
+  const dayLabel = d => { const k = d.slice(0, 10); const diff = L.daysBetween(k, B.TODAY); return diff === 0 ? 'Hoy' : diff === 1 ? 'Ayer' : L.date(k); };
+  function render() {
+    const all = L.myNotifications().slice().sort((a, b) => (b.at > a.at ? 1 : -1));
+    const unread = all.filter(n => !n.read).length;
+    const list = ui.f === 'sin' ? all.filter(n => !n.read) : all;
+    let last = ''; let html = '';
+    list.forEach(n => { const d = dayLabel(n.at); if (d !== last) { if (last) html += '</div>'; html += `<p class="day">${esc(d)}</p><div class="card">`; last = d; }
+      html += `<article class="ni${n.read ? '' : ' unread'}" data-n="${n.id}"><span class="n-ic" aria-hidden="true">${L.icon(icon(n), 17)}</span><div><strong>${n.read ? '' : '<span class="sr-only">Sin leer: </span>'}${esc(n.title)}</strong><p>${esc(n.body)}</p><small>${L.time(n.at)}</small>
+        <div class="acts">${n.href ? `<a class="btn btn-secondary btn-sm" href="${L.link(n.href)}" data-open="${n.id}">Abrir${L.icon('arrowr', 13)}</a>` : ''}${n.read ? '' : `<button class="btn btn-ghost btn-sm" data-read="${n.id}">${L.icon('check', 13)}Marcar como leído</button>`}</div></div></article>`; });
+    if (last) html += '</div>';
+    document.getElementById('root').innerHTML = `<div class="av-bar"><div class="seg" role="group" aria-label="Filtrar avisos"><button data-f="todos" aria-pressed="${ui.f === 'todos'}">Todos (${all.length})</button><button data-f="sin" aria-pressed="${ui.f === 'sin'}">Sin leer (${unread})</button></div><span class="spacer"></span>${L.cap('propuesto')}
+      ${unread ? `<button class="btn btn-ghost btn-sm" data-all>${L.icon('check', 13)}Marcar todo como leído</button>` : ''}</div>
+      ${list.length ? html : `<div class="card">${L.empty({ icon: 'bell', title: ui.f === 'sin' ? 'No tenés avisos sin leer' : 'No tenés avisos', text: role === 'SUPPLIER' ? 'Acá llegan las solicitudes de cotización y los pedidos que te adjudican.' : 'Acá aparecen los planos procesados, las ofertas de los distribuidores y las aprobaciones.' })}</div>`}`;
+  }
+  const mark = ids => L.store.update(s => s.notifications.forEach(n => { if (ids.includes(n.id)) n.read = true; }));
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-f],[data-read],[data-all],[data-open]'); if (!b) return;
+    if (b.dataset.f) { ui.f = b.dataset.f; L.pref('avisos:f', ui.f); render(); const f = document.querySelector(`[data-f="${ui.f}"]`); if (f) f.focus(); }
+    else if (b.dataset.read) { mark([b.dataset.read]); L.toast('Aviso marcado como leído'); }
+    else if ('all' in b.dataset) { const ids = L.myNotifications().filter(n => !n.read).map(n => n.id); mark(ids); L.toast(plural(ids.length, 'aviso marcado', 'avisos marcados') + ' como leído' + (ids.length === 1 ? '' : 's')); }
+    else if (b.dataset.open) mark([b.dataset.open]);
+  });
+  L.ready(() => { render(); L.store.subscribe(render); });
+})();
+</script></body></html>

@@ -1,0 +1,497 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 02 · Backlog priorizado de oportunidades</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="01-estrategia.html" class="">01 · Estrategia de liard</a><a href="02-oportunidades.html" class="on">02 · Backlog priorizado de oportunidades</a><a href="03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="../research/01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="../research/02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="../research/03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="../research/04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="../research/05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>02 · Backlog priorizado de oportunidades</h1>
+<p>Fuentes y etiquetas: las de <code>01-estrategia.md</code>. Rutas del backend según <code>research/02-backend.md §2</code>. Estado en el
+prototipo según <code>L.pages</code> de <code>app.js</code>. Esa marca describe <strong>la pantalla del prototipo</strong>, no la producción: que algo diga
+<code>existe</code> en el prototipo significa que la pantalla equivalente ya está en <code>dev</code>, no que la variante del prototipo esté
+construida.</p>
+<h2>Fórmula</h2>
+<p><strong>Puntaje = Valor × Confianza × Factibilidad / Esfuerzo</strong></p>
+<ul>
+<li><strong>Valor (1–5):</strong> impacto económico esperado en ingreso, costo evitado o retención, si la hipótesis es cierta.</li>
+<li><strong>Confianza (0,2–1,0):</strong> cuánto respalda el problema la evidencia. 1,0 = medido en código o en corrida; 0,8 = varias
+entrevistas coinciden; 0,5 = una entrevista o una inferencia; 0,2–0,3 = no se preguntó.</li>
+<li><strong>Factibilidad (1–5):</strong> cuánto aprovecha el código actual. 5 = cambio de UI sobre datos que ya existen; 1 = no hay
+modelo, ni ruta, ni dependencia resuelta.</li>
+<li><strong>Esfuerzo:</strong> S = 1 (menos de 1 semana por persona), M = 2 (1–3 semanas), L = 4 (más de 3 semanas o más de un módulo
+nuevo). Es una <strong>[estimación]</strong>.</li>
+</ul>
+<p>El puntaje ordena, pero no decide solo. Las dependencias duras (por ejemplo, sin deploy no hay piloto) las ordena
+<code>03-roadmap.md</code>, aunque el puntaje diga otra cosa.</p>
+<h2>Backlog (ordenado por puntaje)</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Oportunidad</th>
+<th>Actor</th>
+<th>Evidencia del problema (fuente)</th>
+<th>Hipótesis de valor económico</th>
+<th>Factibilidad sobre el código actual</th>
+<th>Depende de</th>
+<th>Esf.</th>
+<th>V·C·F/E</th>
+<th>Prototipo</th>
+<th>Pantalla(s)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>O-23</td>
+<td><strong>Confidencialidad antes del piloto</strong>: acotar las lecturas y escrituras de catálogo al <code>Provider</code> dueño, restringir las escrituras de <code>canonical-catalog</code> y quitar el mock de contacto</td>
+<td>Distribuidor, ingeniería</td>
+<td><code>Arquitectura Liard.md:260</code> (las lecturas no se acotan al dueño); <code>research/02 §1</code> (canonical sin <code>@Roles</code>); <code>research/03 §2.3</code> (WhatsApp hardcodeado); VIS §1.5 (miedo competitivo) [medido]</td>
+<td>Sin esto, ningún distribuidor real carga su lista. Evita perder el lado de la oferta entero</td>
+<td>Alta: <code>ProviderService.resolveOwnProviderId</code> ya existe y los pedidos del proveedor ya filtran por dueño; hay que agregar <code>@Roles</code> en <code>canonical-catalog/*</code> y matrices de acceso en <code>test/modules/provider/unit/catalog-access.spec.ts</code></td>
+<td>—</td>
+<td>S</td>
+<td>5×0,8×4/1 = <strong>16,0</strong></td>
+<td>existe</td>
+<td><code>d-prov-catalogo.html</code>, <code>d-prov-pedidos.html</code></td>
+</tr>
+<tr>
+<td>O-02</td>
+<td><strong>Cerrar el Sprint 4</strong>: mostrar <code>unmatchedReason</code> en la cotización y cerrar #832, #930, #931, #970, #987 y #988</td>
+<td>Ingeniería</td>
+<td><code>BomQuoteLine.unmatchedReason</code> no se muestra en ningún componente (<code>research/04 §1</code>.4) [medido]</td>
+<td>Menos NOT_FOUND sin explicar y menos abandono en la primera cotización. Sin issues fantasma, el tablero sirve para medir avance</td>
+<td>Máxima: el campo ya viaja en el DTO y está tipado en <code>front/src/types/quotation.types.ts</code></td>
+<td>—</td>
+<td>S</td>
+<td>3×0,9×5/1 = <strong>13,5</strong></td>
+<td>existe</td>
+<td><code>d-cotizacion.html</code></td>
+</tr>
+<tr>
+<td>O-04</td>
+<td><strong>Medir el matching de punta a punta y fijar el umbral de confianza</strong> (línea del BOM → oferta correcta, sobre el set real de #904)</td>
+<td>Ingeniería, equipo</td>
+<td>Nunca se midió de punta a punta; la lectura IA se midió con casos sintéticos (<code>research/04 §4</code>) [medido]</td>
+<td>Condición para vender &quot;precisión&quot;. Sin el número no se puede defender el precio ni pasar de H1</td>
+<td>Alta: <code>evaluation/matching/</code> y el set de #904 ya existen; falta el script y el reporte</td>
+<td>—</td>
+<td>S</td>
+<td>4×0,8×4/1 = <strong>12,8</strong></td>
+<td>propuesto</td>
+<td>— (métrica interna)</td>
+</tr>
+<tr>
+<td>O-08</td>
+<td><strong>Notificaciones por email</strong> a los dos lados: solicitud recibida, respuesta, vencimiento y planos procesados</td>
+<td>Distribuidor, ingeniería</td>
+<td>Q Electric: el email es el canal formal y deja trazabilidad [entrevista]; hoy los clientes consultan por polling y el mailer solo lo usa <code>auth</code> (<code>research/04 §2</code>) [medido]</td>
+<td>Baja el tiempo de respuesta del proveedor (hoy 2–3 h [entrevista]) y reduce el abandono de solicitudes</td>
+<td>Alta: <code>back/src/common/mail/</code> (IMailer, SmtpMailer, LogMailer); se engancha en <code>purchase-order.service.ts</code> accept/reject/confirm y en el worker</td>
+<td>O-01 (SMTP real)</td>
+<td>S</td>
+<td>4×0,8×4/1 = <strong>12,8</strong></td>
+<td>planificado</td>
+<td><code>m-avisos.html</code>, avisos del shell</td>
+</tr>
+<tr>
+<td>O-01</td>
+<td><strong>Terminar el deploy</strong> (#985 + COLA-01/02 de #1000)</td>
+<td>Todos</td>
+<td>Roadmap dice &quot;desplegado&quot;; #985 tiene 0 casillas marcadas; ARQ:75 &quot;Preparada, no desplegada&quot; [medido]</td>
+<td>Sin esto hay 0 usuarios y 0 ingresos: es la compuerta de todo lo demás. VM de prueba USD 15–154/mes [medido, <code>research/04 §4</code>]</td>
+<td>Media-alta: el diseño está en <code>docs/aws-deployment/deploy-vm-prueba.md</code>; falta IaC, compose de prod, Caddy, S3 y el protocolo asíncrono de la cola</td>
+<td>#1000</td>
+<td>M</td>
+<td>5×0,9×4/2 = <strong>9,0</strong></td>
+<td>—</td>
+<td>— (infraestructura)</td>
+</tr>
+<tr>
+<td>O-25</td>
+<td><strong>Plazo de respuesta y vencimiento</strong> de pedidos (y después de las solicitudes)</td>
+<td>Ingeniería, distribuidor</td>
+<td><code>responseDeadlineAt</code> y <code>EXPIRED</code> existen y <strong>nada los escribe</strong> (<code>research/02 §3</code>) [medido]; la UI ya muestra &quot;VENCIDO&quot;</td>
+<td>Una obra no espera: el vencimiento libera la adjudicación hacia otro proveedor. Condición para medir tiempos de respuesta</td>
+<td>Alta: la columna y el control en <code>respondToSupplierRequest</code> ya existen; falta setear el plazo al confirmar y un barrido programado (se puede reusar el patrón de <code>PlanProcessingRecoveryService</code>)</td>
+<td>—</td>
+<td>S</td>
+<td>3×0,7×4/1 = <strong>8,4</strong></td>
+<td>existe (VENCIDO) / propuesto (plazo editable)</td>
+<td><code>d-pedidos.html</code>, <code>d-prov-solicitudes.html</code></td>
+</tr>
+<tr>
+<td>O-09</td>
+<td><strong>Control de costo de IA</strong> por espacio de trabajo: ledger, tope y alerta</td>
+<td>Liard (margen), ingeniería</td>
+<td>Detección USD 1,02 por plano de 221 cajas y ~USD 0,73 un plano medio; el costo de detección <strong>no se persiste</strong> (<code>research/04 §2</code>, §4) [medido]</td>
+<td>Protege el margen bruto por tablero, que es fino a USD 1–3,5 de ingreso [estimación, <code>01 §4</code>]</td>
+<td>Media: <code>costUsd</code> ya está en <code>CatalogReadingRun</code> y <code>BomLineReading</code>; falta persistir el costo de la detección (<code>symbol-detection-service.llm.ts</code>) y un chequeo antes de encolar en <code>electrical-plan/service/</code></td>
+<td>O-01</td>
+<td>M</td>
+<td>4×0,9×4/2 = <strong>7,2</strong></td>
+<td>planificado</td>
+<td><code>d-cuenta.html</code></td>
+</tr>
+<tr>
+<td>O-03</td>
+<td><strong>Matching para todos los componentes</strong>: de 33 tipos base a los 67 materiales del set (#856, #945)</td>
+<td>Ingeniería</td>
+<td>33 tipos sembrados contra 67 materiales en <code>evaluation/matching/</code>; faltan UPS, ACB y capacitor (<code>research/04 §2</code>) [medido]</td>
+<td>Cada tipo que falta es un NOT_FOUND seguro. La cobertura define cuánto del BOM se cotiza</td>
+<td>Alta y mecánica: una clase por componente en <code>canonical-catalog/seed/components/</code> (convención del repo)</td>
+<td>O-04 (para medir el efecto)</td>
+<td>M</td>
+<td>5×0,7×4/2 = <strong>7,0</strong></td>
+<td>planificado</td>
+<td><code>d-bom.html</code>, <code>d-cotizacion.html</code></td>
+</tr>
+<tr>
+<td>O-15</td>
+<td><strong>Importación incremental del catálogo e historial de precios</strong> (#835)</td>
+<td>Distribuidor, ingeniería</td>
+<td>Hoy la importación reemplaza todo (<code>research/03 §2.3</code>); <code>ProviderPriceHistory</code> se escribe y <strong>ninguna ruta lo lee</strong> (<code>research/02 §4</code> paso 26) [medido]; HCM: recotizaciones de hace 2 años; Nisamat: ~100.000 productos [entrevista]</td>
+<td>Menos precios vencidos en las cotizaciones; es la base del presupuesto con FX (O-12) y, en H3, del índice (O-22)</td>
+<td>Alta: <code>provider/</code> + <code>catalog/import/</code>, con el modelo de historial ya creado</td>
+<td>—</td>
+<td>M</td>
+<td>4×0,8×4/2 = <strong>6,4</strong></td>
+<td>existe (importación total) / propuesto (incremental)</td>
+<td><code>d-prov-catalogo.html</code></td>
+</tr>
+<tr>
+<td>O-06</td>
+<td><strong>Oferta editable sobre el pedido</strong>: el proveedor confirma o ajusta precio, stock, plazo, acepta parcial, propone una alternativa y deja un motivo de rechazo</td>
+<td>Distribuidor → ingeniería</td>
+<td>VIS §2.2: &quot;el proveedor confirma o ajusta&quot;; stock y plazo pesan como el precio (<code>research/01 §3</code>) [entrevista]; hoy accept/reject no llevan body (<code>research/02 §4</code> paso 19) [medido]</td>
+<td>Convierte un precio de referencia en uno confirmado, que es lo que vale para el comprador. Es la condición de cualquier cobro al proveedor</td>
+<td>Media: <code>purchase-order/</code> tiene aceptar/rechazar e inbox del proveedor. Faltan líneas de respuesta (modo CATALOGO / AJUSTADO / ALTERNATIVA / SIN_OFERTA, stock, plazo) y su versión</td>
+<td>O-23, O-08</td>
+<td>M</td>
+<td>5×0,8×3/2 = <strong>6,0</strong></td>
+<td>propuesto</td>
+<td><code>d-prov-oferta.html</code>, <code>m-prov-oferta.html</code></td>
+</tr>
+<tr>
+<td>O-24</td>
+<td><strong>Distribuidores por zona y señales de confianza</strong></td>
+<td>Ingeniería</td>
+<td>Q Electric: con quién trabaja cada uno, confianza, zona [entrevista]; <code>deliveryZones</code> y <code>minOrderAmount</code> se guardan pero ninguna lógica los usa (<code>research/02 §1</code>) [medido]</td>
+<td>Menos solicitudes enviadas a quien no entrega en la zona, así que más respuestas</td>
+<td>Alta: son datos que ya existen, más un filtro en <code>GET /providers</code> y en la cotización</td>
+<td>—</td>
+<td>S</td>
+<td>3×0,5×4/1 = <strong>6,0</strong></td>
+<td>existe</td>
+<td><code>d-directorio.html</code></td>
+</tr>
+<tr>
+<td>O-10</td>
+<td><strong>Observabilidad</strong>: APM, trazas por <code>jobId</code> y evento de llamada a IA (#836)</td>
+<td>Equipo</td>
+<td>No hay newrelic, sentry ni opentelemetry (<code>research/04 §2</code>); logs centralizados &quot;pendientes&quot; (ARQ:259) [medido]</td>
+<td>Menos tiempo para diagnosticar planos atascados y costos anómalos durante el piloto</td>
+<td>Media: #985 §8 ya define New Relic en la VM</td>
+<td>O-01</td>
+<td>M</td>
+<td>3×0,9×4/2 = <strong>5,4</strong></td>
+<td>planificado</td>
+<td>—</td>
+</tr>
+<tr>
+<td>O-16</td>
+<td><strong>Comparación de ofertas y adjudicación persistente</strong>, con aprobación explícita de equivalencias</td>
+<td>Ingeniería (compras)</td>
+<td>La adjudicación vive en <code>sessionStorage</code> (<code>research/03 §2.2</code>); <code>selectedOfferId</code> nunca se escribe [medido]; DISC §&quot;Qué debería mostrar&quot;: proveedor, SKU, precio, stock, plazo, fecha [entrevista]</td>
+<td>Sin perder trabajo, y con decisiones auditables. Una equivalencia aprobada por una persona reduce el riesgo técnico (&quot;equivocarse es serio&quot;, Nisamat)</td>
+<td>Media: agregar un modelo de adjudicación o escribir <code>selectedOfferId</code>, y un estado de equivalencia por línea en <code>quotation/</code></td>
+<td>O-06 para las ofertas ajustadas; la versión con catálogo puede ir antes</td>
+<td>M</td>
+<td>4×0,8×3/2 = <strong>4,8</strong></td>
+<td>propuesto</td>
+<td><code>d-comparar.html</code>, <code>d-cotizacion.html</code></td>
+</tr>
+<tr>
+<td>O-19</td>
+<td><strong>Reglas de accesorios derivados</strong> (EMEVE: térmica 2P 16 A → cable, terminales, numeradores)</td>
+<td>Ingeniería</td>
+<td>EMEVE ya las usa a mano; es la &quot;zona gris&quot; (<code>research/01 §3</code>) [entrevista]; no figura en ningún plan</td>
+<td>Menos faltantes entre la cotización y la obra real; alternativa barata al 3D (O-13)</td>
+<td>Media: reglas sobre el tipo y los atributos canónicos, con líneas nuevas de origen &quot;regla&quot; en <code>electrical-bom/</code></td>
+<td>O-03</td>
+<td>M</td>
+<td>4×0,6×3/2 = <strong>3,6</strong></td>
+<td>propuesto</td>
+<td><code>d-bom.html</code> (origen RULE)</td>
+</tr>
+<tr>
+<td>O-12</td>
+<td><strong>Presupuesto de venta y margen</strong> con FX, inflación y validez</td>
+<td>Ingeniería (segmento B)</td>
+<td>GRAMONT: el problema es el costeo [entrevista]; inflación 1,7 % mensual [fuente externa]; la forma de pago cambia el precio [entrevista]</td>
+<td>Abre el segmento B y un motivo de recotizar. Hipótesis: se cobra aparte (umbral ≥ 40 % de empresas, <code>01 §5</code>)</td>
+<td>Media: los totales y la conversión a <code>QUOTATION_CURRENCY</code> ya existen; falta un modelo de presupuesto (mano de obra, extras, margen, validez, escenario)</td>
+<td>O-15, O-16</td>
+<td>M</td>
+<td>4×0,5×3/2 = <strong>3,0</strong></td>
+<td>propuesto</td>
+<td><code>d-presupuesto.html</code></td>
+</tr>
+<tr>
+<td>O-20</td>
+<td><strong>Reglas por empresa para especificaciones incompletas</strong> (Meco: &quot;250 A tetrapolar&quot; admite muchas referencias)</td>
+<td>Ingeniería</td>
+<td>Meco lo pidió [entrevista]; <code>lineIssues</code> hoy solo avisa &quot;Faltan atributos esenciales&quot;</td>
+<td>Menos NOT_FOUND y menos idas y vueltas con el cliente final</td>
+<td>Media: valores por defecto por tipo base y por cuenta, junto a <code>brand-preference/</code></td>
+<td>O-03</td>
+<td>M</td>
+<td>4×0,5×3/2 = <strong>3,0</strong></td>
+<td>propuesto</td>
+<td><code>d-bom.html</code>, <code>d-cuenta.html</code></td>
+</tr>
+<tr>
+<td>O-05</td>
+<td><strong>BOM alternativo</strong> (#828 → #829, #830, #831)</td>
+<td>Ingeniería</td>
+<td>Meco valora alternativas cuando no hay stock [entrevista]; no hay ningún campo en el schema (<code>research/04 §2</code>) [medido]</td>
+<td>Una cotización de respaldo evita volver a cotizar cuando falta stock</td>
+<td>Media: la cadena editor → cotización → pedido toca 3 módulos</td>
+<td>Se consolida con O-06/O-16 (ver abajo)</td>
+<td>M</td>
+<td>3×0,6×3/2 = <strong>2,7</strong></td>
+<td>planificado</td>
+<td><code>d-bom.html</code>, <code>d-prov-oferta.html</code></td>
+</tr>
+<tr>
+<td>O-11</td>
+<td><strong>Cobro: suscripción de la herramienta + tarifa por lead</strong></td>
+<td>Liard (ingreso)</td>
+<td>Plan del Sprint 5 sin issue ni evidencia; <strong>nunca se preguntó disposición a pagar</strong> (<code>research/01 §3</code>) [entrevista]</td>
+<td>Es el ingreso directo, pero el precio no está validado. Empezar con facturación manual evita construir cobro antes de saber cuánto cobrar</td>
+<td>Media: no hay modelo de plan, uso ni factura; el uso (tableros procesados) sí se puede contar desde <code>ProcessingJob</code></td>
+<td>V1 de validación, O-09, O-26</td>
+<td>M</td>
+<td>4×0,3×3/2 = <strong>1,8</strong></td>
+<td>planificado</td>
+<td><code>d-cuenta.html</code>, <code>d-cuenta.html?rol=prov</code></td>
+</tr>
+<tr>
+<td>O-18</td>
+<td><strong>Procesar DWG</strong> sin convertir a DXF</td>
+<td>Ingeniería</td>
+<td>VIS §1.1: los planos llegan en DWG [entrevista]; no hay código ni issue (<code>research/04 §2</code>)</td>
+<td>Saca un paso manual; su peso es incierto porque EMEVE ya convierte y el PDF ya entra</td>
+<td>Baja: hace falta un conversor (licencia a evaluar, <strong>no verificada</strong>) en <code>component-detector</code></td>
+<td>—</td>
+<td>M</td>
+<td>3×0,6×2/2 = <strong>1,8</strong></td>
+<td>planificado</td>
+<td><code>d-obra.html</code></td>
+</tr>
+<tr>
+<td>O-07</td>
+<td><strong>RFQ previa al pedido</strong>: solicitud con plazo a N distribuidores, varias ofertas, vencimiento y declinación con motivo</td>
+<td>Ingeniería ↔ distribuidor</td>
+<td>Hoy la cotización sale 100 % del catálogo (<code>research/02 §4</code> paso 20) [medido]; EMEVE pide precio a 2–3 proveedores [entrevista]</td>
+<td>Es el núcleo del marketplace y la base para cobrar por RFQ calificada (H-M3)</td>
+<td>Baja: no existen los modelos RFQ, oferta ni línea de oferta; sí se reusan <code>QuoteProviderOffer</code> y <code>purchase-order</code></td>
+<td>O-06, O-25, O-08</td>
+<td>L</td>
+<td>5×0,7×2/4 = <strong>1,75</strong></td>
+<td>propuesto (el prototipo ya lo simula)</td>
+<td><code>d-cotizacion.html</code>, <code>d-prov-solicitudes.html</code>, <code>d-prov-oferta.html</code></td>
+</tr>
+<tr>
+<td>O-26</td>
+<td><strong>Espacio de trabajo multiusuario</strong> (empresa con miembros y roles internos)</td>
+<td>Ingeniería</td>
+<td>Liard: 2 presupuestadores, 3 part-time, 2 de compras y un revisor (VIS §1.1); César Braña: 11 personas [entrevista]; <code>Project.ownerId</code> es el único dueño [medido]</td>
+<td>Habilita la suscripción por empresa (H-M1) y el tope de IA por espacio de trabajo (#985 §3)</td>
+<td>Baja: todas las consultas filtran por <code>ownerId</code></td>
+<td>O-01</td>
+<td>L</td>
+<td>4×0,7×2/4 = <strong>1,4</strong></td>
+<td>propuesto</td>
+<td><code>d-automatizaciones.html</code>, <code>d-cuenta.html</code></td>
+</tr>
+<tr>
+<td>O-14</td>
+<td><strong>Asistentes IA especializados</strong> (revisión de ofertas, BOM, catálogo)</td>
+<td>Ingeniería, distribuidor</td>
+<td>Desconfianza hacia la IA generalista (EMEVE) [entrevista]; nadie los pidió</td>
+<td>Incierto. Riesgo de sumar costo de IA sin ingreso asociado</td>
+<td>Media: se pueden montar sobre la lectura IA existente</td>
+<td>O-09</td>
+<td>M</td>
+<td>3×0,3×3/2 = <strong>1,35</strong></td>
+<td>propuesto</td>
+<td><code>d-asistentes.html</code></td>
+</tr>
+<tr>
+<td>O-17</td>
+<td><strong>Colaboración, aprobaciones y automatizaciones</strong> (comentarios, aprobación por monto, reglas &quot;cuando… entonces…&quot;)</td>
+<td>Ingeniería (dirección, compras)</td>
+<td>Doble revisión por tablero (VIS §1.1) [entrevista]; no hay nada en el código (<code>research/02 §4</code> paso 24)</td>
+<td>Menos retrabajo y control de montos grandes; retiene equipos, no usuarios sueltos</td>
+<td>Baja: requiere O-26 y O-08</td>
+<td>O-26, O-08</td>
+<td>L</td>
+<td>3×0,5×2/4 = <strong>0,75</strong></td>
+<td>propuesto</td>
+<td><code>d-automatizaciones.html</code>, <code>m-aprobar.html</code></td>
+</tr>
+<tr>
+<td>O-21</td>
+<td><strong>Datos de fabricante</strong> (fichas, equivalencias oficiales y reglas de neutralidad para un fee financiado por el fabricante)</td>
+<td>Fabricante</td>
+<td>Representantes cobran 8–16 % [fuente externa]; ningún fabricante fue entrevistado</td>
+<td>Posible fuente de ingreso H-M5, pero hay conflicto con la neutralidad</td>
+<td>Baja: canónico sin marca por diseño</td>
+<td>Volumen medido</td>
+<td>L</td>
+<td>3×0,3×2/4 = <strong>0,45</strong></td>
+<td>propuesto</td>
+<td>—</td>
+</tr>
+<tr>
+<td>O-22</td>
+<td><strong>Índice de precios y plazos</strong> por componente canónico</td>
+<td>Distribuidor, fabricante</td>
+<td>TRA-SER USD 1.260 por usuario/año como referencia [fuente externa]; los proveedores advirtieron que el precio de lista es solo referencia [entrevista]</td>
+<td>Producto de datos en H3, solo con volumen y consentimiento</td>
+<td>Baja: necesita O-15 y mucho volumen</td>
+<td>O-15, O-07, consentimiento</td>
+<td>L</td>
+<td>3×0,2×2/4 = <strong>0,3</strong></td>
+<td>propuesto</td>
+<td>—</td>
+</tr>
+<tr>
+<td>O-13</td>
+<td><strong>Tablero 3D conceptual</strong> inferido del BOM</td>
+<td>Ingeniería</td>
+<td>El plano no trae la geometría del gabinete (<code>research/01 §5</code>); los ahorros del estudio 3D están en la fabricación, no en la cotización (<code>research/05 §4</code>) [fuente externa]</td>
+<td>Bajo en la etapa de cotización; se acerca a la exclusión &quot;cálculos de ingeniería&quot; (VIS §3.3)</td>
+<td>Baja: no hay datos de módulos DIN ni dimensiones</td>
+<td>O-19</td>
+<td>L</td>
+<td>2×0,2×2/4 = <strong>0,2</strong></td>
+<td>propuesto</td>
+<td><code>d-tablero-3d.html</code></td>
+</tr>
+</tbody></table>
+<p><strong>Lectura del orden.</strong> Los cinco primeros son chicos, de alta confianza y habilitan el piloto: O-23, O-02, O-04, O-08 y
+O-01. O-01 queda quinto por esfuerzo, pero es una <strong>compuerta</strong>. O-07 (RFQ) sale bajo por el esfuerzo L, a pesar de ser el
+núcleo del marketplace. Por eso se parte: O-06 (ajustar la oferta sobre el pedido que ya existe) captura la mayor parte del
+valor con esfuerzo M, y O-07 queda para H2.</p>
+<hr>
+<h2>Consolidadas, diferidas y descartadas</h2>
+<h3>Consolidadas (se superponían)</h3>
+<table>
+<thead>
+<tr>
+<th>Qué</th>
+<th>Con qué</th>
+<th>Por qué</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>BOM alternativo (O-05)</td>
+<td>Modo <code>ALTERNATIVA</code> de la oferta (O-06) + aprobación de equivalencia (O-16)</td>
+<td>El discovery habla de alternativas <strong>sin stock</strong> (Meco), algo que sabe el proveedor. Un campo alternativo en el editor (#829) y una alternativa propuesta por el proveedor resuelven lo mismo por dos caminos. Recomendación: hacer primero la del proveedor con aprobación de ingeniería, y dejar #829 para cuando el ingeniero pida fijar la alternativa antes de cotizar</td>
+</tr>
+<tr>
+<td>Plazos (O-25) y vencimiento de RFQ</td>
+<td>O-07</td>
+<td>El mismo barrido programado sirve para los dos; primero se aplica a los pedidos, que ya existen</td>
+</tr>
+<tr>
+<td>Automatizaciones y aprobaciones</td>
+<td>O-17 único</td>
+<td>Comparten el modelo de reglas y dependen de O-26</td>
+</tr>
+<tr>
+<td>Tope de IA por espacio de trabajo (#985 §3)</td>
+<td>O-09 + O-26</td>
+<td>Hasta que O-26 exista, el tope va por usuario</td>
+</tr>
+<tr>
+<td>Preferencias de marca que el matcher ignora (R9)</td>
+<td>O-02</td>
+<td>Es un ajuste chico de la cotización, que se decide en el mismo ticket</td>
+</tr>
+</tbody></table>
+<h3>Diferidas (la evidencia no alcanza todavía)</h3>
+<table>
+<thead>
+<tr>
+<th>Qué</th>
+<th>Condición para retomarla</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Tablero 3D (O-13)</td>
+<td>≥ 2 de 5 pilotos lo piden sin que se lo sugieran, o los accesorios y el gabinete explican ≥ 15 % de la diferencia entre la cotización y la obra (<code>research/05 §4</code>). Mientras tanto, O-19</td>
+</tr>
+<tr>
+<td>Comisión por lead (H-M4)</td>
+<td>Volumen de pedidos medido y ≥ 3 distribuidores que acepten el esquema en la validación V2</td>
+</tr>
+<tr>
+<td>Índice de precios (O-22) y datos de fabricante (O-21)</td>
+<td>Volumen, consentimiento escrito de los proveedores y reglas de neutralidad</td>
+</tr>
+<tr>
+<td>Asistentes IA (O-14)</td>
+<td>O-09 funcionando y un pedido concreto de al menos 2 pilotos</td>
+</tr>
+<tr>
+<td>Entrada EPLAN y planillas de carga</td>
+<td>Aparece en el discovery (GRAMONT, EMEVE) sin ningún plan; se retoma al entrar al segmento B</td>
+</tr>
+<tr>
+<td>Aprender de las correcciones</td>
+<td>Pedido del discovery sin plan. Requiere O-04 para medir si mejora; el caché <code>BomLineReading</code> es un primer paso</td>
+</tr>
+<tr>
+<td>Segundo YOLO (#946)</td>
+<td>Probablemente obsoleto: R+U juntos no suman ni un aparato y tardan un 63 % más (<code>research/04 §3</code>)</td>
+</tr>
+</tbody></table>
+<h3>Descartadas</h3>
+<table>
+<thead>
+<tr>
+<th>Qué</th>
+<th>Motivo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Pagos de materiales dentro de la plataforma (Mercado Pago, escrow)</td>
+<td>Exclusión explícita (VIS §3.3, ARQ §Resumen de decisiones); Q Electric lo rechazó [entrevista]; riesgo regulatorio y de responsabilidad. La <strong>tarifa de la plataforma</strong> (O-11) es otra cosa y queda</td>
+</tr>
+<tr>
+<td>Comisión de 2–10 % sobre el GMV</td>
+<td>Con un margen neto de ~3 % en el distribuidor [fuente externa], se come la mitad de su ganancia [estimación]</td>
+</tr>
+<tr>
+<td>Cálculos eléctricos automáticos (caída de tensión, cortocircuito, dimensionamiento)</td>
+<td>Exclusión explícita (VIS §3.3) y riesgo de responsabilidad profesional</td>
+</tr>
+<tr>
+<td>Entrenar con símbolos de QElectroTech</td>
+<td>La licencia prohíbe usarlos para ML (<code>research/01 §6</code>)</td>
+</tr>
+<tr>
+<td>Precio por usuario (seat) como modelo principal</td>
+<td>Castiga equipos grandes y fomenta compartir cuentas (<code>research/05 §3.3</code>); se deja solo como opción comparativa</td>
+</tr>
+<tr>
+<td>Automatización total sin revisión humana</td>
+<td>Exclusión (VIS §3.3); la desconfianza hacia la IA es un riesgo operativo que ya se observó (EMEVE)</td>
+</tr>
+</tbody></table>
+</article></body></html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard horizon · propuesta de producto v1</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<style>
+  body { background-color: var(--bg); }
+  .g-head { background: var(--stage); color: var(--stage-ink); padding: 40px 48px 28px; position: relative; overflow: hidden; }
+  .g-head::after { content: ''; position: absolute; inset: 0; background: radial-gradient(900px 300px at 85% -10%, rgba(242,183,5,.18), transparent 60%), radial-gradient(700px 300px at 10% 120%, rgba(31,79,216,.35), transparent 60%); pointer-events: none; }
+  .g-head > * { position: relative; z-index: 1; }
+  .g-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .g-head h1 { font-size: 44px; letter-spacing: -.03em; max-width: 980px; }
+  .g-head h1 em { font-style: normal; color: var(--volt); }
+  .g-lead { max-width: 900px; color: var(--stage-ink-2); font-size: var(--fs-lg); margin: 14px 0 18px; }
+  .g-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .g-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--stage-line); font-size: var(--fs-xs); color: var(--stage-ink); background: rgba(255,255,255,.03); }
+  .g-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .g-actions .btn-secondary { background: transparent; color: var(--stage-ink); border-color: var(--stage-line); }
+  .g-nav { position: sticky; top: 0; z-index: 40; display: flex; gap: 6px; overflow-x: auto; padding: 10px 48px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .g-nav a { flex: none; padding: 6px 12px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); text-decoration: none; border: 1px solid var(--line); background: var(--surface); }
+  .g-nav a:hover, .g-nav a.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .g-wrap { padding: 8px 48px 64px; }
+  section.g-sec { padding: 36px 0 12px; border-bottom: 1px dashed var(--line-strong); }
+  .g-sec > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .g-sec h2 { font-size: 26px; } .g-sec h2 small { font: 600 13px var(--font-mono); color: var(--ink-3); margin-right: 6px; }
+  .g-desc { max-width: 1100px; color: var(--ink-2); } .g-desc ul { margin: 6px 0 10px; padding-left: 18px; } .g-desc li { margin: 2px 0; }
+  .g-states { font-size: var(--fs-xs); margin: 6px 0 16px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .g-states a { padding: 3px 8px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line); text-decoration: none; }
+  .frames { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+  figure { margin: 0; }
+  .phone { width: 410px; height: 864px; padding: 10px; border-radius: 52px; background: #0b0f18; box-shadow: var(--shadow-3), inset 0 0 0 2px #2a3040; }
+  .phone iframe { width: 390px; height: 844px; border: 0; border-radius: 42px; background: var(--bg); display: block; }
+  .desk { width: 864px; border-radius: 14px; background: #0b0f18; padding: 30px 12px 12px; position: relative; box-shadow: var(--shadow-3); }
+  .desk::before { content: ''; position: absolute; top: 11px; left: 16px; width: 44px; height: 9px; background: radial-gradient(circle at 4.5px 4.5px, #ff5f57 4px, transparent 4.5px), radial-gradient(circle at 21.5px 4.5px, #febc2e 4px, transparent 4.5px), radial-gradient(circle at 38.5px 4.5px, #28c840 4px, transparent 4.5px); }
+  .vp { width: 840px; height: 580px; overflow: hidden; border-radius: 6px; background: var(--bg); }
+  .vp iframe { width: 1440px; height: 994px; border: 0; transform: scale(.5834); transform-origin: 0 0; display: block; }
+  figcaption { max-width: 864px; margin-top: 10px; font-size: var(--fs-sm); font-weight: 600; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; }
+  .phone + figcaption { max-width: 410px; }
+  figcaption a { font-weight: 500; font-size: var(--fs-xs); } figcaption small { flex-basis: 100%; font-weight: 400; color: var(--ink-3); font-size: var(--fs-xs); }
+  .journey { counter-reset: j; } .journey figure { counter-increment: j; } .journey figcaption::before { content: counter(j); display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--volt); color: var(--stage); font: 700 11px var(--font-mono); }
+  .cov td, .cov th { font-size: var(--fs-xs); }
+  .tradeoffs { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin: 10px 0 18px; max-width: 1400px; }
+  .tradeoffs .card { padding: 12px 14px; font-size: var(--fs-sm); } .tradeoffs h4 { margin-bottom: 4px; display: flex; gap: 6px; align-items: center; } .tradeoffs p { margin: 0; color: var(--ink-2); }
+  .tradeoffs .rec { border-color: var(--volt); box-shadow: 0 0 0 2px var(--volt-soft); }
+  .g-foot { padding: 28px 48px 48px; color: var(--ink-3); font-size: var(--fs-sm); }
+  body.bare .g-head, body.bare .g-nav, body.bare .g-foot, body.bare .g-cov { display: none; }
+  body.bare .g-wrap { padding: 12px 24px 24px; } body.bare section.g-sec { border: 0; padding-top: 8px; }
+  .livebar { display: flex; flex-wrap: wrap; gap: 14px; font: 500 12px var(--font-mono); color: var(--stage-ink-2); margin-top: 16px; }
+  .livebar b { color: var(--stage-ink); }
+  @media (max-width: 900px) { .g-head, .g-wrap, .g-nav, .g-foot { padding-left: 16px; padding-right: 16px; } .g-head h1 { font-size: 30px; } .desk, .vp { width: 100%; } }
+</style>
+</head>
+<body>
+<header class="g-head">
+  <div class="g-brand"><span class="brand-mark" id="g-mark" style="width:34px;height:34px"></span><span class="brand-word" style="font-size:24px">liard</span><span class="brand-sub">horizon</span></div>
+  <h1>Del plano al pedido, <em>con cada número respaldado</em>: propuestas de UI v1</h1>
+  <p class="g-lead">Galería de prototipos funcionales. Cubre los recorridos que ya existen en <code>dev</code>, lo que queda del Sprint 4, lo planificado para el Sprint 5 y oportunidades nuevas. Todas las pantallas comparten el mismo estado: lo que hacés en una se ve en las demás y entre roles, sobrevive a la recarga y se reinicia desde «Reiniciar demo».</p>
+  <div class="g-pills">
+    <span class="g-pill">Datos de ejemplo ficticios: empresas, personas, códigos y precios inventados</span>
+    <span class="g-pill">Detección, IA, correos y pagos simulados: no hay servicios reales conectados</span>
+    <span class="g-pill">Auditado contra lab3-liard <code>dev</code> @ 04fc8139</span>
+    <span class="g-pill"><span class="cap cap-existe">existe</span> <span class="cap cap-plan">planificado</span> <span class="cap cap-prop">propuesto</span></span>
+  </div>
+  <div class="g-actions">
+    <a class="btn btn-volt" href="#recorrido">Ver el recorrido completo</a>
+    <a class="btn btn-secondary" href="estrategia/index.html">Estrategia, oportunidades y roadmap</a>
+    <a class="btn btn-secondary" href="#cobertura">Mapa de cobertura</a>
+    <button class="btn btn-secondary" id="g-reset" type="button">Reiniciar demo</button>
+  </div>
+  <div class="livebar" id="live" aria-live="polite"></div>
+</header>
+<nav class="g-nav" id="g-nav" aria-label="Secciones"></nav>
+<div class="g-wrap" id="g-wrap"></div>
+<footer class="g-foot">Prototipo local de exploración: no es código de producción ni un compromiso de alcance. Que una pantalla funcione acá no significa que su sprint de producción esté completo; ver <a href="estrategia/index.html">roadmap</a>. Los símbolos eléctricos son esquemas dibujados para la demo; el catálogo QElectroTech (CC-BY) no se usa como datos de entrenamiento.</footer>
+<script src="sections.js"></script>
+<script src="gallery.js"></script>
+</body>
+</html>

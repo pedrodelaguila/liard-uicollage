@@ -1,0 +1,268 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 01 — Producto LIARD: lo que dice la documentación</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="../estrategia/01-estrategia.html" class="">01 · Estrategia de liard</a><a href="../estrategia/02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="../estrategia/03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="../estrategia/04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="01-producto.html" class="on">01 — Producto LIARD: lo que dice la documentación</a><a href="02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>01 — Producto LIARD: lo que dice la documentación</h1>
+<p>Fuente: repo <code>lab3-liard</code>, rama <code>dev</code>, commit <code>04fc8139</code> (solo lectura). Citas como <code>archivo §sección</code>. Abreviaturas: <strong>VIS</strong> = <code>documentacion/Documento de Visión - LIARD.md</code>, <strong>DISC</strong> = <code>documentacion/Entrevistas de discovery.md</code>, <strong>RM</strong> = <code>documentacion/Roadmap.md</code>, <strong>ARQ</strong> = <code>documentacion/Arquitectura Liard.md</code>, <strong>D1/D2/D3</strong> = <code>documentacion/demo-{1,2,3}-sprint-{1,2,3}.md</code>, <strong>PL</strong> = <code>documentacion/planos.md</code>, <strong>SIM</strong> = <code>documentacion/simbolos-tableros-electricos.md</code>, <strong>TONO</strong> = <code>docs/ui-tono-y-mensajes.md</code>.</p>
+<p>Distinción que conviene mantener (la hace DISC §intro): <strong>evidencia directa</strong> (lo dijo un entrevistado), <strong>definición de producto</strong> (decisión del equipo) y <strong>derivación</strong> (cruce de fuentes). Muchos números &quot;de éxito&quot; son del segundo tipo.</p>
+<hr>
+<h2>1. Visión, problema, propuesta de valor, objetivos y criterios de éxito</h2>
+<p><strong>Problema.</strong> Empresas como Liard reciben planos de terceros en DWG hechos &quot;a mano&quot;, sin AutoCAD Electrical: figuras geométricas y texto sueltos, sin bloques/componentes estandarizados; no se les puede imponer un estándar porque el cliente no quiere gastar tiempo (VIS §1.1; D1 §5 &quot;No se pueden pedir planos bien hechos&quot;). Por eso el conteo lo hacen ingenieros a mano para armar el BOM.</p>
+<p><strong>Números del problema (VIS §1.1, D1 §3):</strong></p>
+<ul>
+<li>La cotización de tableros es ~10 % de todo el proyecto.</li>
+<li>Tablero chico ≈ 30 min; tablero grande ≥ 1 día. Edificio sencillo ≈ 40 tableros. Cada tablero se revisa ≥ 2 veces (con supervisor).</li>
+<li>Equipo de cotización de Liard: 2 presupuestadores full-time, 3 apoyos part-time en picos, 2 de compras, Daniel García revisando por muestreo.</li>
+<li>Costo mensual visible: <strong>$5M–$6.6M/mes</strong> base; <strong>$6.5M–$9.3M/mes</strong> con part-time (ARS; D1 lo redondea a &quot;~ARS 6 millones&quot;).</li>
+<li>Tamaños de proyecto (VIS §Glosario): chico 5–10 tableros, mediano 10–40, grande 40–50 en edificio sencillo y &gt;100 en propiedad horizontal compleja (hospitales, edificios).</li>
+<li>Liard no puede asumir más obras: tendría capacidad de cotizar y fabricar tableros, pero son solo parte de la obra y no tiene recursos para cotizar/gestionar el total (VIS §1.1).</li>
+</ul>
+<p><strong>Propuesta de valor.</strong> Dos piezas, en este orden de prioridad (VIS §4.2):</p>
+<ol>
+<li><strong>Herramienta contadora</strong> DWG/DXF → BOM, con &quot;automatización asistida con validación humana&quot;: la tecnología resuelve lo de alta certeza y deriva lo ambiguo (VIS §2.1). Lema de demos: &quot;Del plano al BOM en segundos. Y del BOM al proveedor.&quot; (D1 §14, D2 §7, D3 §10). D1 §8: <em>Detecta → Cuenta → Avisa</em>.</li>
+<li><strong>Marketplace</strong> empresas ↔ proveedores: el BOM se cotiza con <strong>precios de referencia</strong> de proveedores adheridos; el proveedor <strong>confirma o ajusta</strong> precio, stock y plazo al responder; cierre comercial, pago y flete quedan fuera (VIS §1.1 &quot;Acuerdos Comerciales&quot;, §2.2). Nueva unidad de negocio separada de Liard (VIS §1.1, §1.2).</li>
+</ol>
+<ul>
+<li>Premisa de mercado: los proveedores eléctricos &quot;facturan menos de la mitad que en 2023&quot; y estarían dispuestos a sumarse; pero en entrevistas valoraron tanto o más la eficiencia/orden/comunicación que el volumen (VIS §1.1).</li>
+<li>Oportunidad: mejora acotada por proyecto pero replicable en N empresas (VIS §1.2). Inversores/sponsors: Marcelo Glorioso (presidente de Liard) y Adrián Gutman (vicepresidente de CADIME) (VIS §1.2).</li>
+<li>DISC §&quot;El problema&quot; reformula: no es un problema sino tres conectados — interpretar plano → BOM; BOM → productos comerciales de catálogos; conectar con proveedores y comparar. Flujo real: <em>plano → interpretación → conteo → completar lo faltante → BOM → equivalencias por marca → accesorios derivados → costeo → stock/precio/proveedores → comparación → cotización</em>.</li>
+</ul>
+<p><strong>Objetivos (VIS §1.3):</strong> herramienta que cuente y distinga componentes y notifique lo no identificado; reducir costo y tiempo de conteo; facilitar encontrar un proveedor que venda todo el BOM; unidad de negocio rentable.</p>
+<p><strong>Criterios de éxito (VIS §1.3)</strong> — <em>solo validados por documentación, no por entrevistas</em> (DISC §Estado de la evidencia):</p>
+<ul>
+<li>Tableros simples: BOM del software <strong>igual</strong> al del ingeniero.</li>
+<li>Tableros complejos: precisión <strong>≥ 90 %</strong>, avisando qué no pudo identificar.</li>
+<li>Tiempo de análisis <strong>90 % menor</strong> que el de un ingeniero.</li>
+<li>Costo significativamente menor que contratar técnicos; cotizaciones usan bien los catálogos; ROI positivo futuro.</li>
+</ul>
+<p><strong>Mediciones reportadas:</strong></p>
+<ul>
+<li>D1 §12 (Sprint 1): tablero chico ~1 min, &quot;eficacia&quot; ~95 %, costo $0,1–0,2 por tablero (moneda no aclarada).</li>
+<li>D3 §6–8 (Sprint 3, caso real <strong>Fundaleu</strong>, planta baja): 8 tableros DXF, 31 tipos de material, 394 unidades, conteo manual del técnico del cliente = <strong>4 h</strong>. Antes del sprint: 10 min, precisión 68 %, problema &quot;componentes fantasma&quot;. Después: <strong>17 min, detección 90 %, precisión 100 %</strong> (lo no detectado = lo que el detector aún no aprendió).</li>
+<li>RM §Sprint 4.6: PDF detecta 2–3 % menos componentes que el mismo plano en DXF; filtrado de planos grandes bajó de ~10 min a &lt;30 s.</li>
+<li>ARQ §Interfaces: ~121 llamadas a Claude por plano; límite 1.000 req/min con Opus 5.5 ≈ 8 planos/min; desde ~8 usuarios hace falta tier Scale.</li>
+</ul>
+<h2>2. Alcance, exclusiones, riesgos, stakeholders</h2>
+<p><strong>Escenarios de alcance (VIS §3):</strong> si los proveedores se integran → marketplace + herramienta; si no → solo herramienta de conteo. Por eso se empezó por el conteo.</p>
+<p><strong>Release inicial / MVP (VIS §3.1):</strong> detectar un set inicial de símbolos frecuentes y asociar especificación cuando haya certeza; lista preliminar para cotizar; validación manual de lo ambiguo; export CSV; base para integrar cotizaciones.</p>
+<p><strong>Releases siguientes (VIS §3.2):</strong> nuevos símbolos/reglas; normalizar nombres de materiales; probar en Liard y luego ofrecer a competidores; solicitudes de cotización desde la plataforma; modelo comercializable; catálogos/listas de precios en marketplace.</p>
+<p><strong>Exclusiones explícitas (VIS §3.3):</strong> planos sin mínimo de convenciones; simbologías/especificaciones inconsistentes sin reglas posibles; bocetos a mano y escaneos malos; <strong>cálculos eléctricos de ingeniería</strong> (caída de tensión, cortocircuito, equilibrio de fases, dimensionamiento de conductores y protecciones); <strong>automatización total sin humano</strong>. También fuera: <strong>pagos</strong> y <strong>fletes</strong> (VIS §1.1 &quot;Cosas a largo plazo&quot;, §2.3; ARQ §Marketplace &quot;Sistema de pagos: Fuera del alcance&quot;; Mercado Pago descartado, ARQ §Resumen de decisiones). Sin privilegio de administrador (README §Sembrar datos).</p>
+<p><strong>Suposiciones (VIS §2.3):</strong> los planos no están estandarizados pero conservan estructura mínima; los proveedores tienen interés; el pago se arregla afuera (el proveedor pasa sus datos bancarios). <strong>Dependencias:</strong> planos reales, catálogos actualizados, usuario capaz de identificar símbolos.</p>
+<p><strong>Ambiente operativo (VIS §4.3):</strong> información confidencial, entorno controlado; horario laboral 6–20 h; proceso manual como respaldo al principio.</p>
+<p><strong>Riesgos (VIS §1.5):</strong></p>
+<ul>
+<li>Técnicos (contador): falta de estandarización; ambigüedad de símbolos/textos; calidad de archivos; complejidad CAD (capas, superposición); confidencialidad; especificaciones incompletas (&quot;interruptor tetrapolar de 250 A&quot; admite muchas referencias).</li>
+<li>Operativos: muchos casos ambiguos; <strong>desconfianza hacia la IA</strong> (el rubro ya probó IA generalista con alucinaciones); error en la revisión manual; adopción.</li>
+<li>Comerciales: herramienta demasiado cara.</li>
+<li>Marketplace — técnicos: mantener la lista de materiales; falla en la devolución del presupuesto. Operativos: uso del contador sin cerrar cotización (se cobraría el uso pasado un rate). Comerciales: atraer proveedores; que no acepten <strong>comisión</strong>; que competidores desconfíen de una plataforma cuyos dueños vienen de Liard.</li>
+</ul>
+<p><strong>Stakeholders (VIS §4.1):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Stakeholder</th>
+<th>Rol</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Dueño/inversores (Glorioso, Gutman)</td>
+<td>Financian, definen prioridades, validan valor</td>
+</tr>
+<tr>
+<td>Empresas de ingeniería tipo Liard</td>
+<td>Usuarios directos (<code>ENGINEER</code>)</td>
+</tr>
+<tr>
+<td>Proveedores de materiales (Schneider, distribuidores)</td>
+<td>Usuarios secundarios (<code>SUPPLIER</code>): catálogos y respuesta con precio/stock/plazo</td>
+</tr>
+<tr>
+<td>Clientes finales (hospitales, industrias)</td>
+<td>Indirectos; no usan el sistema</td>
+</tr>
+</tbody></table>
+<p>Además: Daniel García (revisor en Liard, VIS §1.1); <strong>Eaton</strong>, &quot;primer cliente de Marcelo&quot;, destinatario de un video demo (RM §Sprint 4.12); demo en vivo en oficinas de Liard; deploy demo para <strong>5 primeros usuarios</strong> (RM §Sprint 4.11).</p>
+<h2>3. Discovery: empresas y proveedores</h2>
+<p><strong>Empresas tipo Liard (DISC §Empresas como LIARD):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Empresa (entrevistado)</th>
+<th>Proceso / volumen</th>
+<th>Dolor y pedido</th>
+<th>Implicancia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>EMEVE</strong> (Maximiliano Vergara; PyME, fundada 2020)</td>
+<td>Planos casi siempre AutoCAD; PDF vectorizado lo convierten; peor caso &quot;planilla de carga&quot;; 1 persona dedicada al conteo; pide precio a 2–3 proveedores</td>
+<td>Obra de ~40 tableros ≈ <strong>1,5 días</strong> solo de conteo; tablero complejo ≈ 1 día. Símbolos cambian de forma/tamaño/orientación. &quot;Zona gris&quot;: inferir gabinete, ventilación, canaletas, riel DIN, cables, terminales, numeradores, borneras. Probaron IA: errores y alucinaciones. Ya tienen reglas: térmica 2P 16 A → 3 alternativas de marca + cable + terminales + numeradores + accesorios</td>
+<td>IA + reglas + revisión humana; distinguir <strong>detectado / inferido por regla / agregado a mano</strong>; aprender de correcciones</td>
+</tr>
+<tr>
+<td><strong>Meco / Mehcco</strong> (Diego Delfino; ~35 años)</td>
+<td>Integrador <strong>ABB</strong>; recibe specs con códigos Schneider y las convierte. Conteo a mano; software ABB para tableros protocolizados. <strong>35–40 presupuestos/semana</strong>, 1 responsable + 4 técnicos; uno grande hasta 2 semanas</td>
+<td>Especificaciones incompletas (250 A tetrapolar → muchas referencias). Propuso <strong>reglas por empresa</strong> para lo que falta. Valor del marketplace: listado, valorización, varios proveedores, alternativas sin stock</td>
+<td>Equivalencias entre fabricantes (concepto → atributos → familia → SKU), reglas configurables</td>
+</tr>
+<tr>
+<td><strong>GRAMONT</strong> (David Igarzabal)</td>
+<td>PDF, DXF, DWG, AutoCAD y <strong>EPLAN</strong>; IEC 61439-1/-2, Golden Rules Schneider, EcoXpert. Herramientas propias + IA paga entrenada. ~<strong>300 cotizaciones/año</strong>, responden ~95 %, convierten <strong>10–15 %</strong></td>
+<td><strong>El conteo no es el problema</strong>: lo es el costeo y la personalización</td>
+<td>Segmento B: valen más matching, costeo, actualización de precios, comparación</td>
+</tr>
+<tr>
+<td><strong>César Braña</strong></td>
+<td><strong>11 personas cotizando</strong> a diario; también TGBT, BT/MT, variación de velocidad</td>
+<td>Unifilares poco detallados; proyecto complejo hasta 2 días</td>
+<td>Aceptar planos incompletos; no reemplazar criterio técnico (elegir marca es parte del trabajo)</td>
+</tr>
+</tbody></table>
+<p><strong>Proveedores (DISC §Proveedores y distribuidores):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Proveedor (entrevistado)</th>
+<th>Sistemas</th>
+<th>Lo que dijo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Electro HCM</strong> (Gustavo; proveedor + armador)</td>
+<td>SAP + sistemas del sector; pedidos por SAP, portales, email, WhatsApp, visitas</td>
+<td><strong>No quieren contar desde el plano</strong>: quieren el BOM ya contado y especificado. Marcas: Schneider, Siemens, ABB, CHINT, SICA, Genrod. Re-cotizaciones de hace 2 años → precios actualizables rápido</td>
+</tr>
+<tr>
+<td><strong>Q Electric</strong> (Gonzalo Rivas)</td>
+<td>EBASE/Electrobase; fabricantes aún mandan Excel+email; descuentos por email</td>
+<td>Interés en <strong>eficiencia, orden, comunicación</strong>, no necesariamente volumen. Pidieron: con quién trabaja cada empresa, señales de confianza, distribuidores por zona, alcance acotado a consultas y cotizaciones. <strong>Rechazo explícito a manejar pagos.</strong> Email como canal formal (trazabilidad). Precio de plataforma = solo referencia</td>
+</tr>
+<tr>
+<td><strong>Nisamat Group</strong> (Agustina Vázquez)</td>
+<td>Electrobase → migrando a Odoo; ~<strong>100.000 productos</strong></td>
+<td>Schneider en proporción muy alta de tableros. Descuentos dinámicos (volumen, convenio, historial, forma de pago 30/60/90). &quot;Idioma del tablerista&quot;: &quot;térmica&quot; = interruptor termomagnético; equivocarse es un problema técnico serio. Stock: hasta 3 meses de demora. Responden en <strong>2–3 h</strong>; <strong>15–20 presupuestos/día por vendedor</strong>; precio no siempre decide (cumplimiento, confianza, disponibilidad)</td>
+</tr>
+</tbody></table>
+<p>Adicional (docs/price-service): <code>informe_bom_cadime.md</code> — reuniones con Adrián (CADIME): ~<strong>700.000 componentes distintos</strong> en el mercado argentino; interruptores de luz ≈ 15 fábricas × 3 niveles = 45 coincidencias para una consulta genérica; API del proveedor en Zoho CRM, en desarrollo, sync diaria 23:00, búsqueda limitada a 5 palabras. <code>reunion1.md</code>: la API agrupa toda la especificación en un único campo de descripción, tiene millones de registros; no es viable traer el catálogo completo; el ID único del proveedor es la clave del match validado. (Hoy la integración por API <strong>no se construyó</strong>; se reemplazó por carga Excel + lectura IA, ARQ §Marketplace.)</p>
+<p><strong>Segmentos (DISC §Segmentos):</strong> A — alta necesidad de conteo (LIARD, EMEVE, Meco); B — procesos maduros (GRAMONT); C — proveedores (HCM, Q Electric, Nisamat).</p>
+<p><strong>Principios de diseño (DISC §Principios):</strong> no asumir planos estandarizados; no asumir 100 % automático; un nombre no identifica un producto; precio de catálogo ≠ precio final; el proveedor no quiere interpretar el plano; stock y plazo pesan como el precio; equivalencias de marca son centrales; <strong>no ocultar lo que no tiene match</strong>; el criterio del ingeniero debería volverse reglas de a poco.</p>
+<p><strong>Comparación de ofertas debe mostrar (DISC §Qué debería mostrar):</strong> proveedor, SKU, marca, precio, stock, plazo, fecha de actualización (alta); condición comercial (media/alta); observaciones (media).</p>
+<p><strong>Hallazgos no incorporados a ningún plan (DISC §Qué ya recoge el producto):</strong> accesorios derivados por regla (EMEVE), reglas por empresa para completar faltantes (Meco), aprender de correcciones, proveedores por zona y señales de confianza (Q Electric), entrada por PDF/planillas/EPLAN (PDF ya se agregó en Sprint 4, RM §4.6).</p>
+<p><strong>Disposición a pagar / monetización — ABIERTO, SIN VALIDAR.</strong> DISC §Estado de la evidencia: <em>sin validar</em> monetización, comisión, pricing, rol de CADIME, adopción por competidores de Liard, integración real con ERPs y <strong>disposición a pagar</strong>. DISC §Pendientes: el Roadmap presenta suscripción + comisión por lead como plan del Sprint 5, pero <strong>las entrevistas no preguntaron ni cuánto pagarían las empresas ni si los proveedores aceptarían comisión</strong>. Hipótesis a validar (DISC §Hipótesis): cuánto pagarían; suscripción vs pago por plano vs híbrido; comisión a proveedores; precisión mínima que genera confianza; valor del marketplace frente a procesos existentes; integraciones imprescindibles y datos de precio/stock que compartirían; peso de la confidencialidad y del miedo competitivo; rol de CADIME. Preguntas abiertas alrededor de Marcelo (DISC §Antecedentes): rentabilidad directa vs eficiencia del ecosistema, quién opera el marketplace, relación LIARD–Marcelo–Adrián–CADIME, cómo independizar el producto de Liard. No hay entrevista individual con Adrián Gutman.</p>
+<p><strong>Validado por entrevistas:</strong> conteo manual consume tiempo; planos heterogéneos; interpretación humana necesaria; valor en automatizar; proveedores con varios sistemas; precio y stock cambian; descuentos dinámicos; interés en centralizar pedidos de presupuesto; pagos no prioritarios; equivalencias de marca relevantes. RM §Sprint 3 Discovery agrega: empresas validaron utilidad; proveedores dispuestos a usarla para llegar a nuevos sectores.</p>
+<p><strong>Métricas sugeridas (DISC §Métricas):</strong> técnicas (precisión/recall, % símbolos desconocidos, % BOM corregido, tiempo de revisión); operativas (tiempo antes/después, tableros/h, presupuestos/persona, retrabajos); comerciales (RFQs, proveedores por RFQ, tasa y tiempo de respuesta, tasa de selección, dispersión entre ofertas). RM §Sprint 3 menciona que se definieron visión, misión, North Star y OKRs, pero su contenido <strong>no está</strong> en los documentos leídos.</p>
+<h2>4. Sprints 1–4 entregados y Sprint 5 planificado (RM, D1–D3)</h2>
+<ul>
+<li><strong>Sprint 1 — investigación y primera versión.</strong> Feature matching (ORB/SIFT), LLM con visión (Claude y GPT), YOLO; DWG→DXF, extracción de entidades, primer BOM, benchmark YOLO multi vs single clase; base NestJS+Prisma+Postgres, React, FastAPI, Docker. Resultado: app web para crear proyectos, subir tabla de referencia + planos, detectar con Claude y generar BOM (RM §Sprint 1; D1 §10).</li>
+<li><strong>Sprint 2 — BOM y primer catálogo.</strong> Matching con catálogo de <strong>CADIME</strong> (TSV) y primera cotización; visor de planos en la app; separar un DXF con varios planos en archivos individuales; BOM consolidado + export Excel/CSV; entrenamiento YOLO sobre 9 tipos (termomagnética, diferencial, ojo de buey, seccionador bajo carga, interruptor motorizado y temporizado, TTA, grupo electrógeno, multimedidor) y 4 arquitecturas YOLO+Claude; resolución manual de no identificados; gestión de proyectos (RM §Sprint 2; D2 §4).</li>
+<li><strong>Sprint 3 — circuito de dos lados.</strong> Carga de catálogo Excel en asistente de 3 pasos; usuarios y roles (ingeniería vs proveedor, landing, registro, recuperación, onboarding por rol, datos por dueño); editor de BOM; cotización comparativa con adjudicación por ítem y <strong>órdenes de compra por proveedor</strong>; pedidos enviados/recibidos (el proveedor acepta/rechaza; el contacto del comprador se revela al confirmar); cola de procesamiento en segundo plano; recorte de varios tableros en un DXF y de la tabla de referencia; ubicación de no identificados sobre el visor y resolución en lote; modo revisión; Cypress + review automático con Claude (RM §Sprint 3; D3 §3–4).</li>
+<li><strong>Sprint 4 — deploy y matching estructurado.</strong> Catálogo base (canónico) de componentes; IA (Haiku) que vincula cada fila del catálogo del proveedor, en vivo con costo y ETA, bandeja de estandarización; lectura del BOM con IA; <strong>matching por componente base + atributos esenciales</strong> (set de prueba: 67 materiales, cientos de variantes, series Schneider/ABB/Siemens); marca separada del proveedor, gamas, preferencias/exclusiones por cuenta o proyecto, opción &quot;optimizar por costo&quot;; pipeline de detección en 2 etapas (YOLO dónde, Claude qué), tabla de referencia opcional, familias fijas de aparatos; <strong>carga de PDF</strong>; ver y corregir componentes sobre el plano desde la fila del BOM; <strong>multiplicador de planos</strong> (tablero tipo repetido por piso); rediseño visual, cuenta de usuario; export distingue cantidad dibujada vs a comprar; 142 tests e2e; deploy demo a 5 usuarios; arquitectura AWS elegida frente a GCP/Azure; demo en Liard; video para Eaton (RM §Sprint 4).</li>
+<li><strong>Sprint 5 — plan.</strong> Extender deploy (serverless) a más usuarios de los dos perfiles; matching para todos los tipos de componente; <strong>BOM alternativo</strong> y cómo lo resuelve el proveedor; <strong>pagos = definir ingresos: suscripción a la herramienta + comisión al proveedor por lead</strong> (cada solicitud recibida); control de gasto de IA por usuario con límites; notificaciones por email a ambos lados; observabilidad; evaluar DWG sin convertir a DXF; iterar detección y ampliar dataset (RM §Sprint 5).</li>
+</ul>
+<h2>5. Cómo se ven los planos reales (para el prototipo de visualización 3D / plano)</h2>
+<p>Fuente: los 14 PNG de <code>documentacion/planos/</code> (render del <code>PlanRenderer</code> del detector, ezdxf+matplotlib, B/N con texto; PL §intro) y PL §§por plano. Dos proyectos, distinguibles por su biblioteca de bloques, no por rótulo (PL §Los dos proyectos): <strong>OCJ</strong> (edificio con subsuelo, TGBT y grupo electrógeno; bloques cuyo nombre dice el tipo; spec corta junto al símbolo <code>2x25A</code>, <code>30mA</code>) y <strong>Fundaleu</strong> (cliente real; bloques <code>TM-DIN</code>, <code>COND-3P-N</code>, <code>PLANILLA-UNI</code>, <code>BORNES</code>; spec en varias líneas con etiqueta <code>Q1</code>, <code>10A</code>, <code>Curva C</code>, <code>10kA</code>).</p>
+<p><strong>Gramática visual común (observada en los PNG):</strong></p>
+<ul>
+<li>Son <strong>esquemas unifilares</strong>, no planos de planta ni vistas frontales del gabinete. Arriba entra la <strong>acometida</strong> (flecha o triángulo) con texto vertical del cable (<code>LSOH 4x10mm+PE</code>, <code>BAND. PORTAC.</code>) y origen (<code>DE TSSA/N</code>, <code>DE ALIM. DESDE TGBT</code>).</li>
+<li>El <strong>tablero es un rectángulo punteado</strong> con el nombre arriba a la izquierda en letra grande (<code>TSCELS-1 (ESTAC. PLANTA SUB-SUELO)</code>, <code>TSA-CT TABLERO SERV. AUX. CT</code>, <code>TDE TABLERO DISTRIBUCIÓN EMERGENCIA</code>) y a veces un número en círculo.</li>
+<li>Debajo del interruptor general corre una <strong>barra horizontal</strong> (juego de barras) con texto técnico (<code>BARRA NORMAL 3x380/220VCA - 50Hz, 4 Cu (R/S/T/N), 1 Cu (PAT)</code>; en TGBT <code>In=1500A</code> normal e <code>In=1000A</code> emergencia). Desde la barra bajan <strong>ramas verticales</strong> en árbol: general → diferencial → grupo de 2–3 termomagnéticas por diferencial → salida. Fases rotuladas R/S/T.</li>
+<li><strong>Símbolos</strong>: línea inclinada = contacto; ganchito = térmica; <code>x</code> arriba = interruptor; óvalo/toroide alrededor de la línea = diferencial; tres barras oblicuas = cantidad de polos; círculo con <code>M</code> = motorizado; cuadro con <code>IM</code> = multimedidor; círculo <code>GE</code> = grupo electrógeno; cuadro <code>TTAB</code> = transferencia automática; <code>⊗</code> = lámpara/indicación luminosa; cuadrado con diagonal = bobina de contactor. Cada símbolo lleva su spec como texto al lado, a veces rotado 90°.</li>
+<li>Al pie, en Fundaleu, una <strong>planilla de circuitos</strong> (tabla): fila por atributo (Circuito Nº, Interruptor <code>TM C-60 2x10A</code>, Potencia kW, Fases, Cable formación/tipo <code>2x1,5+T LS0H</code>) y una columna por circuito, con &quot;FUNCIÓN / DESTINO&quot; en texto vertical (<code>ALIMENTACIÓN ILUMINACIÓN GENERAL SUBSUELO</code>, <code>RESERVA SIN EQUIPAR</code>). En OCJ/TGBT, los destinos van al pie de cada salida (<code>T.S. 3ºPISO NORMAL</code>).</li>
+<li>Estética: trazo fino gris, líneas punteadas para mando/señal, mucho espacio blanco, tipografía CAD sans-serif en mayúsculas.</li>
+</ul>
+<p><strong>Por plano (densidad):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Plano</th>
+<th>Tamaño</th>
+<th>Aspecto</th>
+<th>Qué se ve</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>TSCELS-1 (OCJ)</td>
+<td>Chico, 10 aparatos, 1400×1030</td>
+<td>Árbol limpio de 3 niveles</td>
+<td>General 4x40A, 3 diferenciales, 6 térmicas 2x10A/2x16A; PAT a tierra. &quot;Caso fácil&quot; (PL §TSCELS-1)</td>
+</tr>
+<tr>
+<td>test5 (OCJ)</td>
+<td>Mediano, 32</td>
+<td>Ancho, repetitivo</td>
+<td>Alimentado del TGBT barra emergencia; UPS 8 kVA, descargador, general 4x50A, 5 diferenciales 2x40A 30mA con 3 térmicas c/u. Único con ground truth: <strong>22 ITM, 8 diferenciales, 1 seccionador, 1 ojo de buey</strong> (PL §test5)</td>
+</tr>
+<tr>
+<td>TGBT (OCJ)</td>
+<td>Grande, 901 entidades, 476×141 u</td>
+<td><strong>Muy ancho y bajo</strong> (≈3,4:1); texto diminuto a escala</td>
+<td>Dos mitades: barra normal (S1, motorizado 4x1250A 50kA, IM, indicación R-S-T) con ~15 salidas 4x100–400A y barra emergencia (S2 4x800A, TTAB, GE 630 kVA) con ~15 salidas; acoplamiento S3; cables en texto vertical; destinos a pie</td>
+</tr>
+<tr>
+<td>TSA-CT (Fundaleu)</td>
+<td>Chico, 18, 900×1973</td>
+<td><strong>Vertical</strong></td>
+<td>Compact INS 40A, diferencial 25A 30mA <code>DD1</code>, Q1 10A Curva C 10kA + 2 reservas <code>RES</code>, borneras X2, planilla al pie</td>
+</tr>
+<tr>
+<td>TDE (Fundaleu)</td>
+<td>Mediano, 37, 1600×1424</td>
+<td>Casi cuadrado, tablero de potencia</td>
+<td>Dos GE 313 kVA arriba en recuadros punteados (TGE-1/2, COMAP), interruptores caja moldeada <code>630A NSX630F Micrologic 5.3E 36kA</code>, acoplamiento IAC, <strong>grilla de accesorios</strong> <code>BA/BC/MO/U&lt;/NCx2/NAx2</code> junto a cada interruptor (son opciones del interruptor, no aparatos sueltos), TI <code>630/5A x3</code>, multimedidores PM5100, descargador 3P+N, salida &quot;A BMS Y PLC EN TGBT&quot;</td>
+</tr>
+<tr>
+<td>TS-SS (Fundaleu)</td>
+<td>Grande, 363, 5128×1042</td>
+<td><strong>Extremadamente alargado (5:1)</strong>, decenas de columnas casi iguales</td>
+<td>Tres barras (emergencia, normal con contactor kC 115A, estabilizada desde TS-UPS-S); por circuito: diferencial <code>DD#</code> 25A 30mA → térmica <code>Q#</code> 10A Curva C 10kA → selector <code>M 0 A</code> (control de iluminación SCI) → contactor <code>K#</code> 12A AC3 → borne X2 → columna de planilla; nota de texto sobre diferenciales súper inmunizados</td>
+</tr>
+</tbody></table>
+<p><strong>Dificultades que la visualización debería reflejar (PL):</strong> repetición densa de aparatos iguales (test5, TS-SS); proporciones extremas (TGBT 9,6 px/unidad vs ~70 del resto → texto chico); spec partida en varias líneas y cable en texto vertical lejos del símbolo; mezcla de cosas que se compran (térmicas, diferenciales, contactores) con cosas que no se cuentan igual (bornes, selectores, etiquetas); accesorios como grilla de texto. Detección: bboxes normalizadas a 2 decimales que incluyen el texto de spec, solo para revisión humana, nunca para mapeo CAD (CLAUDE.md §Gotchas).</p>
+<p><strong>Implicancia para un prototipo 3D de tablero (derivación):</strong> el plano <strong>no trae geometría física</strong> del gabinete (ni tamaño, ni disposición en riel, ni ventilación): EMEVE lo llama &quot;zona gris&quot; que el ingeniero infiere (DISC §EMEVE). Un 3D del tablero sería <strong>inferido</strong> desde el BOM (tipo, polos, amperaje → ancho en módulos DIN), no leído del plano; y dimensionar gabinetes roza la exclusión de &quot;cálculos de ingeniería&quot; (VIS §3.3). Lo que sí es fiel al plano es una vista 2D del unifilar con árbol barra→ramas y la planilla al pie.</p>
+<h2>6. Glosario y símbolos</h2>
+<ul>
+<li><strong>Unifilar</strong>: esquema de una línea que representa todas las fases. <strong>BOM</strong>: lista de materiales. <strong>Tabla de referencia</strong>: leyenda de símbolos del proyecto (opcional desde Sprint 4).</li>
+<li><strong>TGBT</strong>: Tablero General de Baja Tensión (ocj-tgbt: &quot;TABLERO GENERAL DE BAJA TENSION (SUB SUELO)&quot;). <strong>TDE</strong>: Tablero de Distribución de Emergencia (PL §TDE). <strong>TS / T.S.</strong>: tablero seccional (TS-SS &quot;Tablero seccional subsuelo&quot;; salidas <code>T.S. 1ºPISO</code>). <strong>TSA-CT</strong>: tablero de servicios auxiliares CT. <strong>TTAB/TTA</strong>: tablero de transferencia automática. <strong>GE</strong>: grupo electrógeno. <strong>IM</strong>: multimedidor. <strong>ITM</strong>: interruptor termomagnético (&quot;térmica&quot;). <strong>PAT</strong>: puesta a tierra. <strong>LSOH/LS0H</strong>: cable libre de halógenos. <strong>Curva C / 10kA</strong>: curva de disparo / poder de corte. <strong>AC3</strong>: categoría de uso de contactor. <strong>BA/BC/MO/U&lt;/NC/NA</strong>: bobina de apertura, de cierre, motorización, mínima tensión, contactos auxiliares NC/NA.</li>
+<li><strong>Catálogo QElectroTech (SIM):</strong> 399 símbolos en 35 subcategorías, filtrados de 941 de la sección <code>10_electric/10_allpole</code> (descargado 29/9/2026): protecciones, contactores/relés, transformadores y fuentes, TI, señalización y mando, medición, PLC, bornes. Excluye motores, cables, sensores de campo, luminarias, etc. <strong>Licencia CC-BY 3.0</strong>: se puede consultar y redistribuir citando &quot;© colaboradores de QElectroTech&quot;; la versión inglesa del <code>ELEMENTS.LICENSE</code> <strong>prohíbe usarlos para construir modelos de ML</strong> → <strong>nunca</strong> como dataset de entrenamiento ni para datos sintéticos (SIM §Licencia; CLAUDE.md §Product documentation). Las marcas rojas/azules de las láminas son bornes y no aparecen en AutoCAD; muchas entradas repiten nombre (9 &quot;Dispositivo diferencial residual&quot;) porque son la misma función con distinto nº de polos o estilo — &quot;esas son justamente las variantes&quot;; varios nombres en español son traducciones comunitarias poco usadas en Argentina (&quot;disyuntor&quot; por térmica, &quot;clema&quot; por borne) (SIM §Cómo leerlo).</li>
+<li><strong>Láminas vistas (10):</strong> termomagnéticos GV (10, bloques con <code>I&gt;</code> por polo, 1P+N a 4P, mando manual/rotativo/palanca); diferenciales (21, toroide óvalo atravesado por 2–4 polos, o bloque <code>ID</code>/<code>IΔ</code>); seccionadores (9); contactos de potencia (11, 1–4 polos, NC); TI (8, toroide 1–4 polos); señalización óptica (12, <code>⊗</code> con color); medidores (31: A, V, Hz, kWh, Wh, varh, h); bornes (16); bobinas (28, rectángulo A1/A2 con marca lateral por tipo); protecciones de sobretensión (8). <strong>Contraste clave:</strong> QElectroTech dibuja estilo IEC/multifilar con bornes numerados (1-3-5 / 2-4-6), mientras los planos reales son unifilares con símbolo mínimo + texto; la variación real entre estudios es mayor que entre láminas.</li>
+</ul>
+<h2>7. Tono de UI (TONO)</h2>
+<ul>
+<li>Nombre: <strong>liard</strong>, minúsculas, sin sufijo (no &quot;LIARD&quot;, no &quot;Liard AI Tool&quot;); descriptor aparte &quot;Gestión de materiales eléctricos&quot;; la marca se dibuja con <code>BrandLogo</code>, nunca como texto.</li>
+<li><strong>Voseo rioplatense</strong> siempre (&quot;Cargá&quot;, &quot;Subí&quot;, &quot;Probá&quot;). Primera persona plural solo cuando algo falló del lado de la app (&quot;No pudimos cargar los pedidos&quot;); si no, sujeto = usuario u objeto (&quot;El plano quedó procesado&quot;).</li>
+<li>Botones dicen lo que va a pasar (&quot;Guardar cambios&quot;, &quot;Emitir pedidos&quot;), nunca &quot;Enviar&quot; genérico; el nombre de la acción se mantiene en todo el recorrido (&quot;Emitir pedidos&quot; → &quot;Pedidos emitidos&quot;).</li>
+<li>Vacíos explican de dónde salen las cosas y ofrecen el primer paso; vacío por filtros ≠ vacío real.</li>
+<li><strong>Números: solo los que se pueden sostener</strong>; nada que no salga del sistema o de una fuente citable.</li>
+<li>Referencias: <code>front/src/components/landing/landing-content.ts</code>, <code>front/src/components/order/empty-states/</code>, <code>front/src/components/auth/shared/AuthFormAlert.tsx</code>.</li>
+<li>Strings de usuario y <code>docs/</code> en español; identificadores y API en inglés (CLAUDE.md §Gotchas).</li>
+</ul>
+<h2>8. Abierto / a verificar</h2>
+<ol>
+<li><strong><code>docs/producto/</code> está vacío</strong> (directorio sin archivos, nada versionado). No hay documento de producto más allá de <code>documentacion/</code>.</li>
+<li><strong>Monetización y disposición a pagar</strong>: no preguntadas en discovery; suscripción + comisión por lead es plan de Sprint 5 sin evidencia (DISC §Pendientes). Riesgo VIS §1.5: proveedores que no acepten comisión.</li>
+<li><strong>North Star / OKRs</strong>: RM §Sprint 3 dice que se definieron; no aparecen en ningún documento leído.</li>
+<li><strong>Números de éxito</strong> (≥90 %, −90 % tiempo) solo validados por documentación; la medición Fundaleu es un caso (8 tableros) y PL §Qué falta dice que <strong>el listado manual de Fundaleu no está en el repo</strong> y no se confirmó que los 8 tableros del repo sean los de la demo. Ground truth solo para <code>test5</code> (y probablemente TGBT ≈ <code>test4</code>, no confirmado).</li>
+<li>D3 §8 reporta <strong>tiempo 17 min</strong> después vs 10 min antes (subió), a contrastar con el criterio de −90 % de tiempo (4 h manual → 17 min ≈ −93 %, cumple para ese caso).</li>
+<li>Costo D1 &quot;$0,1 a $0,2 por tablero&quot; sin moneda (D1 §12). <code>docs/investigacion_posibles_soluciones/pdf/README.md</code> menciona un plano <code>EZE4077</code> con &quot;US$ 0,66&quot; en un fragmento que no leí completo: verificar a qué se refiere antes de usarlo. No hay un costo por plano consolidado en la documentación de producto (el control de gasto de IA es tarea del Sprint 5).</li>
+<li><strong>Scoping de catálogo</strong>: lecturas del catálogo validan rol, no propiedad — pendiente antes de abrir a proveedores reales (ARQ §Manejo de datos; CLAUDE.md).</li>
+<li>Rol de CADIME y adopción por competidores de Liard (miedo competitivo): sin validar; sin entrevista con Adrián Gutman.</li>
+<li>Entradas DWG/EPLAN/planillas de carga: DWG se evalúa en Sprint 5; EPLAN y planillas en ningún plan.</li>
+<li>Reglas por empresa, accesorios derivados, aprender de correcciones, proveedores por zona y confianza: pedidos del discovery sin plan.</li>
+<li><code>README.md</code> describe un épico de auth con ramas &quot;en la pila, esperando merge&quot; y dice que <code>LoginPage</code> usa store simulado; RM §Sprint 3–4 dice que auth y roles están entregados. El README parece desactualizado — verificar contra el código antes de citarlo.</li>
+<li><code>AGENTS.md</code> es el mismo contenido que <code>CLAUDE.md</code> (difieren solo en el encabezado).</li>
+</ol>
+<hr>
+<h2>Resumen para decidir (~400 palabras)</h2>
+<p>LIARD ataca un dolor real y confirmado del lado de la demanda: contar a mano componentes en unifilares no estandarizados. Los números son consistentes entre fuentes — 30 min por tablero chico, 1 día por uno grande, ~40 tableros por edificio, doble revisión, ~ARS 6M/mes en Liard (VIS §1.1); EMEVE tarda 1,5 días en 40 tableros; Meco hace 35–40 presupuestos por semana (DISC). El caso Fundaleu (4 h manuales frente a 17 min, 100 % de precisión sobre lo detectado y 90 % de detección) es la mejor evidencia de producto, pero es un solo proyecto y su ground truth no está en el repo.</p>
+<p>La demanda no es homogénea. El segmento A (Liard, EMEVE, Meco) quiere conteo. El segmento B (GRAMONT) ya resolvió el conteo y quiere costeo y matching. Los proveedores (C) <strong>no quieren ver planos</strong>: quieren BOMs estructurados, trazabilidad por email y no quieren pagos en la plataforma. Por eso el valor defendible está en toda la cadena plano → BOM → componente canónico → oferta confirmada, y no en &quot;IA que detecta símbolos&quot; (DISC §Conclusión). El producto ya sigue esa línea: el Sprint 4 cambió el matching por texto por un catálogo canónico con atributos.</p>
+<p>La mayor incógnita es comercial, no técnica. Nadie preguntó cuánto pagarían las empresas ni si los proveedores aceptarían una comisión, pero el Sprint 5 da por hecho &quot;suscripción + comisión por lead&quot;. Tampoco están validados el rol de CADIME ni si los competidores de Liard adoptarían una plataforma que asocian a Liard. Antes de construir monetización conviene validar precio y modelo, en especial la opción suscripción, pago por plano o híbrido (DISC §Hipótesis).</p>
+<p>Hay reglas que el diseño tiene que respetar: siempre revisión humana; nunca inventar un SKU crítico; no ocultar lo que no tiene match; el precio de catálogo es referencia y el proveedor confirma precio, stock y plazo; stock y plazo pesan tanto como el precio; las equivalencias de marca son centrales. En la interfaz: voseo, &quot;liard&quot; en minúsculas y <strong>solo números que se puedan sostener</strong> (TONO).</p>
+<p>Para una visualización o un &quot;3D del tablero&quot;: los planos reales son unifilares 2D. Tienen una acometida arriba, un recuadro punteado con el nombre, una barra horizontal, ramas verticales en árbol (general → diferencial → térmicas), la especificación como texto junto a cada símbolo y, en Fundaleu, una planilla de circuitos al pie. Las proporciones pueden ser extremas (TS-SS 5:1, TGBT ~3,4:1) y los aparatos iguales se repiten mucho. El plano <strong>no trae la disposición física del gabinete</strong>, así que un 3D sería inferido desde el BOM (módulos DIN por tipo y polos) y tendría que presentarse como aproximación, no como lectura del plano. Además, el dimensionamiento de gabinetes está cerca de la exclusión de &quot;cálculos de ingeniería&quot; (VIS §3.3). Los símbolos de QElectroTech se pueden mostrar citando CC-BY, pero <strong>nunca</strong> se pueden usar para entrenar.</p>
+</article></body></html>

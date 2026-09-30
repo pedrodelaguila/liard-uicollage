@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Plan, uso y cuenta</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<style>
+  .tabs { flex-wrap: wrap; }
+  .panel-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .panel-h h2 { font-size: var(--fs-lg); }
+  .tiers { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+  @media (max-width: 1100px) { .tiers { grid-template-columns: 1fr; } }
+  .tier { padding: 16px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); display: flex; flex-direction: column; gap: 8px; }
+  .tier.cur { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+  .tier .price { font: 600 var(--fs-2xl)/1.1 var(--font-display); }
+  .tier .price small { font: 500 var(--fs-sm) var(--font-sans); color: var(--ink-3); }
+  .tier ul { margin: 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .tier .btn { margin-top: auto; }
+  .sep { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: stretch; }
+  .sep > div { padding: 14px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); }
+  .sep .neq { display: grid; place-items: center; font: 700 28px/1 var(--font-display); color: var(--err); }
+  @media (max-width: 900px) { .sep { grid-template-columns: 1fr; } .sep .neq { padding: 0; } }
+  .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .form-grid .wide { grid-column: 1 / -1; }
+  .svc { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .svc:last-child { border-bottom: 0; }
+  .svc small { display: block; color: var(--ink-3); }
+  .bar-row { display: grid; grid-template-columns: 160px minmax(0, 1fr) 90px; gap: 10px; align-items: center; font-size: var(--fs-sm); padding: 4px 0; }
+  .danger-zone { border-color: color-mix(in srgb, var(--err) 35%, transparent); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; font-size: var(--fs-sm); margin: 0; }
+  .kv dt { color: var(--ink-3); } .kv dd { margin: 0; }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="cuenta" data-title="Plan, uso y cuenta" data-sub="Tu plan de liard, lo que consumís de IA, el estado del servicio y tus datos">
+<script>/* Antes de que el shell arme la barra lateral: en la vista distribuidor el ítem activo es otro. */ if (new URLSearchParams(location.search).get('rol') === 'prov') document.body.dataset.active = 'prov-cuenta';</script>
+<div id="act"></div>
+<div id="page">
+  <div class="tabs" role="tablist" aria-label="Secciones de la cuenta" id="tabs"></div>
+  <div id="panel" role="tabpanel"></div>
+</div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get();
+  const SUP = L.role() === 'SUPPLIER';
+  const TODAY = B.TODAY;
+  const estado = L.param('estado');
+  const TABS = [{ id: 'plan', label: 'Plan y facturación', icon: 'card' }, { id: 'ia', label: 'Uso de IA', icon: 'sparkles' }, { id: 'estado', label: 'Estado del servicio', icon: 'gauge' }, { id: 'perfil', label: 'Perfil', icon: 'user' }];
+  let tab = TABS.some(t => t.id === L.param('tab')) ? L.param('tab') : 'plan';
+  const short = pid => { const p = L.project(pid); return p ? p.name.split(' · ')[0] : 'Sin obra'; };
+  const fx = () => S().billing.fx.usdArs;
+  const emailOk = v => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v);
+  const HYPO = `<span class="badge b-volt" title="research/05-mercado.md §3.3: la disposición a pagar nunca se preguntó en el discovery">${L.icon('alert', 12)}Precios hipotéticos a validar</span>`;
+
+  /* ─── Planes hipotéticos (research/05-mercado.md §3.3) ─── */
+  const ENG_TIERS = [
+    { id: 'Taller', priceUSD: 60, boardsIncluded: 15, extraBoardUSD: 3, desc: 'Para quien cotiza pocas obras por mes.' },
+    { id: 'Estudio', priceUSD: 150, boardsIncluded: 40, extraBoardUSD: 2.5, desc: 'Equipo chico que cotiza todas las semanas.' },
+    { id: 'Planta', priceUSD: 400, boardsIncluded: 150, extraBoardUSD: 1.5, desc: 'Varias personas cotizando a diario.' },
+  ];
+  const SUP_TIERS = [
+    { id: 'Solo leads', priceUSD: 0, leadsFree: 0, leadFeeUSD: 6, desc: 'Sin abono: pagás cada solicitud que recibís.' },
+    { id: 'Distribuidor', priceUSD: 120, leadsFree: 5, leadFeeUSD: 4, desc: 'Una sucursal que responde varias por semana.' },
+    { id: 'Sucursales', priceUSD: 300, leadsFree: 30, leadFeeUSD: 3, desc: 'Varias sucursales o vendedores.' },
+  ];
+
+  /* ─── Uso del ciclo: tableros procesados (planos listos × repeticiones) con processedAt dentro del ciclo ─── */
+  const cycleStart = end => L.addDays(end, -30);
+  function boardUsage() {
+    const bl = S().billing.engineer; const from = cycleStart(bl.cycleEnds);
+    const plans = S().plans.filter(p => !p.deleted && (p.status === 'COMPLETED' || p.status === 'STALE'));
+    const inCycle = plans.filter(p => !p.processedAt || p.processedAt.slice(0, 10) >= from);
+    const used = inCycle.reduce((a, p) => a + (p.multiplier || 1), 0);
+    const byProject = {}; inCycle.forEach(p => { byProject[p.projectId] = (byProject[p.projectId] || 0) + (p.multiplier || 1); });
+    const extra = Math.max(0, used - bl.boardsIncluded);
+    return { used, byProject, from, extra, extraUSD: extra * bl.extraBoardUSD, totalUSD: bl.priceUSD + extra * bl.extraBoardUSD, planCount: inCycle.length };
+  }
+  function leadUsage() { const b = S().billing.supplier; const billable = Math.max(0, b.leadsThisMonth - b.leadsFree); return { leads: b.leadsThisMonth, free: b.leadsFree, billable, feeUSD: billable * b.leadFeeUSD, totalUSD: b.priceUSD + billable * b.leadFeeUSD }; }
+
+  /* ─── PDF de factura (documento de demostración) ─── */
+  function invoicePdf(inv) {
+    const s = S(); const bl = s.billing.engineer;
+    const base = Math.min(inv.usd, 150); const extraN = Math.round((inv.usd - base) / 2.5);
+    const rows = inv.lines || [{ t: 'Suscripción plan Estudio (40 tableros)', q: 1, u: base }].concat(extraN > 0 ? [{ t: 'Tableros por encima del cupo', q: extraN, u: 2.5 }] : []);
+    return L.pdf([
+      { h1: 'Factura ' + inv.id }, { small: 'Documento de demostración: no es un comprobante fiscal ni se cobró nada. liard horizon · datos ficticios.' }, { hr: true },
+      { h2: 'Emisor' }, { p: 'liard · plataforma de materiales eléctricos (ficticio)' },
+      { h2: 'Cliente' }, { p: s.company.name + ' · CUIT ' + s.company.cuit + ' · ' + s.company.city },
+      { h2: 'Período: ' + inv.period }, { gap: 4 },
+      { row: ['Concepto', 'Cantidad', 'Precio unitario', 'Importe'], widths: [260, 70, 90, 79], bold: true, align: ['l', 'r', 'r', 'r'] },
+      ...rows.map(r => ({ row: [r.t, String(r.q), L.usd(r.u), L.usd(r.q * r.u)], widths: [260, 70, 90, 79], align: ['l', 'r', 'r', 'r'] })),
+      { hr: true },
+      { row: ['Total', '', '', L.usd(inv.usd)], widths: [260, 70, 90, 79], bold: true, align: ['l', 'r', 'r', 'r'] },
+      { p: 'Equivale a ' + L.ars(inv.usd * fx()) + ' al tipo de cambio de la demo (USD 1 = ARS ' + L.num(fx()) + ', ' + s.billing.fx.source.toLowerCase() + ').' },
+      { p: 'Estado: ' + inv.status + '.' },
+      { gap: 8 }, { small: 'Esta factura cubre solo el uso de liard. El pago de los materiales se acuerda entre comprador y distribuidor, fuera de liard.' },
+    ], { title: 'Factura ' + inv.id, footer: 'liard · factura de demostración con datos ficticios' });
+  }
+
+  /* ─── Paneles ─── */
+  const P = {};
+  P.plan = () => SUP ? planSupplier() : planEngineer();
+  function planEngineer() {
+    const s = S(); const bl = s.billing.engineer; const u = boardUsage(); const pct = u.used / bl.boardsIncluded * 100;
+    const tone = pct >= 100 ? 'err' : pct >= 80 ? 'warn' : 'ok'; const pay = ((s.ui || {}).plataforma || {}).payment;
+    return `<div class="note" style="margin-bottom:var(--sp-4)">${L.icon('info', 16)}<p>Los pagos (suscripción a la herramienta + comisión por lead al distribuidor) están ${L.cap('planificado')} para el Sprint 5 y hoy no existen en la app. Esta pantalla ${L.sim('Facturación simulada')} no procesa pagos: cambiar de plan solo cambia la demo.</p></div>
+    <div class="grid g4" style="margin-bottom:var(--sp-4)">
+      <div class="card kpi kpi-brand"><span class="eyebrow">Plan actual</span><strong data-k="plan">${L.esc(bl.plan)}</strong><small>${L.usd(bl.priceUSD)} por mes · ${HYPO}</small></div>
+      <div class="card kpi"><span class="eyebrow">Tableros del ciclo</span><strong data-k="used">${u.used} de ${bl.boardsIncluded}</strong><div class="meter ${tone}" role="meter" aria-label="Tableros usados del plan" aria-valuemin="0" aria-valuemax="${bl.boardsIncluded}" aria-valuenow="${u.used}"><i style="width:${Math.min(100, pct)}%"></i></div><small>${L.pct(pct)} · ${u.planCount} planos listos</small></div>
+      <div class="card kpi"><span class="eyebrow">Excedente</span><strong data-k="extra">${u.extra ? L.usd(u.extraUSD) : 'USD 0,00'}</strong><small>${u.extra ? u.extra + ' tableros × ' + L.usd(bl.extraBoardUSD) : 'Te quedan ' + (bl.boardsIncluded - u.used) + ' tableros'}</small></div>
+      <div class="card kpi kpi-copper"><span class="eyebrow">Próxima factura</span><strong data-k="next">${L.usd(u.totalUSD)}</strong><small>Estimada al ${L.date(bl.cycleEnds)} · ≈ ${L.ars(u.totalUSD * fx())}</small></div>
+    </div>
+    <div class="grid g2" style="margin-bottom:var(--sp-4);align-items:start">
+      <section class="card"><div class="card-h"><h3>De dónde sale el uso</h3>${L.cap('propuesto')}</div><div class="card-b">
+        <p class="muted" style="margin-top:0">Se cuenta cada plano procesado desde el ${L.date(u.from)} por sus repeticiones: un tablero tipo ×4 son 4 tableros. Reprocesar el mismo plano no se cobra dos veces.</p>
+        ${Object.keys(u.byProject).length ? Object.entries(u.byProject).map(([pid, n]) => `<div class="bar-row"><a href="${L.link('d-obra.html', { p: pid })}">${L.esc(short(pid))}</a><div class="meter"><i style="width:${n / Math.max(u.used, 1) * 100}%"></i></div><span class="num">${n} tableros</span></div>`).join('') : '<p class="muted">Todavía no procesaste planos en este ciclo.</p>'}
+      </div></section>
+      <section class="card"><div class="card-h"><h3>Medio de pago</h3>${L.cap('planificado')} ${L.sim('No se envía')}</div>
+        <form class="card-b" id="pay" novalidate>
+          ${pay ? `<p style="margin-top:0">${L.icon('card', 15)} Tarjeta terminada en <strong class="mono">${L.esc(pay.last4)}</strong> · vence ${L.esc(pay.exp)} · ${L.esc(pay.holder)}</p>` : '<p class="muted" style="margin-top:0">No cargaste un medio de pago.</p>'}
+          <div class="form-grid">
+            <div class="field wide"><label for="pay-holder">Nombre en la tarjeta</label><input class="input" id="pay-holder" autocomplete="off"></div>
+            <div class="field wide"><label for="pay-num">Número</label><input class="input mono" id="pay-num" inputmode="numeric" autocomplete="off" placeholder="4111 1111 1111 1111"></div>
+            <div class="field"><label for="pay-exp">Vencimiento</label><input class="input mono" id="pay-exp" autocomplete="off" placeholder="MM/AA"></div>
+            <div class="field"><label for="pay-cvc">Código</label><input class="input mono" id="pay-cvc" inputmode="numeric" autocomplete="off" placeholder="123"></div>
+          </div>
+          <p class="muted" style="font-size:var(--fs-xs);margin:10px 0">Se valida en esta página y no sale a ningún lado: solo se guardan los últimos 4 dígitos para la demo.</p>
+          <button class="btn btn-secondary" type="submit">${L.icon('check', 14)}Guardar medio de pago</button></form></section>
+    </div>
+    <div class="panel-h"><h2>Cambiar de plan</h2>${L.cap('planificado')} ${HYPO}</div>
+    <p class="muted">Rangos de research/05-mercado.md §3.3: suscripción por empresa con cupo de tableros, no por usuario, y excedente por tablero. En el discovery nunca se preguntó cuánto pagarían: son hipótesis para probar con clientes.</p>
+    <div class="tiers" style="margin-bottom:var(--sp-5)">${ENG_TIERS.map(t => { const cur = t.id === bl.plan; const est = t.priceUSD + Math.max(0, u.used - t.boardsIncluded) * t.extraBoardUSD;
+      return `<div class="tier${cur ? ' cur' : ''}" data-tier="${t.id}"><div class="row"><h3>${t.id}</h3>${cur ? L.badge('Tu plan', 'brand', 'check') : ''}</div><div class="price">${L.usd(t.priceUSD)} <small>por mes</small></div>
+        <p class="muted" style="margin:0">${t.desc}</p><ul><li>${t.boardsIncluded} tableros por mes</li><li>Tablero extra: ${L.usd(t.extraBoardUSD)}</li><li>Usuarios ilimitados de tu empresa</li></ul>
+        <small class="muted">Con tu uso de este ciclo pagarías ${L.usd(est)}.</small>
+        ${cur ? '<button class="btn btn-secondary" disabled>Plan actual</button>' : `<button class="btn btn-primary" data-plan="${t.id}">Cambiar a ${t.id}</button>`}</div>`; }).join('')}</div>
+    <section class="card"><div class="card-h"><h3>Facturas</h3>${L.cap('planificado')} ${L.sim('Facturas de ejemplo')}</div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Número</th><th>Período</th><th class="num">Importe</th><th>Estado</th><th></th></tr></thead><tbody>
+      ${bl.invoices.slice().reverse().map(inv => `<tr><td class="mono">${L.esc(inv.id)}</td><td>${L.esc(inv.period)}</td><td class="num">${L.usd(inv.usd)}</td><td>${L.badge(inv.status, inv.status === 'Pagada' ? 'ok' : 'warn', inv.status === 'Pagada' ? 'check' : 'clock')}</td><td class="tight"><button class="btn btn-ghost btn-sm" data-inv="${inv.id}">${L.icon('download', 13)}Descargar PDF</button></td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  }
+  function planSupplier() {
+    const s = S(); const b = s.billing.supplier; const u = leadUsage(); const sp = L.supplier(s.session.supplierId);
+    const reqs = s.requests.filter(r => r.supplierIds.includes(sp.id) && r.createdAt.slice(0, 7) === TODAY.slice(0, 7));
+    return `<div class="note" style="margin-bottom:var(--sp-4)">${L.icon('info', 16)}<p>Suscripción y comisión por lead están ${L.cap('planificado')} para el Sprint 5 y hoy no existen en la app. En el discovery los distribuidores rechazaron manejar pagos en la plataforma y nunca se les preguntó si aceptarían una comisión. ${L.sim('Facturación simulada')}</p></div>
+    <section class="card" style="margin-bottom:var(--sp-4)" aria-labelledby="sep-t"><div class="card-h"><h3 id="sep-t">Qué le pagás a liard y qué no</h3>${L.cap('propuesto')}</div><div class="card-b">
+      <div class="sep" data-sep>
+        <div><div class="eyebrow">Le pagás a liard</div><p style="margin:6px 0 0"><strong>Tu suscripción y los leads</strong>: las solicitudes de cotización que recibís por encima de las gratis del plan.</p></div>
+        <div class="neq" aria-label="es distinto de">≠</div>
+        <div><div class="eyebrow">No pasa por liard</div><p style="margin:6px 0 0"><strong>El pago de los materiales</strong>, que acordás directamente con tu cliente fuera de liard: precio final, forma de pago, factura y entrega.</p></div>
+      </div>
+      <p class="muted" style="margin:10px 0 0;font-size:var(--fs-xs)">Lo que le pagás a liard (suscripción y leads) ≠ el pago de los materiales, que acordás directamente con tu cliente fuera de liard. liard no cobra un porcentaje de tus pedidos.</p></div></section>
+    <div class="grid g4" style="margin-bottom:var(--sp-4)">
+      <div class="card kpi kpi-brand"><span class="eyebrow">Plan actual</span><strong data-k="plan">${L.esc(b.plan)}</strong><small>${L.usd(b.priceUSD)} por mes · ${HYPO}</small></div>
+      <div class="card kpi"><span class="eyebrow">Leads de septiembre</span><strong data-k="leads">${u.leads}</strong><div class="meter ${u.billable ? 'warn' : 'ok'}" role="meter" aria-label="Leads recibidos sobre los gratis" aria-valuemin="0" aria-valuemax="${Math.max(u.leads, u.free)}" aria-valuenow="${u.leads}"><i style="width:${Math.min(100, u.free / Math.max(u.leads, 1) * 100)}%"></i></div><small>${u.free} gratis en tu plan</small></div>
+      <div class="card kpi"><span class="eyebrow">Comisión por lead del mes</span><strong data-k="fee">${L.usd(u.feeUSD)}</strong><small>${u.billable} leads × ${L.usd(b.leadFeeUSD)}</small></div>
+      <div class="card kpi kpi-copper"><span class="eyebrow">Próxima factura</span><strong data-k="next">${L.usd(u.totalUSD)}</strong><small>Estimada al ${L.date(b.cycleEnds)} · ≈ ${L.ars(u.totalUSD * fx())}</small></div>
+    </div>
+    <section class="card" style="margin-bottom:var(--sp-4)"><div class="card-h"><h3>Cómo se calcula</h3><span class="spacer"></span><button class="btn btn-ghost btn-sm" data-sup-pdf>${L.icon('download', 13)}Descargar detalle del mes (PDF)</button></div><div class="card-b">
+      <dl class="kv"><dt>Abono ${L.esc(b.plan)}</dt><dd class="mono">${L.usd(b.priceUSD)}</dd><dt>Solicitudes recibidas</dt><dd class="mono">${u.leads}${reqs.length ? ' (entre ellas ' + reqs.map(r => L.esc(r.code)).join(', ') + ')' : ''}</dd><dt>Gratis del plan</dt><dd class="mono">− ${u.free}</dd><dt>Leads cobrados</dt><dd class="mono">${u.billable} × ${L.usd(b.leadFeeUSD)} = ${L.usd(u.feeUSD)}</dd><dt><strong>Total estimado</strong></dt><dd class="mono"><strong>${L.usd(u.totalUSD)}</strong></dd></dl>
+      <p class="muted" style="margin:10px 0 0;font-size:var(--fs-xs)">Un lead es una solicitud de cotización que te llega, la respondas o no. No se cobra por pedido ni por monto vendido.</p></div></section>
+    <div class="panel-h"><h2>Cambiar de plan</h2>${L.cap('planificado')} ${HYPO}</div>
+    <p class="muted">Hipótesis de research/05-mercado.md §3.3: USD 100–300 por sucursal, o USD 2–10 por solicitud calificada.</p>
+    <div class="tiers">${SUP_TIERS.map(t => { const cur = t.id === b.plan; const est = t.priceUSD + Math.max(0, u.leads - t.leadsFree) * t.leadFeeUSD;
+      return `<div class="tier${cur ? ' cur' : ''}"><div class="row"><h3>${t.id}</h3>${cur ? L.badge('Tu plan', 'brand', 'check') : ''}</div><div class="price">${L.usd(t.priceUSD)} <small>por mes</small></div><p class="muted" style="margin:0">${t.desc}</p>
+        <ul><li>${t.leadsFree ? t.leadsFree + ' leads gratis por mes' : 'Sin leads gratis'}</li><li>Lead extra: ${L.usd(t.leadFeeUSD)}</li><li>Catálogo con lectura de IA incluida</li></ul><small class="muted">Con tus leads de este mes pagarías ${L.usd(est)}.</small>
+        ${cur ? '<button class="btn btn-secondary" disabled>Plan actual</button>' : `<button class="btn btn-primary" data-plan="${t.id}">Cambiar a ${t.id}</button>`}</div>`; }).join('')}</div>`;
+  }
+
+  P.ia = () => {
+    if (SUP) return `<div class="card">${L.empty({ icon: 'sparkles', title: 'Tu consumo de IA va incluido en el plan', text: 'La lectura de tu catálogo con IA (cerca de USD 0,0015 por fila) la absorbe la suscripción en esta propuesta. El registro detallado por consulta es de las cuentas de Ingeniería.' })}</div>`;
+    const s = S(); const a = s.ai; const st = L.aiState(); const f = L.pref('plataforma:ia') || { kind: '', obra: '' };
+    const month = a.ledger.filter(e => e.at.slice(0, 7) === TODAY.slice(0, 7));
+    const rows = a.ledger.filter(e => (!f.kind || e.kind === f.kind) && (!f.obra || e.projectId === f.obra));
+    const kinds = [...new Set(a.ledger.map(e => e.kind))];
+    const byObra = {}; month.forEach(e => { byObra[e.projectId || '-'] = (byObra[e.projectId || '-'] || 0) + e.usd; });
+    const byKind = {}; month.forEach(e => { byKind[e.kind] = (byKind[e.kind] || 0) + e.usd; });
+    return `<div class="note" style="margin-bottom:var(--sp-4)">${L.icon('info', 16)}<p>El control del gasto de IA por usuario con límites está ${L.cap('planificado')} (Sprint 5, #836). Hoy la app registra el costo de la lectura de catálogo y de BOM, pero no el de la detección, y no tiene topes. ${L.ai('Consumo simulado')} ${L.sim('Sin llamadas reales')}</p></div>
+    ${st.blocked ? `<div class="note note-err" role="alert" style="margin-bottom:var(--sp-4)">${L.icon('lock', 16)}<p><strong>Llegaste al tope del mes.</strong> Los asistentes y la detección quedan en pausa; todo se puede seguir a mano. Subí el tope o apagá el tope duro abajo.</p></div>` : st.tone === 'warn' ? `<div class="note note-warn" style="margin-bottom:var(--sp-4)">${L.icon('alert', 16)}<p>Ya usaste el ${L.pct(st.pct)} del presupuesto del mes.</p></div>` : ''}
+    <div class="grid g4" style="margin-bottom:var(--sp-4)">
+      <div class="card kpi"><span class="eyebrow">Gastado en septiembre</span><strong data-k="spent">${L.usd(st.spent)}</strong><div class="meter ${st.tone}" role="meter" aria-label="Presupuesto de IA usado" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(100, st.pct))}"><i style="width:${Math.min(100, st.pct)}%"></i></div><small>${L.pct(st.pct)} de ${L.usd(st.budget)}</small></div>
+      ${Object.entries(byKind).sort((x, y) => y[1] - x[1]).slice(0, 3).map(([k, v]) => `<div class="card kpi"><span class="eyebrow">${L.esc(k)}</span><strong>${L.usd(v)}</strong><small>${(n => n + (n === 1 ? ' consumo' : ' consumos'))(month.filter(e => e.kind === k).length)} este mes</small></div>`).join('')}
+    </div>
+    <div class="grid g2" style="margin-bottom:var(--sp-4);align-items:start">
+      <section class="card"><div class="card-h"><h3>Por obra, este mes</h3></div><div class="card-b">${Object.entries(byObra).sort((x, y) => y[1] - x[1]).map(([pid, v]) => `<div class="bar-row"><span>${L.esc(short(pid))}</span><div class="meter"><i style="width:${v / Math.max(st.spent, 0.01) * 100}%"></i></div><span class="num">${L.usd(v)}</span></div>`).join('') || '<p class="muted">Sin consumo este mes.</p>'}
+        <p class="muted" style="font-size:var(--fs-xs);margin:10px 0 0">Referencia medida: detección ≈ USD 0,73–1,02 por plano; lectura del BOM ≈ USD 0,0023 por línea; asistentes USD 0,01–0,05 por respuesta.</p></div></section>
+      <section class="card"><div class="card-h"><h3>Presupuesto y aviso</h3>${L.cap('planificado')}</div>
+        <form class="card-b" id="ai-form" novalidate><div class="form-grid">
+          <div class="field"><label for="ai-budget">Presupuesto mensual (USD)</label><input class="input num" id="ai-budget" inputmode="decimal" value="${L.dec(a.monthlyBudgetUSD)}" autocomplete="off"></div>
+          <div class="field"><label for="ai-alert">Avisar al (%)</label><input class="input num" id="ai-alert" inputmode="numeric" value="${a.alertAtPct}" autocomplete="off"></div>
+          <label class="switch wide"><input type="checkbox" id="ai-hard"${a.hardLimit ? ' checked' : ''}> Tope duro: al llegar al presupuesto, pausar la IA (asistentes y detección)</label>
+        </div><p class="muted" style="font-size:var(--fs-xs);margin:10px 0">Sin tope duro, liard solo avisa y el consumo sigue.</p>
+        <button class="btn btn-primary" type="submit">Guardar presupuesto</button></form></section>
+    </div>
+    <section class="card"><div class="card-h"><h3>Registro de consumo</h3><span class="muted">${rows.length} de ${a.ledger.length}</span><span class="spacer"></span>
+      <label class="row" style="gap:6px"><span class="lbl">Tipo</span><select class="select input-sm" id="f-kind" style="width:auto"><option value="">Todos</option>${kinds.map(k => `<option${k === f.kind ? ' selected' : ''}>${L.esc(k)}</option>`).join('')}</select></label>
+      <label class="row" style="gap:6px"><span class="lbl">Obra</span><select class="select input-sm" id="f-obra" style="width:auto"><option value="">Todas</option>${s.projects.map(p => `<option value="${p.id}"${p.id === f.obra ? ' selected' : ''}>${L.esc(short(p.id))}</option>`).join('')}</select></label>
+      <button class="btn btn-secondary btn-sm" id="csv">${L.icon('download', 13)}Exportar CSV</button></div>
+      <div class="tbl-wrap"><table class="tbl" id="ledger"><thead><tr><th>Fecha</th><th>Tipo</th><th>Obra</th><th>Detalle</th><th class="num">Costo</th></tr></thead><tbody>
+      ${rows.length ? rows.map(e => `<tr><td class="mono">${L.dateShort(e.at)} ${L.time(e.at)}</td><td>${L.esc(e.kind)}</td><td>${L.esc(short(e.projectId))}</td><td>${L.esc(e.ref || '')}</td><td class="num">${L.usd(e.usd)}</td></tr>`).join('') : `<tr><td colspan="5">${L.empty({ icon: 'filter', title: 'Ningún consumo con esos filtros', text: 'Probá con otro tipo u otra obra.' })}</td></tr>`}
+      </tbody>${rows.length ? `<tfoot><tr><td colspan="4">Total filtrado</td><td class="num">${L.usd(rows.reduce((x, e) => x + e.usd, 0))}</td></tr></tfoot>` : ''}</table></div></section>`;
+  };
+
+  /* Percentil por rango más cercano. */
+  const pctl = (arr, p) => { if (!arr.length) return null; const a = arr.slice().sort((x, y) => x - y); return a[Math.max(0, Math.ceil(p / 100 * a.length) - 1)]; };
+  P.estado = () => {
+    const s = S(); const deg = estado === 'degradado';
+    const durs = s.plans.filter(p => p.durationS).map(p => p.durationS);
+    const queue = s.plans.filter(p => p.status === 'PROCESSING' && !p.deleted); const running = queue.filter(p => Date.now() >= p.job.startedAt).length;
+    const errs = s.plans.filter(p => p.status === 'ERROR' && !p.deleted);
+    const pend = s.catalog.filter(c => c.readingStatus === 'PENDING').length;
+    const SV = [
+      { n: 'API de liard', st: 'ok', d: 'Responde normal.' },
+      { n: 'Cola de procesamiento', st: 'ok', d: queue.length ? queue.length + ' planos en la cola (' + running + ' procesándose)' : 'Sin planos en la cola' },
+      { n: 'Detección de símbolos', st: deg ? 'warn' : errs.length ? 'warn' : 'ok', d: deg ? 'Lenta: el modelo de visión tarda más de lo normal. Los planos grandes pueden terminar en 504.' : errs.length ? errs.length + (errs.length === 1 ? ' plano terminó con error' : ' planos terminaron con error') + '; el servicio responde.' : 'Responde normal.' },
+      { n: 'Lectura de catálogo y BOM', st: 'ok', d: pend + ' filas de catálogo esperando lectura' },
+      { n: 'Correo', st: 'plan', d: 'Planificado: hoy solo sale el correo de contraseña. En la demo quedan en la bandeja simulada.' },
+    ];
+    const lbl = { ok: ['Operativo', 'ok', 'check'], warn: ['Degradado', 'warn', 'alert'], plan: ['Simulado', 'muted', 'zap'] };
+    return `<div class="note" style="margin-bottom:var(--sp-4)">${L.icon('info', 16)}<p>La observabilidad (APM y trazabilidad de IA, #836) está ${L.cap('planificado')}: hoy no hay New Relic, Sentry ni OpenTelemetry. Los estados son ${L.sim('Estado simulado')}; los tiempos y la cola salen de los planos de la demo.</p></div>
+    ${deg ? `<div class="note note-warn" role="alert" style="margin-bottom:var(--sp-4)">${L.icon('alert', 16)}<div><p><strong>La detección está lenta.</strong> Los planos se siguen procesando, pero pueden tardar el doble. Un 504 no se reintenta solo: el plano queda en Error y lo volvés a mandar.</p><p>Mientras tanto: procesá primero los tableros chicos, recortá los planos grandes en partes desde <a href="${L.link('d-obra.html')}">Planos</a>, o seguí con el BOM y la cotización, que no dependen de la detección. No se pierde nada de lo que ya está procesado.</p></div></div>` : ''}
+    <div class="grid g4" style="margin-bottom:var(--sp-4)">
+      <div class="card kpi"><span class="eyebrow">Procesamiento p50</span><strong data-k="p50">${durs.length ? pctl(durs, 50) + ' s' : '—'}</strong><small>${durs.length} planos medidos</small></div>
+      <div class="card kpi"><span class="eyebrow">Procesamiento p95</span><strong data-k="p95">${durs.length ? pctl(durs, 95) + ' s' : '—'}</strong><small>Tope de la detección: 300 s</small></div>
+      <div class="card kpi"><span class="eyebrow">En cola</span><strong data-k="queue">${queue.length}</strong><small>${running} procesándose ahora</small></div>
+      <div class="card kpi"><span class="eyebrow">Con error</span><strong data-k="errs">${errs.length}</strong><small>${errs.length ? errs.map(p => L.esc(p.name)).join(', ') : 'Ningún plano'}</small></div>
+    </div>
+    <div class="grid g2" style="align-items:start">
+      <section class="card"><div class="card-h"><h3>Servicios</h3>${L.cap('planificado')}</div>${SV.map(v => `<div class="svc" data-svc="${L.esc(v.n)}">${L.icon(lbl[v.st][2], 18)}<div><strong>${L.esc(v.n)}</strong><small>${L.esc(v.d)}</small></div>${L.badge(lbl[v.st][0], lbl[v.st][1])}</div>`).join('')}</section>
+      <section class="card"><div class="card-h"><h3>Incidentes recientes</h3>${L.sim('Ejemplos')}</div><div class="card-b"><ul class="tl">
+        ${deg ? `<li><strong>Detección lenta</strong> · en curso<small>${L.date(TODAY)} · el proveedor del modelo responde con demoras</small></li>` : ''}
+        <li><strong>Lectura de catálogo pausada 20 min</strong> · resuelto<small>22 sep 2026 · se alcanzó el límite de consultas por minuto; las filas quedaron pendientes y se leyeron después</small></li>
+        <li><strong>Planos grandes con 504</strong> · resuelto<small>12 sep 2026 · el filtrado previo bajó el plano más pesado de 622 s a 26 s</small></li>
+      </ul></div></section>
+    </div>`;
+  };
+
+  P.perfil = () => {
+    const s = S(); const me = SUP ? L.supplier(s.session.supplierId) : L.member(s.session.userId);
+    const name = SUP ? me.contact : me.name, mail = me.email, company = SUP ? me.name : s.company.name;
+    return `<div class="grid g2" style="align-items:start">
+      <section class="card"><div class="card-h"><h3>Tus datos</h3>${L.cap('existe')}</div>
+        <form class="card-b" id="profile" novalidate><div class="form-grid">
+          <div class="field wide"><label for="pf-name">Nombre y apellido</label><input class="input" id="pf-name" value="${L.esc(name)}" autocomplete="off"></div>
+          <div class="field wide"><label for="pf-mail">Correo</label><input class="input" id="pf-mail" type="email" value="${L.esc(mail)}" autocomplete="off"><span class="hint">En la app real, cambiar el correo manda un enlace de confirmación a la dirección nueva.</span></div>
+          <div class="field wide"><label for="pf-co">${SUP ? 'Distribuidora' : 'Empresa'}</label><input class="input" id="pf-co" value="${L.esc(company)}" autocomplete="off"></div>
+        </div><div class="row" style="margin-top:12px"><button class="btn btn-primary" type="submit">Guardar cambios</button></div></form></section>
+      <section class="card danger-zone"><div class="card-h"><h3>Dar de baja la cuenta</h3>${L.cap('existe')}</div><div class="card-b">
+        <p style="margin-top:0">La baja cierra tu sesión en todos los dispositivos y no deja volver a entrar con esta cuenta. ${SUP ? 'Tu catálogo deja de aparecer para los compradores.' : 'Tus obras dejan de estar disponibles.'}</p>
+        <form id="del" novalidate><div class="field"><label for="del-conf">Escribí ELIMINAR para confirmar</label><input class="input" id="del-conf" autocomplete="off"></div>
+        <button class="btn btn-danger" type="submit" style="margin-top:12px">${L.icon('trash', 14)}Dar de baja la cuenta</button></form>
+        <p class="muted" style="font-size:var(--fs-xs);margin:10px 0 0">En la demo no se borra nada: te mostramos qué pasaría.</p></div></section></div>`;
+  };
+
+  function render() {
+    document.getElementById('tabs').innerHTML = TABS.map(t => `<button role="tab" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${t.id === tab}" aria-controls="panel" tabindex="${t.id === tab ? 0 : -1}">${L.icon(t.icon, 15)}${t.label}</button>`).join('');
+    const panel = document.getElementById('panel'); panel.setAttribute('aria-labelledby', 'tab-' + tab);
+    const ae = document.activeElement; const keep = ae && panel.contains(ae) && ae.tagName === 'INPUT' && ae.type !== 'checkbox' ? { id: ae.id, v: ae.value } : null;
+    panel.innerHTML = P[tab]();
+    if (keep && keep.id) { const el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); } }
+  }
+  const go = t => { tab = t; L.setParam('tab', t); render(); document.getElementById('tab-' + t).focus(); };
+  const page = document.getElementById('page');
+  document.getElementById('tabs').addEventListener('keydown', e => { const i = TABS.findIndex(t => t.id === tab); if (e.key === 'ArrowRight') go(TABS[(i + 1) % TABS.length].id); if (e.key === 'ArrowLeft') go(TABS[(i + TABS.length - 1) % TABS.length].id); });
+  page.addEventListener('click', async e => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.tab) return go(t.dataset.tab);
+    if (t.dataset.plan) {
+      const tiers = SUP ? SUP_TIERS : ENG_TIERS; const n = tiers.find(x => x.id === t.dataset.plan); const bl = SUP ? S().billing.supplier : S().billing.engineer;
+      const detail = SUP ? n.leadsFree + ' leads gratis y ' + L.usd(n.leadFeeUSD) + ' por lead extra' : n.boardsIncluded + ' tableros por mes y ' + L.usd(n.extraBoardUSD) + ' por tablero extra';
+      const ok = await L.confirm('Cambiar a ' + n.id, 'Pasás de ' + bl.plan + ' (' + L.usd(bl.priceUSD) + ') a ' + n.id + ' (' + L.usd(n.priceUSD) + ' por mes, ' + detail + ') desde el próximo ciclo, el ' + L.date(bl.cycleEnds) + '. Es una demo: no se cobra nada y los precios son hipótesis.', 'Cambiar a ' + n.id);
+      if (!ok) return;
+      L.store.update(s => { const b = SUP ? s.billing.supplier : s.billing.engineer; const prev = b.plan; Object.assign(b, SUP ? { plan: n.id, priceUSD: n.priceUSD, leadsFree: n.leadsFree, leadFeeUSD: n.leadFeeUSD } : { plan: n.id, priceUSD: n.priceUSD, boardsIncluded: n.boardsIncluded, extraBoardUSD: n.extraBoardUSD });
+        if (!SUP) L._log(s, L.currentProjectId(), s.session.userId, 'Cambió el plan de liard de ' + prev + ' a ' + n.id + '.'); });
+      L.toast('Plan cambiado a ' + n.id, { detail: 'Rige desde el ' + L.date(bl.cycleEnds) + '. No se cobró nada.' }); return;
+    }
+    if (t.dataset.inv) { const inv = S().billing.engineer.invoices.find(x => x.id === t.dataset.inv); L.download('liard-factura-' + inv.id + '.pdf', invoicePdf(inv)); L.toast('Factura descargada', { detail: inv.id + ' · documento de demostración' }); return; }
+    if (t.hasAttribute('data-sup-pdf')) { const b = S().billing.supplier; const u = leadUsage();
+      const lines = [{ t: 'Abono plan ' + b.plan, q: 1, u: b.priceUSD }, { t: 'Leads por encima de los ' + u.free + ' gratis', q: u.billable, u: b.leadFeeUSD }];
+      L.download('liard-detalle-septiembre-2026.pdf', invoicePdf({ id: 'Estimado septiembre 2026', period: 'Septiembre 2026', usd: u.totalUSD, status: 'Estimada, sin emitir', lines })); L.toast('Detalle descargado'); return; }
+    if (t.id === 'csv') { const f = L.pref('plataforma:ia') || {}; const rows = S().ai.ledger.filter(e => (!f.kind || e.kind === f.kind) && (!f.obra || e.projectId === f.obra));
+      L.download('liard-uso-ia.csv', L.csv([['Fecha', 'Tipo', 'Obra', 'Detalle', 'Costo USD'], ...rows.map(e => [e.at.replace('T', ' '), e.kind, short(e.projectId), e.ref || '', +e.usd.toFixed(2)])]), 'text/csv;charset=utf-8'); L.toast('CSV exportado', { detail: rows.length + ' consumos' }); return; }
+  });
+  page.addEventListener('change', e => {
+    if (e.target.id === 'f-kind' || e.target.id === 'f-obra') { L.pref('plataforma:ia', { kind: document.getElementById('f-kind').value, obra: document.getElementById('f-obra').value }); render(); }
+  });
+  page.addEventListener('submit', async e => {
+    e.preventDefault(); const f = e.target;
+    if (f.id === 'ai-form') {
+      const bi = f.querySelector('#ai-budget'), ai = f.querySelector('#ai-alert'); let bad = null;
+      const bv = +bi.value.trim().replace(/\./g, '').replace(',', '.'), av = +ai.value.trim();
+      if (!bi.value.trim() || !isFinite(bv) || bv <= 0) { L.fieldError(bi, 'El presupuesto tiene que ser mayor a 0. El anterior sigue vigente.'); bad = bi; } else if (bv > 10000) { L.fieldError(bi, 'El máximo es USD 10.000 por mes.'); bad = bi; } else L.fieldError(bi, null);
+      if (!Number.isInteger(av) || av < 1 || av > 100) { L.fieldError(ai, 'Un número entero entre 1 y 100.'); bad = bad || ai; } else L.fieldError(ai, null);
+      if (bad) { bad.focus(); return; }
+      document.activeElement && document.activeElement.blur();
+      L.store.update(s => { s.ai.monthlyBudgetUSD = +bv.toFixed(2); s.ai.alertAtPct = av; s.ai.hardLimit = f.querySelector('#ai-hard').checked; });
+      L.toast('Presupuesto guardado', { detail: L.usd(bv) + ' por mes · aviso al ' + av + ' %' }); return;
+    }
+    if (f.id === 'pay') {
+      const h = f.querySelector('#pay-holder'), n = f.querySelector('#pay-num'), x = f.querySelector('#pay-exp'), c = f.querySelector('#pay-cvc'); let bad = null;
+      const num = n.value.replace(/[\s-]/g, '');
+      const luhn = v => { let sum = 0; v.split('').reverse().forEach((d, i) => { let k = +d; if (i % 2) { k *= 2; if (k > 9) k -= 9; } sum += k; }); return sum % 10 === 0; };
+      if (h.value.trim().length < 3) { L.fieldError(h, 'Escribí el nombre como figura en la tarjeta.'); bad = h; } else L.fieldError(h, null);
+      if (!/^\d{13,19}$/.test(num) || !luhn(num)) { L.fieldError(n, 'El número no es válido: revisá los dígitos.'); bad = bad || n; } else L.fieldError(n, null);
+      const m = x.value.trim().match(/^(\d{2})\s*\/\s*(\d{2})$/); const expOk = m && +m[1] >= 1 && +m[1] <= 12 && ('20' + m[2] + '-' + m[1]) >= TODAY.slice(0, 7);
+      if (!expOk) { L.fieldError(x, m ? 'La tarjeta está vencida.' : 'Usá el formato MM/AA.'); bad = bad || x; } else L.fieldError(x, null);
+      if (!/^\d{3,4}$/.test(c.value.trim())) { L.fieldError(c, '3 o 4 dígitos.'); bad = bad || c; } else L.fieldError(c, null);
+      if (bad) { L.toast('No guardamos el medio de pago', { kind: 'err', detail: 'Corregí los campos marcados. El medio anterior quedó como estaba.' }); bad.focus(); return; }
+      document.activeElement && document.activeElement.blur();
+      L.store.update(s => { s.ui = s.ui || {}; s.ui.plataforma = s.ui.plataforma || {}; s.ui.plataforma.payment = { last4: num.slice(-4), exp: x.value.trim().replace(/\s/g, ''), holder: h.value.trim() }; });
+      L.toast('Medio de pago guardado', { detail: 'Solo en esta demo: no se envió a ningún lado.' }); return;
+    }
+    if (f.id === 'profile') {
+      const n = f.querySelector('#pf-name'), m = f.querySelector('#pf-mail'), c = f.querySelector('#pf-co'); let bad = null;
+      if (n.value.trim().length < 3 || !/\s/.test(n.value.trim())) { L.fieldError(n, 'Escribí nombre y apellido.'); bad = n; } else L.fieldError(n, null);
+      if (!emailOk(m.value.trim())) { L.fieldError(m, 'El correo no parece válido: revisá que tenga @ y dominio.'); bad = bad || m; } else L.fieldError(m, null);
+      if (c.value.trim().length < 2) { L.fieldError(c, 'Escribí el nombre de la ' + (SUP ? 'distribuidora' : 'empresa') + '.'); bad = bad || c; } else L.fieldError(c, null);
+      if (bad) { L.toast('No guardamos los cambios', { kind: 'err', detail: 'Corregí los campos marcados. Tus datos quedaron como estaban.' }); bad.focus(); return; }
+      document.activeElement && document.activeElement.blur();
+      L.store.update(s => { const name = n.value.trim(), mail = m.value.trim().toLowerCase(), co = c.value.trim();
+        if (SUP) { const sp = s.suppliers.find(x => x.id === s.session.supplierId); Object.assign(sp, { contact: name, email: mail, name: co }); }
+        else { const me = s.team.find(x => x.id === s.session.userId); Object.assign(me, { name, email: mail, initials: name.split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('') }); s.company.name = co; } });
+      L.toast('Cambios guardados'); return;
+    }
+    if (f.id === 'del') {
+      const i = f.querySelector('#del-conf');
+      if (i.value.trim() !== 'ELIMINAR') { L.fieldError(i, 'Escribí ELIMINAR, en mayúsculas, para confirmar. No se dio de baja nada.'); i.focus(); return; }
+      L.fieldError(i, null);
+      L.dialog({ title: 'Qué pasaría con la baja', body: `<p>${L.sim('Demo: no se borró nada')}</p><p>La app real ya tiene la baja (<span class="mono">DELETE /api/users/me</span>, confirmada escribiendo ELIMINAR). Lo que describimos acá es lo que se esperaría; el detalle de qué conserva el backend no se verificó para esta demo:</p><ul>
+        <li>La cuenta queda marcada como dada de baja y se invalidan todas las sesiones abiertas.</li>
+        <li>No podés volver a entrar con este correo.</li>
+        <li>${SUP ? 'Tu catálogo deja de verse para los compradores; los pedidos ya confirmados siguen en el historial de tus clientes.' : 'Tus obras, planos y pedidos dejan de estar disponibles; los distribuidores conservan los pedidos que ya recibieron.'}</li>
+        <li>Si tenés un plan pago, deja de renovarse al terminar el ciclo.</li></ul>`, actions: [{ label: 'Entendido' }] });
+      i.value = ''; return;
+    }
+  });
+
+  L.store.subscribe(render);
+  render();
+});
+</script>
+</body>
+</html>

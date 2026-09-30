@@ -1,0 +1,551 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Catálogo</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .own { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); }
+  .own strong { color: var(--ink); }
+  .kpi small a { font-weight: 600; }
+  .kpi .meter { margin-top: 8px; }
+  .toolbar { flex-wrap: wrap; }
+  .toolbar .input { max-width: 320px; }
+  .toolbar .select { width: auto; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip b { font-family: var(--font-mono); font-weight: 600; }
+  .tbl td .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); }
+  .tbl td .code { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-3); }
+  .tbl tr.off td { color: var(--ink-3); }
+  .tbl tr.off td:first-child { box-shadow: inset 3px 0 0 var(--line-strong); }
+  .tbl td.acts { white-space: nowrap; text-align: right; }
+  .pname { font-weight: 600; max-width: 360px; }
+  .pager { justify-content: space-between; }
+  .hist-i { display: grid; grid-template-columns: 150px 1fr auto; gap: 12px; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+  .hist-i:last-child { border-bottom: 0; }
+  .counts { display: flex; gap: 6px; flex-wrap: wrap; }
+  /* diálogo de producto */
+  .fgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .fgrid .wide { grid-column: 1 / -1; }
+  .ph { margin-top: 18px; }
+  .ph h3 { font-size: var(--fs-md); display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .readbox { margin-top: 14px; }
+  /* importación */
+  .imp .steps { margin-bottom: 18px; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .mode { display: flex; gap: 10px; padding: 12px; border: 1px solid var(--line-strong); border-radius: var(--r-md); cursor: pointer; font-size: var(--fs-sm); }
+  .mode input { margin-top: 3px; accent-color: var(--brand); }
+  .mode:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); }
+  .mode strong { display: flex; gap: 6px; align-items: center; }
+  .mode small { display: block; color: var(--ink-2); margin-top: 4px; font-size: var(--fs-xs); }
+  .drop { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-md); text-align: center; cursor: pointer; background: var(--surface-2); }
+  .drop:focus-within { box-shadow: var(--focus); }
+  .drop.over { border-color: var(--brand); background: var(--brand-soft); }
+  .drop input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .drop strong { font-size: var(--fs-md); }
+  .loaded { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-top: 14px; }
+  .loaded .field { width: 220px; }
+  .map td { vertical-align: top; }
+  .map .select, .map .input { height: 32px; }
+  .map .fixed { margin-top: 6px; }
+  .checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-sm); }
+  .checks li { display: flex; gap: 8px; align-items: flex-start; }
+  .checks .ok { color: var(--ok); } .checks .warn { color: var(--warn); } .checks .err { color: var(--err); }
+  .sample { font-size: var(--fs-xs); }
+  .sample td, .sample th { padding: 6px 8px; }
+  .diff { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .diff .card { padding: 10px 12px; }
+  .diff strong { display: block; font: 600 var(--fs-xl)/1.1 var(--font-display); }
+  .diff small { color: var(--ink-3); }
+  .imp-foot { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+  .imp-foot .spacer { flex: 1; }
+  .scroll { max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: var(--r-md); }
+  @media (max-width: 1280px) { .top { flex-wrap: wrap; } .top-a { margin-left: 0; width: 100%; } .pname { max-width: 220px; } }
+  @media (max-width: 1100px) { .diff { grid-template-columns: repeat(3, minmax(0, 1fr)); } .hist-i { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-role="SUPPLIER" data-active="prov-catalogo" data-title="Catálogo" data-sub="Tu lista de precios: los ingenieros la ven como precio de referencia al cotizar, no como oferta confirmada">
+<div id="act"></div>
+<div id="page"></div>
+<script>
+L.ready(() => {
+  const COST = 0.00146; // USD por línea leída (Haiku 4.5 con caché, issue #932)
+  const S = () => L.store.get();
+  const sid = () => S().session.supplierId;
+  const mine = () => S().catalog.filter(c => c.supplierId === sid());
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const est = () => L.param('estado');
+  const normCode = s => String(s == null ? '' : s).trim().toUpperCase();
+  const normH = s => String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+  const brandCode = c => c.brandCode || (c.brand ? c.brand.slice(0, 3).toUpperCase() : '');
+  const money = (v, cur) => cur === 'USD' ? L.usd(v) : L.ars(v);
+  const usd5 = v => 'USD ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }).format(v);
+  const linked = c => c.linkStatus === 'AUTO' || c.linkStatus === 'MANUAL';
+  /* Mismo vocabulario que Vinculación (producción): Sin identificar · Les falta un atributo · Sin vincular · No se pudo leer. */
+  const linkState = c => {
+    if (c.linkStatus === 'MANUAL') return { t: 'Vinculado a mano', tone: 'ok', ic: 'link' };
+    if (c.linkStatus === 'AUTO') return { t: 'Vinculado por IA', tone: 'ok', ic: 'sparkles' };
+    if (c.readingStatus === 'PENDING') return { t: 'Por leer', tone: 'info', ic: 'clock' };
+    if (c.readingStatus === 'FAILED') return { t: 'No se pudo leer', tone: 'err', ic: 'alertc' };
+    if (c.guess && c.guess.typeId) return { t: 'Les falta un atributo', tone: 'warn', ic: 'alert' };
+    if (c.unlinkedByUser) return { t: 'Sin vincular', tone: 'muted', ic: 'unlink' };
+    return { t: 'Sin identificar', tone: 'warn', ic: 'help' };
+  };
+  const hist = () => (S().ui && S().ui.importHistory) || [];
+
+  /* ─────────── Encabezado ─────────── */
+  $('#act').innerHTML = `<button class="btn btn-ghost" id="b-tpl" title="Planilla vacía con las columnas que lee la importación">${L.icon('download', 15)}Plantilla XLSX</button>
+    <button class="btn btn-secondary" id="b-exp">${L.icon('upload', 15)}Exportar catálogo</button>
+    <button class="btn btn-secondary" id="b-imp">${L.icon('table', 15)}Importar planilla</button>
+    <button class="btn btn-primary" id="b-new">${L.icon('plus', 15)}Agregar producto</button>`;
+
+  const view = { q: '', f: L.pref('catalogo:filtro') || 'todos', brand: L.pref('catalogo:brand') || '', fam: L.pref('catalogo:fam') || '', read: L.pref('catalogo:read') || '', link: L.pref('catalogo:link') || '', sort: 'name', dir: 1, page: 0 };
+  const PAGE = 20;
+
+  $('#page').innerHTML = `
+    <div class="own">${L.icon('store', 16)}<span>Catálogo de <strong id="own-name"></strong></span><span class="muted">· Solo ves y editás el tuyo: ningún otro distribuidor ve tus precios.</span>${L.cap('existe')}</div>
+    <div id="state-note"></div>
+    <div class="grid g4" id="kpis"></div>
+    <div id="banner" class="mt"></div>
+    <div class="section-t"><h2>Productos</h2>${L.cap('existe')}<span class="spacer"></span><span class="muted" id="count"></span></div>
+    <div class="card">
+      <div class="card-h toolbar">
+        <input class="input" id="q" type="search" placeholder="Buscar por nombre, código, marca o gama" aria-label="Buscar productos">
+        <div class="chips" id="chips" role="group" aria-label="Filtrar por estado"></div>
+        <span class="spacer"></span>
+        <label class="sr-only" for="ffam">Familia</label><select class="select" id="ffam"></select>
+        <label class="sr-only" for="fbrand">Marca</label><select class="select" id="fbrand"></select>
+        <label class="sr-only" for="fread">Estado de lectura</label><select class="select" id="fread"><option value="">Toda lectura</option><option value="READ">Leído</option><option value="PENDING">Por leer</option><option value="FAILED">No se pudo leer</option></select>
+        <label class="sr-only" for="flink">Vinculación</label><select class="select" id="flink"><option value="">Todo vínculo</option><option value="AUTO">Vinculado por IA</option><option value="MANUAL">Vinculado a mano</option><option value="UNLINKED">Sin vincular</option></select>
+      </div>
+      <div class="tbl-wrap"><table class="tbl" id="t"><thead><tr>
+        <th data-sort="name">Producto</th><th data-sort="brand">Marca · gama</th><th data-sort="link">Componente base</th>
+        <th data-sort="price" class="num">Precio</th><th data-sort="lead" class="num">Plazo</th><th data-sort="pub">Estado</th><th><span class="sr-only">Acciones</span></th>
+      </tr></thead><tbody></tbody></table></div>
+      <div class="card-f pager" id="pager"></div>
+    </div>
+    <div class="section-t"><h2>Cargas anteriores</h2>${L.cap('existe')}<span class="spacer"></span><small class="muted">Se guardan en esta demo con lo que cambió en cada carga</small></div>
+    <div class="card" id="hist"></div>`;
+
+  const t = $('#t');
+  L.sortable(t, (k, d) => { view.sort = k; view.dir = d; renderTable(); });
+  t.querySelector('th[data-sort="name"]').setAttribute('aria-sort', 'ascending');
+  $('#q').oninput = e => { view.q = e.target.value; view.page = 0; renderTable(); };
+  ['brand', 'fam', 'read', 'link'].forEach(k => { const el = $('#f' + k); el.onchange = () => { view[k] = el.value; L.pref('catalogo:' + k, el.value); view.page = 0; renderTable(); }; });
+
+  const FILTERS = [
+    ['todos', 'Todos', () => true],
+    ['publicados', 'Publicados', c => c.published],
+    ['despublicados', 'Despublicados', c => !c.published],
+    ['vencidos', 'Precio vencido', c => L.isStale(c)],
+  ];
+  const items = () => est() === 'vacio' ? [] : mine();
+
+  function renderKpis() {
+    const all = items(); const pub = all.filter(c => c.published).length; const lk = all.filter(linked).length;
+    const pend = all.filter(c => c.readingStatus === 'PENDING' && c.linkStatus !== 'MANUAL').length; const rev = all.filter(c => !linked(c)).length - pend;
+    const stale = all.filter(c => L.isStale(c)); const pct = all.length ? lk / all.length * 100 : 0; const last = hist()[0];
+    $('#own-name').textContent = L.supplier(sid()).name;
+    $('#kpis').innerHTML = `
+      <div class="card kpi"><span class="eyebrow">Productos</span><strong id="k-items">${L.num(all.length)}</strong><small>${L.num(pub)} publicados · ${L.num(all.length - pub)} despublicados</small></div>
+      <div class="card kpi kpi-brand"><span class="eyebrow">Vinculados a un componente base</span><strong id="k-linked">${L.pct(pct)}</strong>
+        <div class="meter ${pct >= 95 ? 'ok' : pct >= 80 ? 'warn' : 'err'}" role="img" aria-label="${L.pct(pct)} vinculados"><i style="width:${pct}%"></i></div>
+        <small>${pend ? L.num(pend) + ' por leer · ' : ''}${rev > 0 ? L.num(rev) + ' para revisar · ' : ''}<a href="${L.link('d-prov-vinculacion.html')}">Ir a vincular</a></small></div>
+      <div class="card kpi${stale.length ? ' kpi-copper' : ''}"><span class="eyebrow">Precios vencidos</span><strong id="k-stale">${L.num(stale.length)}</strong><small>${stale.length ? 'Vigencia anterior al ' + L.date(B.TODAY) + ': el ingeniero lo ve marcado' : 'Todas las vigencias están al día'}</small></div>
+      <div class="card kpi"><span class="eyebrow">Última carga</span><strong>${last ? L.dateShort(last.at) : '—'}</strong><small>${last ? L.esc(last.file) + ' · ' + (last.mode === 'update' ? 'actualización' : 'reemplazo') : 'Todavía no importaste una planilla en esta demo'}</small></div>`;
+    const unl = all.filter(c => !linked(c)).length;
+    $('#banner').innerHTML = unl ? `<div class="note note-warn">${L.icon('alert', 16)}<p style="flex:1">Tenés <strong>${unl} ${unl === 1 ? 'producto' : 'productos'} sin componente base</strong>. Sin ese vínculo no aparecen cuando un ingeniero cotiza ese material.</p><a class="btn btn-sm btn-secondary" href="${L.link('d-prov-vinculacion.html')}">${L.icon('link', 14)}Ir a vincular</a></div>` : '';
+  }
+
+  function renderChips() {
+    const all = items();
+    $('#chips').innerHTML = FILTERS.map(([id, label, fn]) => `<button class="chip" data-f="${id}" aria-pressed="${view.f === id}">${label} <b>${all.filter(fn).length}</b></button>`).join('');
+    $('#chips').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { view.f = b.dataset.f; L.pref('catalogo:filtro', view.f); view.page = 0; renderChips(); renderTable(); });
+    const brands = [...new Set(all.map(c => c.brand).filter(Boolean))].sort();
+    $('#fbrand').innerHTML = `<option value="">Todas las marcas</option>` + brands.map(b => `<option${b === view.brand ? ' selected' : ''}>${L.esc(b)}</option>`).join('');
+    const fams = [...new Set(all.map(fam))].sort();
+    $('#ffam').innerHTML = `<option value="">Todas las familias</option>` + fams.map(b => `<option${b === view.fam ? ' selected' : ''}>${L.esc(b)}</option>`).join('');
+    $('#fread').value = view.read; $('#flink').value = view.link;
+  }
+
+  const fam = c => linked(c) && L.type(c.typeId) ? L.type(c.typeId).family : 'Sin componente base';
+  function rows() {
+    const q = normH(view.q); const fn = FILTERS.find(f => f[0] === view.f)[2];
+    const key = { name: c => normH(c.name), brand: c => normH(c.brand + ' ' + c.gama), link: c => linkState(c).t + (c.typeId || ''), price: c => c.price * (c.currency === 'USD' ? S().billing.fx.usdArs : 1), lead: c => c.leadDays || 0, pub: c => c.published ? 0 : 1 }[view.sort];
+    return items().filter(fn).filter(c => (!view.brand || c.brand === view.brand) && (!view.fam || fam(c) === view.fam) && (!view.read || c.readingStatus === view.read) && (!view.link || c.linkStatus === view.link))
+      .filter(c => !q || normH([c.name, c.code, c.brand, c.gama, brandCode(c)].join(' ')).includes(q))
+      .sort((a, b) => { const x = key(a), y = key(b); return (x > y ? 1 : x < y ? -1 : 0) * view.dir; });
+  }
+
+  function renderTable() {
+    const tb = t.tBodies[0]; const e = est();
+    if (e === 'cargando') { tb.innerHTML = Array.from({ length: 6 }, () => `<tr>${'<td><div class="skel"></div></td>'.repeat(7)}</tr>`).join(''); $('#pager').innerHTML = '<span class="muted">Cargando tu catálogo…</span>'; $('#count').textContent = ''; return; }
+    if (e === 'error') { tb.innerHTML = `<tr><td colspan="7"><div class="note note-err">${L.icon('alertc', 16)}<p style="flex:1">No pudimos cargar tu catálogo: el servidor no respondió. Tus productos no cambiaron; volvé a intentar en un momento.</p><button class="btn btn-sm btn-secondary" data-retry>${L.icon('refresh', 14)}Reintentar</button></div></td></tr>`; $('#pager').innerHTML = ''; tb.querySelector('[data-retry]').onclick = () => { L.setParam('estado', null); renderAll(); }; return; }
+    const all = items();
+    if (!all.length) {
+      tb.innerHTML = `<tr><td colspan="7">${L.empty({ icon: 'box', title: 'Tu catálogo está vacío', text: 'Subí tu lista de precios o agregá un producto. Sin productos en el catálogo no vas a aparecer cuando un ingeniero cotiza.', action: '<div class="row" style="justify-content:center"><button class="btn btn-primary" data-e-imp>' + L.icon('table', 15) + 'Importar planilla</button><button class="btn btn-secondary" data-e-tpl>' + L.icon('download', 15) + 'Descargar plantilla</button></div>' })}</td></tr>`;
+      $('#pager').innerHTML = ''; $('#count').textContent = '';
+      tb.querySelector('[data-e-imp]').onclick = () => openImport(1); tb.querySelector('[data-e-tpl]').onclick = downloadTemplate; return;
+    }
+    const r = rows(); const pages = Math.max(1, Math.ceil(r.length / PAGE)); view.page = Math.min(view.page, pages - 1);
+    const slice = r.slice(view.page * PAGE, view.page * PAGE + PAGE);
+    $('#count').textContent = r.length === all.length ? `${all.length} productos` : `${r.length} de ${all.length} productos`;
+    tb.innerHTML = slice.length ? slice.map(c => {
+      const st = linkState(c); const ty = linked(c) && L.type(c.typeId);
+      return `<tr data-id="${c.id}" class="${c.published ? '' : 'off'}">
+        <td><div class="pname">${L.esc(c.name)}</div><span class="code">${L.esc(c.code)}</span></td>
+        <td>${L.esc(c.brand || 'Sin marca')}<span class="sub">${L.esc([brandCode(c), c.gama].filter(Boolean).join(' · '))}</span></td>
+        <td>${ty ? `${L.esc(ty.short)}<span class="sub">${L.esc(L.attrText(c.typeId, c.attrs))}</span>` : ''}${L.badge(st.t, st.tone, st.ic)}</td>
+        <td class="num">${money(c.price, c.currency)}<span class="sub">${L.isStale(c) ? L.badge('Precio vencido', 'warn', 'clock') : c.priceValidUntil ? 'hasta ' + L.dateShort(c.priceValidUntil) : 'sin vigencia'}${(c.priceHistory || []).length ? ' · ' + c.priceHistory.length + (c.priceHistory.length === 1 ? ' cambio' : ' cambios') : ''}</span></td>
+        <td class="num">${c.leadDays != null ? c.leadDays + (c.leadMaxDays ? '–' + c.leadMaxDays : '') + ' días' : '—'}</td>
+        <td>${c.published ? L.badge('Publicado', 'ok', 'eye') : L.badge('Despublicado', 'muted', 'lock')}</td>
+        <td class="acts"><button class="btn btn-sm btn-ghost" data-edit="${c.id}" aria-label="Editar ${L.esc(c.name)}">${L.icon('edit', 14)}Editar</button>
+          <button class="btn btn-sm btn-ghost" data-pub="${c.id}" aria-label="${c.published ? 'Despublicar' : 'Publicar'} ${L.esc(c.name)}">${c.published ? 'Despublicar' : 'Publicar'}</button>
+          <button class="icon-btn" data-del="${c.id}" aria-label="Eliminar ${L.esc(c.name)}" title="Eliminar">${L.icon('trash', 15)}</button></td></tr>`;
+    }).join('') : `<tr><td colspan="7">${L.empty({ icon: 'search', title: 'Ningún producto coincide', text: 'Probá con otra palabra o sacá el filtro.', action: '<button class="btn btn-secondary" data-clear>Ver todos</button>' })}</td></tr>`;
+    const cl = tb.querySelector('[data-clear]'); if (cl) cl.onclick = () => { view.q = ''; $('#q').value = ''; view.f = 'todos'; ['brand', 'fam', 'read', 'link'].forEach(k => { view[k] = ''; L.pref('catalogo:' + k, ''); }); L.pref('catalogo:filtro', 'todos'); renderChips(); renderTable(); };
+    tb.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => itemDialog(b.dataset.edit));
+    tb.querySelectorAll('[data-pub]').forEach(b => b.onclick = () => togglePublish(b.dataset.pub));
+    tb.querySelectorAll('[data-del]').forEach(b => b.onclick = () => removeItem(b.dataset.del));
+    $('#pager').innerHTML = `<span class="muted">Mostrando ${r.length ? view.page * PAGE + 1 : 0}–${view.page * PAGE + slice.length} de ${r.length}</span>
+      <div class="row"><button class="btn btn-sm btn-secondary" data-pg="-1"${view.page === 0 ? ' disabled' : ''}>Anterior</button><span class="muted">Página ${view.page + 1} de ${pages}</span><button class="btn btn-sm btn-secondary" data-pg="1"${view.page >= pages - 1 ? ' disabled' : ''}>Siguiente</button></div>`;
+    $('#pager').querySelectorAll('[data-pg]').forEach(b => b.onclick = () => { view.page += +b.dataset.pg; renderTable(); });
+  }
+
+  function renderHist() {
+    const h = est() === 'vacio' ? [] : hist();
+    $('#hist').innerHTML = h.length ? h.map(x => `<div class="hist-i"><div><strong>${L.dateShort(x.at)} · ${L.time(x.at)}</strong><small class="muted" style="display:block">${L.esc(x.who)}</small></div>
+      <div><span class="mono">${L.esc(x.file)}</span> ${x.mode === 'update' ? L.badge('Actualizar sin reemplazar', 'cyan') : L.badge('Reemplazar catálogo', 'brand')}<div class="counts" style="margin-top:6px">${L.badge(x.created + ' creados', 'ok')}${L.badge(x.updated + ' actualizados', 'info')}${x.unpublished ? L.badge(x.unpublished + ' despublicados', 'warn') : ''}${x.discarded ? L.badge(x.discarded + ' descartados', 'err') : ''}${x.manualKept ? L.badge(x.manualKept + ' vínculos a mano conservados', 'muted') : ''}</div></div>
+      <div class="muted" style="text-align:right">${x.toRead ? x.toRead + ' por leer con IA' : 'Nada para leer'}</div></div>`).join('')
+      : L.empty({ icon: 'history', title: 'Todavía no cargaste planillas', text: 'Cuando importes tu lista de precios, cada carga queda acá con lo que creó, actualizó y despublicó.', action: '<button class="btn btn-secondary" data-h-imp>' + L.icon('table', 15) + 'Importar planilla</button>' });
+    const b = $('#hist').querySelector('[data-h-imp]'); if (b) b.onclick = () => openImport(1);
+  }
+
+  function renderAll() {
+    const e = est();
+    $('#state-note').innerHTML = e === 'vacio' ? `<div class="note" style="margin-bottom:16px">${L.icon('info', 16)}<p>Vista del estado vacío: así lo ve un distribuidor recién registrado. Tus datos de la demo no se tocaron.</p></div>` : '';
+    renderKpis(); renderChips(); renderTable(); renderHist();
+  }
+
+  /* ─────────── Publicar / despublicar ─────────── */
+  function togglePublish(id) {
+    const r = L.store.update(s => { const c = s.catalog.find(x => x.id === id && x.supplierId === s.session.supplierId); if (!c) return null; c.published = !c.published; return c.published; });
+    if (r === null) return L.toast('No encontramos ese producto', { kind: 'err', detail: 'Puede que otra pestaña lo haya cambiado. Recargá la página.' });
+    L.toast(r ? 'Producto publicado' : 'Producto despublicado', { detail: r ? 'Vuelve a aparecer cuando un ingeniero cotiza ese material.' : 'Los ingenieros dejan de verlo. Seguí viéndolo con el filtro Todos.', action: { label: 'Deshacer', onClick: () => togglePublish(id) } });
+  }
+
+  async function removeItem(id) {
+    const c = mine().find(x => x.id === id); if (!c) return;
+    const n = S().bomLines.filter(l => !l.deleted && L.matches(l, sid()).some(m => m.id === id)).length;
+    if (!await L.confirm('Eliminar producto', `Se elimina «${c.name}» (${c.code}) de tu catálogo${n ? ' y deja de aparecer en ' + n + (n === 1 ? ' línea' : ' líneas') + ' de obras que lo cotizan' : ''}. Si solo querés dejar de mostrarlo, despublicalo. Una nueva carga con el mismo código lo vuelve a crear.`, 'Eliminar producto', 'danger')) return;
+    L.store.update(s => { s.catalog = s.catalog.filter(x => !(x.id === id && x.supplierId === s.session.supplierId)); });
+    L.toast('Producto eliminado', { detail: c.code + ' ya no está en tu catálogo.' });
+  }
+
+  /* ─────────── Alta y edición ─────────── */
+  function itemDialog(id) {
+    const c = id ? mine().find(x => x.id === id) : null;
+    if (id && !c) { L.toast('No encontramos ese producto en tu catálogo', { kind: 'err' }); return; }
+    const v = c || { code: '', name: '', price: '', currency: 'ARS', priceValidUntil: '', brand: '', brandCode: '', gama: '', leadDays: '', leadMaxDays: '' };
+    const box = document.createElement('div');
+    const st = c && linkState(c);
+    const ph = (c && c.priceHistory) || [];
+    box.innerHTML = `<div class="fgrid">
+      <div class="field"><label for="f-code">Código de producto</label><input class="input mono" id="f-code" value="${L.esc(v.code)}" placeholder="SCH-A9F-2P20-C" autocomplete="off"><span class="hint">Identifica este producto en tu catálogo. Una nueva carga lo reconoce por este código.</span></div>
+      <div class="field"><label for="f-name">Nombre</label><input class="input" id="f-name" value="${L.esc(v.name)}" placeholder="TERMICA 2X20 C 6KA ACTI9"><span class="hint">Tal como lo publicás. La IA lo lee para vincularlo a un componente base.</span></div>
+      <div class="field"><label for="f-price">Precio unitario</label><input class="input num" id="f-price" inputmode="decimal" value="${v.price === '' ? '' : L.esc(String(v.price))}" placeholder="12345.67"><span class="hint">Usá punto para los decimales.</span></div>
+      <div class="field"><label for="f-cur">Moneda</label><select class="select" id="f-cur"><option${v.currency === 'ARS' ? ' selected' : ''}>ARS</option><option${v.currency === 'USD' ? ' selected' : ''}>USD</option></select></div>
+      <div class="field"><label for="f-valid">Vigencia</label><input class="input" type="date" id="f-valid" value="${L.esc(v.priceValidUntil || '')}"><span class="hint">Hasta cuándo vale este precio. Vencido, el ingeniero lo ve marcado.</span></div>
+      <div class="field"><label for="f-brand">Marca</label><input class="input" id="f-brand" value="${L.esc(v.brand || '')}" placeholder="Schneider" list="f-brands"><datalist id="f-brands">${L.supplier(sid()).brands.map(b => `<option value="${L.esc(b)}">`).join('')}</datalist></div>
+      <div class="field"><label for="f-bcode">Código de la marca</label><input class="input mono" id="f-bcode" value="${L.esc(c ? brandCode(c) : '')}" placeholder="SCH"><span class="hint">Uno por marca (SCH para todo Schneider), no por producto.</span></div>
+      <div class="field"><label for="f-gama">Gama</label><input class="input" id="f-gama" value="${L.esc(v.gama || '')}" placeholder="Acti9"><span class="hint">La línea o submarca dentro de la marca.</span></div>
+      <div class="field"><label for="f-lead">Plazo mínimo (días)</label><input class="input num" id="f-lead" inputmode="numeric" value="${v.leadDays == null ? '' : v.leadDays}"></div>
+      <div class="field"><label for="f-leadmax">Plazo máximo (días)</label><input class="input num" id="f-leadmax" inputmode="numeric" value="${v.leadMaxDays == null ? '' : v.leadMaxDays}"></div>
+    </div>
+    ${c ? `<div class="readbox note ${linked(c) ? 'note-ok' : 'note-ai'}">${L.icon(linked(c) ? 'link' : 'sparkles', 16)}<p><strong>${L.esc(st.t)}</strong>${linked(c) ? ': ' + L.esc(L.type(c.typeId).short + ' · ' + L.attrText(c.typeId, c.attrs)) : ''}. ${c.linkStatus === 'MANUAL' ? 'Lo vinculaste a mano: cambiar el nombre o una nueva carga no lo cambia.' : 'Si cambiás el nombre, queda por leer de nuevo.'} <a href="${L.link('d-prov-vinculacion.html', { item: c.id })}">Ver en Vinculación</a></p></div>
+    <section class="ph" aria-labelledby="ph-t"><h3 id="ph-t">${L.icon('history', 16)}Historial de precios ${L.cap('propuesto')}</h3>
+      <p class="muted" style="font-size:var(--fs-xs)">El backend ya guarda el precio anterior en cada carga, pero ninguna pantalla lo muestra. Acá se ve lo que cambió al editar o importar.</p>
+      ${ph.length ? `<div class="tbl-wrap"><table class="tbl" id="ph-tbl"><thead><tr><th>Hasta</th><th class="num">Precio</th><th>Vigencia</th><th>Cambió por</th></tr></thead><tbody>
+        <tr><td><strong>Hoy</strong></td><td class="num"><strong>${money(c.price, c.currency)}</strong></td><td>${c.priceValidUntil ? L.dateShort(c.priceValidUntil) : '—'}</td><td>Precio vigente</td></tr>
+        ${ph.map(h => `<tr><td>${L.dateShort(h.at)} ${L.time(h.at)}</td><td class="num">${money(h.price, h.currency)}</td><td>${h.validUntil ? L.dateShort(h.validUntil) : '—'}</td><td>${L.esc(h.source)}</td></tr>`).join('')}</tbody></table></div>`
+      : `<p class="muted" id="ph-empty" style="font-size:var(--fs-sm)">Sin cambios de precio registrados: vale ${money(c.price, c.currency)} desde que se cargó.</p>`}
+    </section>` : `<div class="readbox note note-ai">${L.icon('sparkles', 16)}<p>Al guardarlo queda <strong>por leer</strong>: la IA lo vincula a un componente base desde el nombre (${usd5(COST)} por producto). Si no lo reconoce, lo vinculás a mano.</p></div>`}`;
+    const d = L.dialog({ title: c ? 'Editar producto' : 'Agregar producto', wide: true, body: box, actions: [{ label: 'Cancelar' }, { label: c ? 'Guardar cambios' : 'Guardar producto', kind: 'primary', onClick: () => save() }] });
+    L.setParam('dialogo', c ? 'editar' : 'nuevo'); if (c) L.setParam('item', c.id);
+    d.addEventListener('close', () => { L.setParam('dialogo', null); L.setParam('item', null); });
+    setTimeout(() => $('#f-code', box).focus(), 30);
+    function save() {
+      const g = k => $('#' + k, box); let ok = true;
+      const err = (el, m) => { L.fieldError(el, m); if (m) ok = false; };
+      const code = g('f-code').value.trim(), name = g('f-name').value.trim(), ps = g('f-price').value.trim();
+      err(g('f-code'), !code ? 'Escribí el código de producto.' : mine().some(x => x.id !== (c && c.id) && normCode(x.code) === normCode(code)) ? 'Ya tenés un producto con el código ' + code + '. Editá ese o usá otro código.' : null);
+      err(g('f-name'), !name ? 'Escribí el nombre tal como lo publicás.' : null);
+      err(g('f-price'), !ps ? 'Escribí el precio.' : /,/.test(ps) ? 'Usá punto para los decimales, por ejemplo 12345.67.' : !/^\d{1,14}(\.\d{1,4})?$/.test(ps) || +ps <= 0 ? 'El precio tiene que ser un número mayor que cero, con hasta 4 decimales.' : null);
+      const ld = g('f-lead').value.trim(), lm = g('f-leadmax').value.trim();
+      const bad = x => x !== '' && (!/^\d{1,3}$/.test(x) || +x > 365);
+      err(g('f-lead'), bad(ld) ? 'Días enteros, de 0 a 365.' : null);
+      err(g('f-leadmax'), bad(lm) ? 'Días enteros, de 0 a 365.' : lm !== '' && ld !== '' && +lm < +ld ? 'El máximo no puede ser menor que el mínimo.' : null);
+      if (!ok) { const f = box.querySelector('[aria-invalid="true"]'); if (f) f.focus(); return false; }
+      const data = { code, name, price: +ps, currency: g('f-cur').value, priceValidUntil: g('f-valid').value || null, brand: g('f-brand').value.trim() || null, brandCode: g('f-bcode').value.trim().toUpperCase() || null, gama: g('f-gama').value.trim() || null, leadDays: ld === '' ? null : +ld, leadMaxDays: lm === '' ? null : +lm };
+      const res = L.store.update(s => {
+        if (!c) {
+          const it = Object.assign({ id: L.uid('ci'), supplierId: s.session.supplierId, typeId: null, attrs: {}, published: true, readingStatus: 'PENDING', linkStatus: 'UNLINKED', priceHistory: [], createdAt: L.now() }, data);
+          s.catalog.push(it); return { created: it.id };
+        }
+        const x = s.catalog.find(y => y.id === c.id);
+        const priceChanged = x.price !== data.price || x.currency !== data.currency;
+        if (priceChanged) { x.priceHistory = x.priceHistory || []; x.priceHistory.unshift({ at: L.now(), price: x.price, currency: x.currency, validUntil: x.priceValidUntil || null, source: 'Edición' }); }
+        const nameChanged = x.name !== data.name; Object.assign(x, data);
+        let reread = false;
+        if (nameChanged && x.linkStatus !== 'MANUAL') { Object.assign(x, { readingStatus: 'PENDING', linkStatus: 'UNLINKED', typeId: null, attrs: {} }); delete x.guess; delete x.readingNote; delete x.unlinkedByUser; reread = true; }
+        return { priceChanged, nameChanged, reread, manual: x.linkStatus === 'MANUAL' };
+      });
+      L.setParam('dialogo', null); L.setParam('item', null);
+      if (res.created) L.toast('Producto agregado', { detail: 'Queda por leer: la IA lo va a vincular a un componente base.', action: { label: 'Ir a vincular', onClick: () => { location.href = L.link('d-prov-vinculacion.html', { item: res.created }); } } });
+      else L.toast('Producto guardado', { detail: [res.priceChanged ? 'El precio anterior quedó en el historial.' : '', res.reread ? 'El nombre cambió: queda por leer de nuevo.' : '', res.nameChanged && res.manual ? 'El vínculo a mano se conserva.' : ''].filter(Boolean).join(' ') || undefined });
+    }
+  }
+
+  /* ─────────── Plantilla y exportación (XLSX reales) ─────────── */
+  const HEAD = ['Código de producto', 'Nombre', 'Marca', 'Código de la marca', 'Gama', 'Precio', 'Moneda', 'Plazo (días)', 'Vigencia'];
+  function downloadTemplate() {
+    L.download('plantilla-catalogo-liard.xlsx', L.xlsx([
+      { name: 'Catálogo', rows: [HEAD, ['SCH-A9F-2P20-C', 'TERMICA 2X20 C 6KA ACTI9', 'Schneider', 'SCH', 'Acti9 iC60N', 48900, 'ARS', 2, '2026-11-30'], ['CHI-NXC-4P25-220', 'CONTACTOR 4P 25A BOBINA 220VCA', 'Chint', 'CHI', 'NXC', 89460, 'ARS', 4, '2026-11-30']] },
+      { name: 'Instrucciones', rows: [['Columna', 'Qué va', 'Obligatoria'], ['Código de producto', 'Tu código para este producto. Una nueva carga lo reconoce por este código.', 'Sí'], ['Nombre', 'Tal como lo publicás. La IA lo lee para vincularlo a un componente base.', 'Sí'], ['Marca', 'Fabricante (Schneider, Chint…).', 'Recomendada'], ['Código de la marca', 'Uno por marca: SCH para todo Schneider. No es por producto.', 'No'], ['Gama', 'Línea o submarca dentro de la marca (Acti9, NXB…).', 'No'], ['Precio', 'Número. Con coma o con punto decimal: lo elegís al importar.', 'Sí'], ['Moneda', 'ARS o USD. Si falta, se toma ARS.', 'No'], ['Plazo (días)', 'Días hábiles de entrega.', 'No'], ['Vigencia', 'Hasta cuándo vale el precio (AAAA-MM-DD o DD/MM/AAAA).', 'No']] },
+    ]));
+    L.toast('Plantilla descargada', { detail: 'plantilla-catalogo-liard.xlsx · guardala como CSV para importarla en este prototipo.' });
+  }
+  function exportCatalog() {
+    const all = mine(); if (!all.length) return L.toast('No hay productos para exportar', { kind: 'warn', detail: 'Importá una planilla o agregá un producto primero.' });
+    const rowsX = [HEAD.concat(['Publicado', 'Componente base', 'Atributos', 'Vínculo'])].concat(all.map(c => [c.code, c.name, c.brand || '', brandCode(c), c.gama || '', c.price, c.currency, c.leadDays == null ? '' : c.leadDays, c.priceValidUntil || '', c.published ? 'Sí' : 'No', linked(c) ? L.type(c.typeId).name : '', linked(c) ? L.attrText(c.typeId, c.attrs) : '', linkState(c).t]));
+    L.download('catalogo-' + sid() + '-' + B.TODAY + '.xlsx', L.xlsx([{ name: 'Catálogo', rows: rowsX }]));
+    L.toast('Catálogo exportado', { detail: all.length + ' productos en catalogo-' + sid() + '-' + B.TODAY + '.xlsx' });
+  }
+
+  /* ─────────── Importación en 3 pasos (CSV leído en el navegador) ─────────── */
+  const FIELDS = [
+    { k: 'code', label: 'Código de producto', req: true, alias: ['codigo de producto', 'codigo producto', 'cod. producto', 'codigo', 'cod', 'sku', 'cod. articulo'] },
+    { k: 'name', label: 'Nombre', req: true, alias: ['nombre', 'descripcion', 'detalle', 'producto', 'articulo'] },
+    { k: 'price', label: 'Precio', req: true, alias: ['precio', 'precio unitario', 'precio lista', 'p. unit', 'p unit', 'lista'] },
+    { k: 'currency', label: 'Moneda', fixed: true, alias: ['moneda', 'divisa'] },
+    { k: 'brand', label: 'Marca', fixed: true, alias: ['marca', 'fabricante'] },
+    { k: 'brandCode', label: 'Código de la marca', fixed: true, alias: ['codigo de la marca', 'codigo marca', 'cod marca', 'cod. marca'] },
+    { k: 'gama', label: 'Gama', fixed: true, alias: ['gama', 'linea', 'serie', 'submarca'] },
+    { k: 'leadDays', label: 'Plazo (días)', alias: ['plazo (dias)', 'plazo', 'entrega', 'dias'] },
+    { k: 'priceValidUntil', label: 'Vigencia', alias: ['vigencia', 'valido hasta', 'vence'] },
+  ];
+  const SAMPLE = ['Código de producto;Nombre;Marca;Código de la marca;Gama;Precio;Moneda;Plazo (días);Vigencia',
+    'SCH-ITM-4P63C-S;Térmica 4P 63 C Acti9 iC60N;Schneider;SCH;Acti9 iC60N;191.580,00;ARS;2;30/11/2026',
+    'SCH-DIF-4P4030-S;Diferencial 4P 40 30 Acti9 iID;Schneider;SCH;Acti9 iID;220.420,00;ARS;2;30/11/2026',
+    'SCH-A9R-4P40-300;DIF. 4X40 300MA ACTI9 SUPERINMUNIZADO;Schneider;SCH;Acti9;246.170,00;ARS;3;30/11/2026',
+    'CHI-NXB-3X50;TERMICA NXB 3X50 CURVA C 6KA;Chint;CHI;NXB;59.950,00;ARS;2;30/11/2026',
+    'SCH-A9F-2P20-C;TERMICA 2X20 C 6KA ACTI9;Schneider;SCH;Acti9 iC60N;48.900,00;ARS;2;30/11/2026',
+    'CHI-NXC-4P25-220;CONTACTOR 4P 25A BOBINA 220VCA NXC;Chint;CHI;NXC;89.460,00;ARS;4;30/11/2026',
+    'SCH-XB7-VER-24;PILOTO LED VERDE 24V 22MM;;SCH;Harmony;7.100,00;ARS;2;30/11/2026',
+    'SCH-ITM-4P63C-S;Térmica 4P 63 C Acti9 iC60N;Schneider;SCH;Acti9 iC60N;192.000,00;ARS;2;30/11/2026',
+    'SCH-NSYS-IP55-86;GABINETE IP55 800X600 SPACIAL;Schneider;SCH;Spacial;;ARS;8;'].join('\r\n');
+
+  function parseCSV(text) {
+    text = String(text).replace(/^﻿/, '');
+    const first = text.split(/\r?\n/).find(l => l.trim()) || '';
+    const count = ch => first.split(ch).length - 1;
+    const sep = [';', ',', '\t'].sort((a, b) => count(b) - count(a))[0];
+    const out = []; let row = [], cell = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      if (q) { if (ch === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else q = false; } else cell += ch; }
+      else if (ch === '"') q = true;
+      else if (ch === sep) { row.push(cell); cell = ''; }
+      else if (ch === '\n') { row.push(cell); out.push(row); row = []; cell = ''; }
+      else if (ch !== '\r') cell += ch;
+    }
+    row.push(cell); out.push(row);
+    return { rows: out.filter(r => r.some(c => c.trim() !== '')).map(r => r.map(c => c.trim())), sep };
+  }
+  const sepName = s => s === ';' ? 'punto y coma' : s === ',' ? 'coma' : 'tabulación';
+  const parseNum = (s, fmt) => { let x = String(s == null ? '' : s).replace(/[^\d.,-]/g, ''); if (!x) return NaN; x = fmt === 'coma' ? x.replace(/\./g, '').replace(',', '.') : x.replace(/,/g, ''); return x === '' || x === '-' ? NaN : Number(x); };
+  const parseDate = s => { s = String(s || '').trim(); if (!s) return null; let m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); if (m) return s; m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0'); return undefined; };
+  function detectHeader(rows) { const i = rows.findIndex(r => r.filter(c => c && isNaN(parseNum(c, 'coma'))).length >= 3); return i < 0 ? 0 : i; }
+  function detectMap(headers) {
+    const H = headers.map(normH); const map = {}; const used = new Set();
+    FIELDS.forEach(f => { const i = H.findIndex((h, j) => !used.has(j) && f.alias.includes(h)); if (i >= 0) { map[f.k] = i; used.add(i); } });
+    FIELDS.forEach(f => { if (map[f.k] != null) return; const i = H.findIndex((h, j) => !used.has(j) && f.alias.some(a => h.startsWith(a))); map[f.k] = i; if (i >= 0) used.add(i); });
+    return map;
+  }
+  function detectFmt(cells) { const c = cells.filter(Boolean); if (c.some(x => /,\d{1,2}$/.test(x) || /^\d{1,3}(\.\d{3})+$/.test(x))) return 'coma'; if (c.some(x => /\.\d{1,2}$/.test(x) || /^\d{1,3}(,\d{3})+$/.test(x))) return 'punto'; return 'coma'; }
+
+  let imp = null;
+  function loadText(text, file) {
+    const p = parseCSV(text);
+    if (!p.rows.length) throw new Error('el archivo no tiene filas');
+    imp.file = file; imp.all = p.rows; imp.sep = p.sep; imp.headerIdx = detectHeader(p.rows);
+    applyHeader(true);
+  }
+  function applyHeader(detect) {
+    const headers = imp.all[imp.headerIdx] || [];
+    const sig = headers.map(normH).join('|'); const saved = L.pref('catalogo:mapeo');
+    if (saved && saved.sig === sig) { imp.map = Object.assign({}, saved.map); imp.fixed = Object.assign({}, saved.fixed); imp.numFmt = saved.numFmt; imp.fromSaved = true; }
+    else { imp.map = detectMap(headers); imp.fixed = { currency: 'ARS' }; if (imp.map.currency < 0) imp.map.currency = -2; imp.fromSaved = false; if (detect || !imp.numFmt) imp.numFmt = detectFmt(imp.all.slice(imp.headerIdx + 1).map(r => r[imp.map.price])); }
+  }
+  function analyze() {
+    const data = imp.all.slice(imp.headerIdx + 1); const m = imp.map;
+    const val = (r, k) => m[k] === -2 ? (imp.fixed[k] || '') : m[k] >= 0 ? (r[m[k]] || '') : '';
+    const byCode = new Map(); const discarded = []; const dups = []; const noBrand = [];
+    data.forEach((r, i) => {
+      const line = imp.headerIdx + i + 2;
+      const code = val(r, 'code').trim(), name = val(r, 'name').trim(), praw = val(r, 'price'); const price = parseNum(praw, imp.numFmt);
+      const cur = (val(r, 'currency') || 'ARS').trim().toUpperCase(); const vu = parseDate(val(r, 'priceValidUntil')); const ld = val(r, 'leadDays');
+      if (!code) return discarded.push({ line, reason: 'Sin código de producto' });
+      if (!name) return discarded.push({ line, code, reason: 'Sin nombre' });
+      if (!(price > 0)) return discarded.push({ line, code, reason: praw ? 'Precio ilegible («' + praw + '»)' : 'Sin precio' });
+      if (!['ARS', 'USD'].includes(cur)) return discarded.push({ line, code, reason: 'Moneda «' + cur + '» desconocida: usá ARS o USD' });
+      const brand = val(r, 'brand').trim(); if (!brand) noBrand.push(line);
+      const k = normCode(code); if (byCode.has(k)) dups.push({ code, lines: [byCode.get(k).line, line] });
+      byCode.set(k, { line, code, name, price: Math.round(price * 10000) / 10000, currency: cur, brand: brand || null, brandCode: val(r, 'brandCode').trim().toUpperCase() || null, gama: val(r, 'gama').trim() || null, leadDays: ld !== '' && !isNaN(parseNum(ld, 'punto')) ? Math.round(parseNum(ld, 'punto')) : null, priceValidUntil: vu || null, badDate: vu === undefined });
+    });
+    const valid = [...byCode.values()];
+    const missingReq = FIELDS.filter(f => f.req && !(imp.map[f.k] >= 0));
+    const checks = [
+      { tone: missingReq.length ? 'err' : 'ok', text: missingReq.length ? 'Falta asignar ' + missingReq.map(f => f.label.toLowerCase()).join(', ') + ': sin eso no se puede importar' : 'Código, nombre y precio tienen columna' },
+      { tone: valid.length ? 'ok' : 'err', text: valid.length ? valid.length + (valid.length === 1 ? ' fila válida de ' : ' filas válidas de ') + data.length : 'Ninguna fila es válida' },
+      { tone: noBrand.length ? 'warn' : 'ok', text: noBrand.length ? noBrand.length + (noBrand.length === 1 ? ' artículo' : ' artículos') + ' sin marca (' + (noBrand.length === 1 ? 'fila ' : 'filas ') + '' + noBrand.join(', ') + '): el ingeniero que pide marca no los va a ver' : 'Todos los artículos declaran su marca' },
+      { tone: dups.length ? 'warn' : 'ok', text: dups.length ? dups.length + (dups.length === 1 ? ' código repetido (' : ' códigos repetidos (') + dups.map(d => d.code + ', filas ' + d.lines.join(' y ')).join('; ') + '): queda la última fila' : 'No hay códigos repetidos' },
+      { tone: discarded.length ? 'warn' : 'ok', text: discarded.length ? discarded.length + (discarded.length === 1 ? ' fila se descarta: ' : ' filas se descartan: ') + discarded.map(d => 'fila ' + d.line + ' (' + d.reason + ')').join('; ') : 'No se descarta ninguna fila' },
+    ];
+    const bd = valid.filter(v => v.badDate).length; if (bd) checks.push({ tone: 'warn', text: bd + (bd === 1 ? ' vigencia ilegible: ese producto queda sin vigencia' : ' vigencias ilegibles: esos productos quedan sin vigencia') });
+    const verdict = missingReq.length || !valid.length || discarded.length > data.length / 2 ? 'rechazada' : checks.some(c => c.tone === 'warn') ? 'advertencias' : 'aceptada';
+    return { data, valid, discarded, checks, verdict };
+  }
+  function diff(valid) {
+    const cur = new Map(mine().map(c => [normCode(c.code), c])); const inFile = new Set(valid.map(v => normCode(v.code)));
+    const created = [], updated = [], same = [];
+    valid.forEach(v => {
+      const ex = cur.get(normCode(v.code));
+      if (!ex) return created.push(v);
+      const ch = { price: ex.price !== v.price || ex.currency !== v.currency, name: ex.name !== v.name, other: ['brand', 'brandCode', 'gama', 'leadDays', 'priceValidUntil'].some(k => (ex[k] == null ? null : ex[k]) !== v[k] && !(k === 'brandCode' && brandCode(ex) === v[k])), republish: !ex.published };
+      (ch.price || ch.name || ch.other || ch.republish ? updated : same).push({ v, ex, ch });
+    });
+    const unpub = imp.mode === 'replace' ? mine().filter(c => c.published && !inFile.has(normCode(c.code))) : [];
+    const manualKept = updated.concat(same).filter(u => u.ex.linkStatus === 'MANUAL').length;
+    const toRead = created.length + updated.filter(u => u.ch.name && u.ex.linkStatus !== 'MANUAL').length;
+    return { created, updated, same, unpub, manualKept, toRead };
+  }
+
+  function openImport(step, sample) {
+    imp = { step: 1, mode: L.pref('catalogo:modo') || 'replace', file: null, all: null };
+    const box = document.createElement('div'); box.className = 'imp';
+    imp.box = box;
+    imp.dlg = L.dialog({ title: 'Importar planilla', wide: true, body: box });
+    imp.dlg.querySelector('footer').remove();
+    imp.dlg.addEventListener('close', () => { L.setParam('dialogo', null); L.setParam('paso', null); imp = null; });
+    if (sample || step > 1) loadText(SAMPLE, 'lista-sur-ejemplo.csv');
+    imp.step = step > 1 && imp.all ? Math.min(step, 3) : 1;
+    if (imp.step === 3 && analyze().verdict === 'rechazada') imp.step = 2;
+    renderImp();
+  }
+  function go(step) { imp.step = step; renderImp(); const h = imp.box.querySelector('h3'); if (h) { h.tabIndex = -1; h.focus(); } }
+  function renderImp() {
+    const box = imp.box; L.setParam('dialogo', 'importar'); L.setParam('paso', imp.step > 1 ? imp.step : null);
+    const stepsNav = `<ol class="steps" aria-label="Pasos de la importación">${['Elegir planilla', 'Revisar la lectura', 'Confirmar'].map((s, i) => `<li class="${i + 1 < imp.step ? 'done' : i + 1 === imp.step ? 'cur' : ''}"${i + 1 === imp.step ? ' aria-current="step"' : ''}>${s}</li>`).join('')}</ol>`;
+    let html = stepsNav;
+    if (imp.step === 1) {
+      const headers = imp.all ? imp.all[imp.headerIdx] : [];
+      html += `<h3 class="sr-only">Paso 1: elegir planilla</h3><div class="modes" role="radiogroup" aria-label="Qué hace la carga">
+        <label class="mode"><input type="radio" name="imp-mode" value="replace"${imp.mode === 'replace' ? ' checked' : ''}><span><strong>Reemplazar catálogo ${L.cap('existe')}</strong><small>La planilla pasa a ser tu catálogo: lo que no venga en ella se despublica. Los vínculos hechos a mano se conservan si el código es el mismo.</small></span></label>
+        <label class="mode"><input type="radio" name="imp-mode" value="update"${imp.mode === 'update' ? ' checked' : ''}><span><strong>Actualizar sin reemplazar ${L.cap('planificado')}</strong><small>Agrega lo nuevo y actualiza lo que viene en la planilla; el resto queda como está. Issue #835.</small></span></label></div>
+        <label class="drop" id="drop">${L.icon('table', 28)}<strong>${imp.file ? L.esc(imp.file) : 'Elegí o arrastrá tu planilla'}</strong><span class="muted">${imp.file ? imp.all.length + ' filas · separador ' + sepName(imp.sep) + ' · elegí otra para cambiarla' : 'CSV separado por punto y coma o coma, con o sin BOM UTF-8'}</span>
+          <input type="file" id="imp-file" accept=".csv,.txt,text/csv"></label>
+        <p class="muted" style="font-size:var(--fs-xs);margin-top:8px">En este prototipo la planilla se lee en tu navegador y nada sale de acá. Producción lee .xlsx; si tenés Excel, guardala como «CSV UTF-8».
+          <button type="button" class="btn btn-sm btn-ghost" id="imp-sample">${L.icon('file', 14)}Usar planilla de ejemplo</button><button type="button" class="btn btn-sm btn-ghost" id="imp-tpl">${L.icon('download', 14)}Descargar plantilla</button></p>
+        <div id="imp-err"></div>
+        ${imp.all ? `<div class="loaded"><div class="field"><label for="imp-head">Fila de encabezados</label><select class="select" id="imp-head">${imp.all.slice(0, 10).map((r, i) => `<option value="${i}"${i === imp.headerIdx ? ' selected' : ''}>Fila ${i + 1}: ${L.esc(r.slice(0, 3).join(' · ').slice(0, 40))}</option>`).join('')}</select></div>
+          <div class="field"><label for="imp-fmt">Formato de números</label><select class="select" id="imp-fmt"><option value="coma"${imp.numFmt === 'coma' ? ' selected' : ''}>1.234,56 — coma decimal</option><option value="punto"${imp.numFmt === 'punto' ? ' selected' : ''}>1,234.56 — punto decimal</option></select></div>
+          <span class="muted" style="font-size:var(--fs-xs);padding-bottom:8px">${headers.length} columnas. ${imp.fromSaved ? 'Usamos el mapeo que guardaste en tu última carga.' : 'Detectamos el formato y las columnas solos: revisalos en el paso 2.'}</span></div>` : ''}
+        <div class="imp-foot"><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button type="button" class="btn btn-primary" data-next="2"${imp.all ? '' : ' disabled'}>Siguiente: revisar la lectura</button></div>`;
+    } else if (imp.step === 2) {
+      const a = analyze(); const headers = imp.all[imp.headerIdx]; const colName = i => String.fromCharCode(65 + (i % 26)) + ' · ' + (headers[i] || 'sin título');
+      html += `<h3 style="margin-bottom:10px">Revisá cómo leímos ${L.esc(imp.file)}</h3>
+        <div class="grid g2"><div><span class="eyebrow">Columnas</span><div class="tbl-wrap" style="margin-top:6px;border:1px solid var(--line)"><table class="tbl map"><thead><tr><th>Dato de liard</th><th>Columna de tu planilla</th></tr></thead><tbody>
+        ${FIELDS.map(f => `<tr><td><strong>${f.label}</strong>${f.req ? ' <span class="muted">· obligatoria</span>' : ''}</td><td><select class="select" data-map="${f.k}" aria-label="Columna para ${f.label}">
+          <option value="-1"${imp.map[f.k] === -1 ? ' selected' : ''}>Sin columna</option>${headers.map((h, i) => `<option value="${i}"${imp.map[f.k] === i ? ' selected' : ''}>${L.esc(colName(i))}</option>`).join('')}${f.fixed ? `<option value="-2"${imp.map[f.k] === -2 ? ' selected' : ''}>Valor fijo para toda la planilla</option>` : ''}</select>
+          ${imp.map[f.k] === -2 ? `<input class="input fixed" data-fixed="${f.k}" value="${L.esc(imp.fixed[f.k] || '')}" placeholder="Valor para todas las filas" aria-label="Valor fijo para ${f.label}">` : ''}</td></tr>`).join('')}
+        </tbody></table></div></div>
+        <div><span class="eyebrow">Controles</span><div class="note ${a.verdict === 'rechazada' ? 'note-err' : a.verdict === 'advertencias' ? 'note-warn' : 'note-ok'}" style="margin:6px 0 10px" id="imp-verdict">${L.icon(a.verdict === 'rechazada' ? 'alertc' : a.verdict === 'advertencias' ? 'alert' : 'check', 16)}<p><strong>${a.verdict === 'rechazada' ? 'Planilla rechazada' : a.verdict === 'advertencias' ? 'Aceptada con advertencias' : 'Planilla aceptada'}</strong> · ${a.data.length} leídas · ${a.valid.length} válidas · ${a.discarded.length} descartadas${a.verdict === 'rechazada' ? '. Corregí las columnas o la planilla; tu catálogo no cambió.' : ''}</p></div>
+          <ul class="checks">${a.checks.map(c => `<li>${L.icon(c.tone === 'ok' ? 'check' : c.tone === 'warn' ? 'alert' : 'alertc', 15, c.tone)}<span>${L.esc(c.text)}</span></li>`).join('')}</ul></div></div>
+        <div class="section-t" style="margin-top:16px"><span class="eyebrow">Así queda cada fila (primeras 6)</span></div>
+        <div class="tbl-wrap scroll"><table class="tbl sample"><thead><tr><th>Código</th><th>Nombre</th><th>Marca</th><th>Gama</th><th class="num">Precio</th><th>Vigencia</th></tr></thead><tbody>
+          ${a.valid.slice(0, 6).map(v => `<tr><td class="mono">${L.esc(v.code)}</td><td>${L.esc(v.name)}</td><td>${L.esc(v.brand || '—')}${v.brandCode ? ' <span class="muted">' + L.esc(v.brandCode) + '</span>' : ''}</td><td>${L.esc(v.gama || '—')}</td><td class="num">${money(v.price, v.currency)}</td><td>${v.priceValidUntil ? L.dateShort(v.priceValidUntil) : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="muted">Ninguna fila válida con estas columnas.</td></tr>'}</tbody></table></div>
+        <div class="imp-foot"><button type="button" class="btn btn-secondary" data-next="1">Atrás</button><span class="spacer"></span><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button type="button" class="btn btn-primary" data-next="3"${a.verdict === 'rechazada' ? ' disabled' : ''}>Siguiente: confirmar</button></div>`;
+    } else {
+      const a = analyze(); const d = diff(a.valid); imp.d = d; imp.a = a;
+      const changes = d.updated.slice(0, 8).map(u => `<tr><td class="mono">${L.esc(u.v.code)}</td><td>${L.esc(u.v.name)}</td><td>${[u.ch.price ? 'precio ' + money(u.ex.price, u.ex.currency) + ' → ' + money(u.v.price, u.v.currency) : '', u.ch.name ? (u.ex.linkStatus === 'MANUAL' ? 'nombre (vínculo a mano se conserva)' : 'nombre (queda por leer)') : '', u.ch.republish ? 'se vuelve a publicar' : '', u.ch.other && !u.ch.price && !u.ch.name ? 'marca, gama, plazo o vigencia' : ''].filter(Boolean).join(' · ')}</td></tr>`).join('');
+      html += `<h3 style="margin-bottom:10px">Confirmá los cambios en tu catálogo</h3>
+        <div class="diff" id="imp-diff">
+          <div class="card"><strong data-n="created">${d.created.length}</strong><small>Nuevos</small></div>
+          <div class="card"><strong data-n="updated">${d.updated.length}</strong><small>Actualizados</small></div>
+          <div class="card"><strong>${d.same.length}</strong><small>Sin cambios</small></div>
+          <div class="card"><strong data-n="unpub">${d.unpub.length}</strong><small>${imp.mode === 'replace' ? 'Se despublican' : 'Se despublican (no aplica)'}</small></div>
+          <div class="card"><strong>${a.discarded.length}</strong><small>Filas descartadas</small></div></div>
+        ${imp.mode === 'replace' ? `<div class="note note-warn">${L.icon('alert', 16)}<p><strong>Reemplazás tu catálogo.</strong> ${d.unpub.length ? d.unpub.length + ' productos publicados no están en la planilla y dejan de verse al cotizar (quedan despublicados; los podés volver a publicar).' : 'Todos tus productos publicados vienen en la planilla.'} ${d.manualKept ? d.manualKept + ' vínculos hechos a mano se conservan porque el código es el mismo.' : ''} Si solo querés sumar o actualizar productos, volvé y elegí «Actualizar sin reemplazar».</p></div>`
+          : `<div class="note">${L.icon('info', 16)}<p><strong>Actualizás sin reemplazar</strong> ${L.cap('planificado')}: los ${mine().length - d.updated.length - d.same.length} productos que no vienen en la planilla quedan como están.${d.manualKept ? ' ' + d.manualKept + ' vínculos hechos a mano se conservan.' : ''}</p></div>`}
+        <div class="note note-ai" style="margin-top:10px">${L.icon('sparkles', 16)}<p><strong>${d.toRead} ${d.toRead === 1 ? 'producto queda' : 'productos quedan'} por leer</strong> (nuevos o con nombre cambiado): la IA los vincula a un componente base en Vinculación, ≈ ${usd5(d.toRead * COST)} en total. Los que cambian solo de precio no se vuelven a leer.</p></div>
+        ${changes ? `<div class="section-t" style="margin-top:14px"><span class="eyebrow">Qué cambia en los que ya tenías${d.updated.length > 8 ? ' (primeros 8 de ' + d.updated.length + ')' : ''}</span></div><div class="tbl-wrap scroll"><table class="tbl sample"><thead><tr><th>Código</th><th>Nombre</th><th>Cambio</th></tr></thead><tbody>${changes}</tbody></table></div>` : ''}
+        <div class="imp-foot"><button type="button" class="btn btn-secondary" data-next="2">Atrás</button><span class="spacer"></span><button type="button" class="btn btn-secondary" data-close>Cancelar</button><button type="button" class="btn btn-primary" id="imp-confirm">${L.icon('check', 15)}Confirmar importación</button></div>`;
+    }
+    box.innerHTML = html;
+    box.querySelectorAll('[data-close]').forEach(b => b.onclick = () => imp.dlg.close());
+    box.querySelectorAll('[data-next]').forEach(b => b.onclick = () => go(+b.dataset.next));
+    box.querySelectorAll('input[name="imp-mode"]').forEach(r => r.onchange = () => { imp.mode = r.value; L.pref('catalogo:modo', imp.mode); });
+    const fi = $('#imp-file', box); if (fi) fi.onchange = () => { if (fi.files[0]) readFile(fi.files[0]); };
+    const drop = $('#drop', box);
+    if (drop) { drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over'); drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]); }; }
+    const smp = $('#imp-sample', box); if (smp) smp.onclick = () => { loadText(SAMPLE, 'lista-sur-ejemplo.csv'); renderImp(); };
+    const tp = $('#imp-tpl', box); if (tp) tp.onclick = downloadTemplate;
+    const hd = $('#imp-head', box); if (hd) hd.onchange = () => { imp.headerIdx = +hd.value; applyHeader(true); renderImp(); };
+    const fm = $('#imp-fmt', box); if (fm) fm.onchange = () => { imp.numFmt = fm.value; };
+    box.querySelectorAll('[data-map]').forEach(s => s.onchange = () => { imp.map[s.dataset.map] = +s.value; renderImp(); const again = box.querySelector(`[data-map="${s.dataset.map}"]`); if (again) again.focus(); });
+    box.querySelectorAll('[data-fixed]').forEach(i => i.onchange = () => { imp.fixed[i.dataset.fixed] = i.value.trim(); renderImp(); });
+    const cf = $('#imp-confirm', box); if (cf) cf.onclick = confirmImport;
+  }
+  function readFile(f) {
+    if (/\.xlsx?$/i.test(f.name)) { $('#imp-err', imp.box).innerHTML = `<div class="note note-err">${L.icon('alertc', 16)}<p>No pudimos leer ${L.esc(f.name)}: este prototipo lee CSV, no Excel. Abrila en Excel y guardala como «CSV UTF-8»; tu catálogo quedó como estaba.</p></div>`; return; }
+    const r = new FileReader();
+    r.onload = () => { try { loadText(r.result, f.name); renderImp(); } catch (e) { $('#imp-err', imp.box).innerHTML = `<div class="note note-err">${L.icon('alertc', 16)}<p>No pudimos leer ${L.esc(f.name)}: ${L.esc(e.message)}. Tu catálogo quedó como estaba.</p></div>`; } };
+    r.onerror = () => { $('#imp-err', imp.box).innerHTML = `<div class="note note-err">${L.icon('alertc', 16)}<p>El navegador no pudo abrir el archivo. Probá elegirlo de nuevo; tu catálogo quedó como estaba.</p></div>`; };
+    r.readAsText(f, 'utf-8');
+  }
+  function confirmImport() {
+    const a = analyze(); const d = diff(a.valid); if (a.verdict === 'rechazada') return;
+    const mode = imp.mode, file = imp.file;
+    L.pref('catalogo:mapeo', { sig: imp.all[imp.headerIdx].map(normH).join('|'), map: imp.map, fixed: imp.fixed, numFmt: imp.numFmt });
+    const who = L.supplier(sid()).contact;
+    L.store.update(s => {
+      const me = s.session.supplierId; const now = L.now();
+      const cur = new Map(s.catalog.filter(c => c.supplierId === me).map(c => [normCode(c.code), c]));
+      a.valid.forEach(v => {
+        const x = cur.get(normCode(v.code)); const data = { code: v.code, name: v.name, price: v.price, currency: v.currency, brand: v.brand, brandCode: v.brandCode, gama: v.gama, leadDays: v.leadDays, priceValidUntil: v.priceValidUntil };
+        if (!x) { s.catalog.push(Object.assign({ id: L.uid('ci'), supplierId: me, typeId: null, attrs: {}, published: true, readingStatus: 'PENDING', linkStatus: 'UNLINKED', priceHistory: [], createdAt: now }, data)); return; }
+        if (x.price !== v.price || x.currency !== v.currency) { x.priceHistory = x.priceHistory || []; x.priceHistory.unshift({ at: now, price: x.price, currency: x.currency, validUntil: x.priceValidUntil || null, source: 'Importación · ' + file }); }
+        const nameChanged = x.name !== v.name; Object.assign(x, data); x.published = true;
+        if (nameChanged && x.linkStatus !== 'MANUAL') { Object.assign(x, { readingStatus: 'PENDING', linkStatus: 'UNLINKED', typeId: null, attrs: {} }); delete x.guess; delete x.readingNote; delete x.unlinkedByUser; }
+      });
+      if (mode === 'replace') { const inFile = new Set(a.valid.map(v => normCode(v.code))); s.catalog.forEach(c => { if (c.supplierId === me && c.published && !inFile.has(normCode(c.code))) c.published = false; }); }
+      s.ui = s.ui || {}; s.ui.importHistory = s.ui.importHistory || [];
+      s.ui.importHistory.unshift({ id: L.uid('imp'), at: now, file, mode, who, read: a.data.length, created: d.created.length, updated: d.updated.length, unchanged: d.same.length, unpublished: d.unpub.length, discarded: a.discarded.length, manualKept: d.manualKept, toRead: d.toRead });
+    });
+    L.setParam('dialogo', null); L.setParam('paso', null); imp.dlg.close();
+    L.toast('Catálogo actualizado', { detail: `Tu lista de precios ya es la que ven los ingenieros al cotizar. ${d.created.length} nuevos, ${d.updated.length} actualizados${d.unpub.length ? ', ' + d.unpub.length + ' despublicados' : ''}.`, ms: 6000, action: d.toRead ? { label: 'Ir a vincular', onClick: () => { location.href = L.link('d-prov-vinculacion.html'); } } : null });
+  }
+
+  $('#b-new').onclick = () => itemDialog(null);
+  $('#b-imp').onclick = () => openImport(1);
+  $('#b-tpl').onclick = downloadTemplate;
+  $('#b-exp').onclick = exportCatalog;
+
+  renderAll();
+  L.store.subscribe(() => { renderKpis(); renderChips(); renderTable(); renderHist(); });
+
+  /* Estados abribles por URL (galería). */
+  const dlg = L.param('dialogo');
+  if (dlg === 'nuevo') itemDialog(null);
+  else if (dlg === 'editar') itemDialog(L.param('item') || mine()[0].id);
+  else if (dlg === 'importar') openImport(+(L.param('paso') || 1), L.param('muestra') === '1');
+});
+</script>
+</body></html>

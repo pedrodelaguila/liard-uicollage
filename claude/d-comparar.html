@@ -1,0 +1,448 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Comparar ofertas</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .rq-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-4); align-items: start; }
+  .rq-meta { display: flex; gap: 18px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-2); margin-top: 6px; } .rq-meta b { color: var(--ink); font-weight: 600; }
+  .offers-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+  .ofs { border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; background: var(--surface); display: flex; flex-direction: column; gap: 6px; }
+  .ofs-h { display: flex; align-items: center; gap: 8px; } .ofs-h strong { flex: 1; font-size: var(--fs-sm); }
+  .ofs small { color: var(--ink-3); } .ofs .row { gap: 6px; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; display: inline-block; }
+  .vbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: var(--sp-5) 0 var(--sp-3); } .vbar .muted { font-size: var(--fs-sm); max-width: 640px; }
+  .toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .toolbar .lbl { margin-right: 4px; }
+  .mx { table-layout: fixed; } .mx th.sup-col { width: 22%; } .mx td { vertical-align: top; } .mx td.cellw { padding: 6px; }
+  .mx .mat strong { display: block; font-size: var(--fs-sm); } .mx .mat small { color: var(--ink-3); }
+  .cell { all: unset; box-sizing: border-box; width: 100%; min-height: 74px; display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: var(--r-sm); border: 1px solid var(--line); background: var(--surface); cursor: pointer; font-size: var(--fs-xs); position: relative; }
+  .cell:hover:not([disabled]) { border-color: var(--line-strong); background: var(--surface-2); }
+  .cell:focus-visible { box-shadow: var(--focus); }
+  .cell[aria-pressed='true'] { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+  .cell[aria-pressed='true'] .pick { display: inline-flex; }
+  .cell[disabled] { cursor: default; background: var(--surface-2); color: var(--ink-3); border-style: dashed; }
+  .cell .pr { font: 600 var(--fs-md)/1.2 var(--font-mono); color: var(--ink); } .cell[disabled] .pr { color: var(--ink-3); font-weight: 500; }
+  .cell .ln { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+  .cell .ctop { display: flex; align-items: center; gap: 6px; justify-content: space-between; }
+  .pick { display: none; margin-left: auto; align-items: center; gap: 3px; padding: 1px 5px; border-radius: 3px; background: var(--brand); color: #fff !important; font: 700 10px/1 var(--font-mono); text-transform: uppercase; color: var(--brand); }
+  .best { font: 700 9.5px/1.5 var(--font-mono); text-transform: uppercase; letter-spacing: .04em; padding: 0 4px; border-radius: 3px; background: var(--ok-soft); color: var(--ok); }
+  .fast { background: var(--info-soft); color: var(--info); }
+  .alt { font: 600 10px/1.5 var(--font-mono); padding: 0 5px; border-radius: 3px; border: 1px dashed var(--copper); color: var(--copper); }
+  .alt.ok { border-style: solid; border-color: var(--ok); color: var(--ok); } .alt.no { border-color: var(--err); color: var(--err); text-decoration: line-through; }
+  .st { font-weight: 600; } .st-ok { color: var(--ok); } .st-warn { color: var(--warn); } .st-muted { color: var(--ink-3); }
+  tr.locked td { background: var(--surface-2); } tr.unas td.mat { box-shadow: inset 3px 0 0 var(--volt); }
+  .mx tfoot td { vertical-align: top; font-weight: 500; font-size: var(--fs-xs); } .mx tfoot b { font: 600 var(--fs-sm) var(--font-mono); display: block; }
+  .award { position: sticky; bottom: 0; z-index: 6; margin-top: var(--sp-4); }
+  .award .card-f { border-radius: var(--r-lg); gap: 16px; flex-wrap: wrap; }
+  .award .tot b { font: 600 var(--fs-xl) var(--font-display); display: block; } .award .tot small { color: var(--ink-3); }
+  .pills { display: flex; gap: 6px; flex-wrap: wrap; } .pill { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--line); font-size: var(--fs-xs); }
+  .errs { margin: 6px 0 0; padding-left: 18px; } .errs li { margin: 2px 0; }
+  .sc-wrap { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+  .chart { width: 100%; height: auto; display: block; }
+  .chart .pt { cursor: pointer; } .chart .pt:focus { outline: none; } .chart .pt:focus-visible circle, .chart .pt:focus-visible rect, .chart .pt:focus-visible path { stroke: var(--brand); stroke-width: 3; }
+  .sc-list { display: flex; flex-direction: column; gap: 10px; }
+  .sc { border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; background: var(--surface); display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .sc.on { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); } .sc.hl { background: var(--volt-soft); }
+  .sc h4 { display: flex; gap: 8px; align-items: center; } .sc .k { display: flex; gap: 14px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--ink-2); grid-column: 1 / -1; } .sc .k b { font: 600 var(--fs-sm) var(--font-mono); color: var(--ink); }
+  .gl { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: var(--fs-xs); }
+  .gl div { padding: 6px 8px; border-radius: var(--r-sm); } .gain { background: var(--ok-soft); } .lose { background: var(--err-soft); }
+  .gl strong { display: block; font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; font-family: var(--font-mono); }
+  .bars { display: flex; flex-direction: column; gap: 6px; } .bar { display: grid; grid-template-columns: 150px 1fr 150px; gap: 8px; align-items: center; font-size: var(--fs-xs); }
+  .bar i { display: block; height: 12px; border-radius: 3px; background: var(--copper); } .bar i.lead { background: var(--info); }
+  .ai-stage { padding: 18px 20px; }
+  .ai-stage h3 { color: #fff; } .ai-stage p { color: var(--stage-ink); }
+  .reco { display: flex; flex-direction: column; } .reco-i { display: grid; grid-template-columns: 24px 1fr auto; gap: 4px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); align-items: start; }
+  .reco-i:last-child { border-bottom: 0; } .reco-i p { margin: 2px 0 0; font-size: var(--fs-sm); color: var(--ink-2); }
+  .risk { display: flex; gap: 6px; align-items: flex-start; font-size: var(--fs-xs); color: var(--warn); margin-top: 4px; } .risk .ic { margin-top: 1px; }
+  .risks-g { display: flex; flex-direction: column; gap: 8px; }
+  .eqt td, .eqt th { font-size: var(--fs-sm); } .eqt .same { color: var(--ok); font-weight: 600; } .eqt .diff { color: var(--err); font-weight: 600; }
+  @media (max-width: 1100px) { .offers-strip, .sc-wrap { grid-template-columns: 1fr; } .rq-head { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="comparar" data-title="Comparar ofertas" data-sub="Ofertas de los distribuidores, adjudicación por material y emisión de pedidos">
+<div id="act"><button class="btn btn-secondary" id="xlsx">Descargar comparación (XLSX)</button></div>
+<div id="page"><div id="root"></div></div>
+<script>
+L.ready(() => {
+  const estado = L.param('estado');
+  const r0 = L.param('r') && L.request(L.param('r'));
+  const pid = r0 ? r0.projectId : L.currentProjectId();
+  let rid = r0 ? r0.id : null;
+  let view = 'matriz', onlyUnassigned = false, lastErrs = null, flash = null;
+  const VARS = [
+    { id: 'matriz', label: 'Matriz', desc: 'Material × distribuidor: tocás cada celda para adjudicar. Para revisar línea por línea y decidir con detalle.' },
+    { id: 'escenarios', label: 'Escenarios', desc: 'Costo total contra plazo de cada estrategia: qué ganás y qué perdés frente al mejor proveedor único. Para decidir rápido o explicárselo a Dirección.' },
+    { id: 'asistente', label: 'Asistente de compras', desc: 'La IA explica una asignación recomendada con la evidencia y marca riesgos; vos aplicás lo que quieras. Para una segunda opinión antes de comprar.' },
+  ];
+  const AI_COST = 0.03;
+  const STOCK = { CONFIRMADO: ['Stock confirmado', 'ok'], PARCIAL: ['Stock parcial', 'warn'], A_PEDIDO: ['A pedido', 'warn'], DESCONOCIDO: ['Sin confirmar', 'muted'] };
+  const S = () => L.store.get();
+
+  function pickRequest() { const reqs = L.requestsOf(pid); const open = reqs.find(x => x.status === 'ABIERTA'); return (open || reqs[0] || {}).id || null; }
+  if (!rid) rid = pickRequest();
+
+  /* Borrador de adjudicación: vive en el store (s.ui.alloc) para sobrevivir recargas y verse en otras pestañas. */
+  const rawAlloc = () => Object.assign({}, ((S().ui || {}).alloc || {})[rid] || {});
+  const setAlloc = a => L.store.update(s => { s.ui = s.ui || {}; s.ui.alloc = s.ui.alloc || {}; s.ui.alloc[rid] = a; });
+
+  /* Líneas ya pedidas (pedido activo) no se pueden volver a adjudicar; las de un pedido rechazado se reabren. */
+  function ctx() {
+    const r = L.request(rid); const ords = S().orders.filter(o => o.requestId === rid);
+    const locked = {}; ords.filter(o => o.status !== 'REJECTED').forEach(o => o.lines.forEach(l => { locked[l.lineId] = o; }));
+    const rejectedBy = {}; ords.filter(o => o.status === 'REJECTED').forEach(o => o.lines.forEach(l => { (rejectedBy[l.lineId] = rejectedBy[l.lineId] || []).push(o.supplierId); }));
+    const open = r.lineIds.filter(id => !locked[id]);
+    const raw = rawAlloc(); const alloc = {};
+    Object.entries(raw).forEach(([k, v]) => { if (open.includes(k) && !(rejectedBy[k] || []).includes(v)) alloc[k] = v; });
+    return { r, ords, locked, rejectedBy, open, alloc, cmp: L.compare(rid), editable: open.length > 0 };
+  }
+  const filterAlloc = (c, a) => { const out = {}; Object.entries(a).forEach(([k, v]) => { if (c.open.includes(k) && !(c.rejectedBy[k] || []).includes(v)) out[k] = v; }); return out; };
+  const usableOpt = x => x && !x.none && x.valid && (!x.isAlt || x.equivalence === 'APROBADA');
+  function singleAlloc(c, sid) { const a = {}; c.cmp.rows.forEach(row => { const x = row.opts.find(y => y.supplierId === sid); if (usableOpt(x)) a[row.lineId] = sid; }); return filterAlloc(c, a); }
+  const sw = sid => `<span class="sw" style="background:${L.supplier(sid).color}" aria-hidden="true"></span>`;
+  const approvalOf = () => S().approvals.filter(a => a.requestId === rid)[0] || null;
+  const rule = () => S().automations.find(a => a.when === 'ADJUDICACION_SUPERA' && a.enabled);
+
+  /* ─── Encabezado: solicitud, ofertas y alternativas ─── */
+  function headHTML(c) {
+    const r = c.r; const reqs = L.requestsOf(pid);
+    const left = L.daysBetween(B.TODAY, r.deadline);
+    const dl = r.status !== 'ABIERTA' ? '' : left < 0 ? L.badge('Plazo vencido', 'err', 'clock') : left === 0 ? L.badge('Vence hoy', 'warn', 'clock') : L.badge('Faltan ' + left + (left === 1 ? ' día' : ' días'), left <= 2 ? 'warn' : 'muted', 'clock');
+    const st = { ABIERTA: ['Abierta · recibiendo ofertas', 'info'], ADJUDICADA: ['Adjudicada', 'ok'] }[r.status] || [r.status, 'muted'];
+    const offers = r.supplierIds.map(sid => {
+      const o = L.offer(rid, sid); const s = L.supplier(sid);
+      const vd = o && o.validUntil ? L.daysBetween(B.TODAY, o.validUntil) : null;
+      let body = '';
+      if (!o || o.status === 'PENDIENTE' || o.status === 'BORRADOR') body = `<small>${o && o.status === 'BORRADOR' ? 'Está preparando la oferta.' : 'Todavía no respondió.'} Suele responder en ~${s.responseH} h.</small>
+        ${r.status === 'ABIERTA' ? `<div class="row"><button class="btn btn-sm btn-secondary" data-sim="${sid}">Simular respuesta</button>${L.sim('solo demo')}</div>` : ''}`;
+      else if (o.status === 'DECLINADA') body = `<small>No cotiza: ${L.esc(o.declineReason || 'sin motivo')}</small>`;
+      else { const q = o.lines.filter(l => l.mode !== 'SIN_OFERTA').length; const alts = o.lines.filter(l => l.mode === 'ALTERNATIVA').length;
+        body = `<div class="row"><span class="mono" style="font-weight:600">${L.arsShort(L.offerTotal(o))}</span><small>${q}/${r.lineIds.length} cotizados${alts ? ' · ' + alts + ' alternativa' + (alts > 1 ? 's' : '') : ''}</small></div>
+          <small>Enviada ${L.dateShort(o.submittedAt)} · pago ${L.esc(o.paymentTerms || '—')} · ${!L.offerValid(o) ? '<b style="color:var(--err)">oferta vencida</b>' : 'vale hasta ' + L.dateShort(o.validUntil) + (vd <= 3 ? ' <b style="color:var(--warn)">(vence pronto)</b>' : '')}</small>${o.simulated ? L.sim('respuesta simulada') : ''}${o.note ? `<small>«${L.esc(o.note)}»</small>` : ''}`; }
+      const os = o ? o.status : 'PENDIENTE';
+      return `<div class="ofs"><div class="ofs-h">${sw(sid)}<strong>${L.esc(s.short)}</strong>${L.badge(L.offerStatusLabel[os], L.offerStatusTone[os])}</div>${body}</div>`;
+    }).join('');
+    return `<div class="card"><div class="card-b">
+      <div class="rq-head"><div><div class="row"><h2 class="mono" style="font-size:var(--fs-xl)">${L.esc(r.code)}</h2>${L.badge(st[0], st[1])}${dl}${L.cap('propuesto')}</div>
+        <div class="rq-meta"><span>Obra <b>${L.esc(L.project(pid).name)}</b></span><span>Enviada <b>${L.date(r.createdAt.slice(0, 10))}</b></span><span>Responder hasta <b>${L.date(r.deadline)}</b></span><span><b>${r.lineIds.length}</b> materiales</span><span>Alternativas <b>${r.alternativesAllowed ? 'aceptadas' : 'no'}</b></span></div>
+        ${r.note ? `<p class="muted" style="font-size:var(--fs-sm);margin:6px 0 0">Nota: ${L.esc(r.note)}</p>` : ''}</div>
+        ${reqs.length > 1 ? `<div class="field" style="min-width:220px"><label for="rsel">Solicitud</label><select class="select" id="rsel">${reqs.map(x => `<option value="${x.id}" ${x.id === rid ? 'selected' : ''}>${x.code} · ${x.status === 'ABIERTA' ? 'abierta' : 'adjudicada'}</option>`).join('')}</select></div>` : ''}</div>
+      <div class="offers-strip" style="margin-top:14px">${offers}</div>
+      <p class="muted" style="font-size:var(--fs-xs);margin:10px 0 0">Hoy la app compara en solo lectura la cotización de catálogo y confirma un pedido por proveedor ${L.cap('existe')}. Las ofertas editables, el plazo y la aprobación son ${L.cap('propuesto')}.</p>
+    </div></div>`;
+  }
+
+  function altsHTML(c) {
+    const items = [];
+    L.offersOf(rid).filter(o => o.status === 'ENVIADA').forEach(o => o.lines.filter(l => l.mode === 'ALTERNATIVA').forEach(ol => items.push({ o, ol })));
+    if (!items.length) return '';
+    const tag = e => e === 'APROBADA' ? L.badge('Equivalencia técnica aprobada', 'ok', 'check') : e === 'RECHAZADA' ? L.badge('Equivalencia rechazada', 'err', 'x') : L.badge('Alternativa sugerida · sin aprobar', 'warn', 'alert');
+    return `<div class="card" style="margin-top:var(--sp-4)"><div class="card-h"><h3>Alternativas ofrecidas</h3>${L.cap('propuesto')}<span class="spacer"></span><small class="muted">Una alternativa no se puede adjudicar hasta que Ingeniería apruebe la equivalencia técnica</small></div>
+      <div class="list">${items.map(({ o, ol }) => { const l = L.line(ol.lineId); const pend = ol.alt.equivalence === 'SUGERIDA';
+        return `<div class="list-i">${sw(o.supplierId)}<div class="grow"><strong>${L.esc(L.supplier(o.supplierId).short)} ofrece ${L.esc(ol.alt.brand)} ${L.esc(ol.alt.gama)} <span class="mono">${L.esc(ol.alt.code)}</span></strong><small>En lugar de ${L.esc(L.lineLabel(l))} (${L.esc(L.brandLabel(l.brand))}) · ${L.ars(ol.alt.unitPrice)} c/u · «${L.esc(ol.alt.reason)}»</small></div>
+          ${tag(ol.alt.equivalence)}<button class="btn btn-sm ${pend ? 'btn-primary' : 'btn-ghost'}" data-eq="${o.id}|${ol.lineId}">${pend ? 'Revisar equivalencia' : 'Ver o cambiar'}</button></div>`; }).join('')}</div></div>`;
+  }
+
+  /* ─── Diálogo de equivalencia técnica: atributos lado a lado ─── */
+  function openEq(oid, lineId) {
+    const o = S().offers.find(x => x.id === oid); if (!o) return; const ol = o.lines.find(x => x.lineId === lineId); if (!ol || !ol.alt) return;
+    const l = L.line(lineId); const t = L.type(l.typeId); const at = L.type(ol.alt.typeId) || t; const c = ctx(); const row = c.cmp.rows.find(r => r.lineId === lineId);
+    const cmpRow = (label, a, b, essential) => { const same = String(a == null ? '' : a) === String(b == null ? '' : b);
+      return `<tr><th scope="row">${L.esc(label)}${essential ? ' <small class="muted">esencial</small>' : ''}</th><td>${L.esc(a == null || a === '' ? '—' : a)}</td><td>${L.esc(b == null || b === '' ? '—' : b)}</td><td class="${same ? 'same' : 'diff'}">${same ? '✓ igual' : '≠ distinto'}</td></tr>`; };
+    const attrs = t.attrs.map(a => cmpRow(a.label + (a.unit ? ' (' + a.unit + ')' : ''), l.attrs[a.k], ol.alt.attrs[a.k], a.req)).join('');
+    const essOk = t.attrs.filter(a => a.req).every(a => String(l.attrs[a.k]) === String(ol.alt.attrs[a.k])) && ol.alt.typeId === l.typeId;
+    const best = row && row.cheapest;
+    const body = `<p class="muted" style="font-size:var(--fs-sm)">Lo decide una persona de Ingeniería. Decidís como <strong>${L.esc(L.member(S().session.userId).name)}</strong>. Mientras no la apruebes, es una «alternativa sugerida» y no se puede adjudicar.</p>
+      <div class="tbl-wrap" style="border:1px solid var(--line)"><table class="tbl eqt"><thead><tr><th>Atributo</th><th>Pedido</th><th>Ofrecido por ${L.esc(L.supplier(o.supplierId).short)}</th><th></th></tr></thead><tbody>
+        ${cmpRow('Componente base', t.name, at.name, true)}${attrs}${l.brand === 'ANY' || l.brand == null ? `<tr><th scope="row">Marca</th><td>${L.esc(L.brandLabel(l.brand))}</td><td>${L.esc(ol.alt.brand)}</td><td class="same">✓ admitida</td></tr>` : cmpRow('Marca', L.brandLabel(l.brand), ol.alt.brand, false)}
+        <tr><th scope="row">Gama y código</th><td>—</td><td class="mono">${L.esc(ol.alt.gama)} · ${L.esc(ol.alt.code)}</td><td></td></tr>
+        <tr><th scope="row">Precio unitario</th><td>${best ? L.ars(best.price) + ' <small class="muted">mejor adjudicable hoy</small>' : '—'}</td><td class="mono">${L.ars(ol.alt.unitPrice)}</td><td></td></tr>
+        <tr><th scope="row">Stock y plazo</th><td>—</td><td>${STOCK[ol.stock][0]} · ${ol.leadDays} d</td><td></td></tr></tbody></table></div>
+      <div class="note ${essOk ? '' : 'note-warn'}" style="margin-top:12px">${L.icon(essOk ? 'info' : 'alert', 16)}<p>${essOk ? 'Coinciden el componente base y todos los atributos esenciales. Cambia la marca' + (l.brand && l.brand !== 'ANY' && l.brand !== ol.alt.brand ? ', que en el BOM era ' + L.esc(l.brand) : '') + ': revisá que el cliente o la especificación la acepten.' : 'No coinciden todos los atributos esenciales: aprobala solo si verificaste la hoja técnica.'}</p></div>
+      <p style="font-size:var(--fs-sm);margin-top:10px"><strong>Justificación del distribuidor:</strong> «${L.esc(ol.alt.reason)}»</p>
+      ${ol.alt.decidedBy ? `<p class="muted" style="font-size:var(--fs-xs)">Última decisión: ${ol.alt.equivalence === 'APROBADA' ? 'aprobada' : 'rechazada'} por ${L.esc(L.who(ol.alt.decidedBy))} el ${L.dateShort(ol.alt.decidedAt)} ${L.time(ol.alt.decidedAt)}.</p>` : ''}`;
+    L.dialog({ title: 'Equivalencia técnica · ' + L.lineLabel(l), wide: true, body, actions: [
+      { label: 'Cancelar' },
+      { label: 'Rechazar alternativa', kind: 'danger', onClick: () => { L.setEquivalence(oid, lineId, 'RECHAZADA'); L.toast('Alternativa rechazada', { detail: 'No se va a poder adjudicar.' }); } },
+      { label: 'Aprobar equivalencia técnica', kind: 'primary', onClick: () => { L.setEquivalence(oid, lineId, 'APROBADA'); L.toast('Equivalencia técnica aprobada', { detail: ol.alt.code + ' ya se puede adjudicar.' }); } },
+    ] });
+  }
+
+  /* ─── Variante Matriz ─── */
+  function cellHTML(c, row, sid) {
+    const o = L.offer(rid, sid); const l = row.line; const lock = c.locked[row.lineId];
+    const selected = c.alloc[row.lineId] === sid;
+    if (!o || o.status === 'PENDIENTE' || o.status === 'BORRADOR') {
+      const m = L.matches(l, sid).sort((a, b) => a.price - b.price)[0];
+      return `<button class="cell" disabled aria-label="${L.esc(L.supplier(sid).short)}: sin oferta todavía">${m ? `<span class="pr">${L.ars(m.price)}</span><span class="ln">${L.priceTag('referencia')}${L.isStale(m) ? '<span class="alt no" style="text-decoration:none">PRECIO DESACT.</span>' : ''}</span><span>Sin oferta todavía · no se adjudica</span>` : '<span>Sin oferta todavía</span><span>No tiene este material en su catálogo</span>'}</button>`;
+    }
+    if (o.status === 'DECLINADA') return `<button class="cell" disabled><span>No cotiza</span></button>`;
+    const x = row.opts.find(y => y.supplierId === sid);
+    if (!x || x.none) return `<button class="cell" disabled aria-label="${L.esc(L.supplier(sid).short)} no lo cotizó"><span class="pr">—</span><span>No lo cotizó</span>${x && x.note ? `<span>«${L.esc(x.note)}»</span>` : ''}</button>`;
+    const ol = o.lines.find(y => y.lineId === row.lineId);
+    const rejected = (c.rejectedBy[row.lineId] || []).includes(sid);
+    const dis = !!lock || rejected || !c.editable;
+    const stk = STOCK[x.stock] || STOCK.DESCONOCIDO;
+    const stkTxt = x.stock === 'PARCIAL' && x.stockQty ? stk[0] + ' · ' + x.stockQty + ' de ' + row.qty : stk[0];
+    const altTag = x.isAlt ? `<span class="alt ${x.equivalence === 'APROBADA' ? 'ok' : x.equivalence === 'RECHAZADA' ? 'no' : ''}">${x.equivalence === 'APROBADA' ? 'equivalencia aprobada' : x.equivalence === 'RECHAZADA' ? 'alternativa rechazada' : 'alternativa sugerida'} · ${L.esc(x.brand)}</span>` : `<span class="muted">${L.esc(x.brand || '')}</span>`;
+    const marks = (row.cheapest && row.cheapest.supplierId === sid ? '<span class="best">más barato</span>' : '') + (row.fastest && row.fastest.supplierId === sid && row.opts.filter(usableOpt).length > 1 ? '<span class="best fast">más rápido</span>' : '');
+    const label = `${L.supplier(sid).short}: ${L.ars(x.price)} por unidad, ${stkTxt}, ${x.lead} días${x.isAlt ? ', alternativa ' + (x.equivalence === 'APROBADA' ? 'aprobada' : 'sin aprobar') : ''}${selected ? ', adjudicado' : ''}`;
+    return `<button class="cell" data-cell="${row.lineId}|${sid}" aria-pressed="${selected}" ${dis ? 'disabled' : ''} aria-label="${L.esc(label)}" title="${rejected ? 'Rechazó el pedido de esta línea' : lock ? 'Ya pedido en ' + lock.code : 'Tocá para adjudicar esta línea a ' + L.esc(L.supplier(sid).short)}">
+      <span class="ctop"><span class="pr">${L.ars(x.price)}</span><span class="pick">${L.icon('check', 11)}adjudicado</span></span>
+      <span class="ln">${L.priceTag('oferta')}${ol && ol.mode === 'AJUSTADO' ? '<span class="muted">ajustado</span>' : ''}${marks}</span>
+      <span class="ln"><span class="st st-${stk[1]}">${stkTxt}</span><span class="muted">· ${x.lead} d</span>${!x.valid ? '<span class="alt no" style="text-decoration:none">oferta vencida</span>' : ''}</span>
+      <span class="ln">${altTag}</span>${rejected ? '<span class="st st-warn">Rechazó el pedido</span>' : ''}</button>`;
+  }
+  function matrizHTML(c) {
+    const sids = c.r.supplierIds; const sum = L.allocationSummary(rid, c.alloc);
+    const rows = c.cmp.rows.filter(row => !onlyUnassigned || (!c.alloc[row.lineId] && !c.locked[row.lineId]));
+    const body = rows.map(row => { const lock = c.locked[row.lineId]; const unas = !lock && !c.alloc[row.lineId];
+      return `<tr class="${lock ? 'locked' : ''} ${unas ? 'unas' : ''}"><td class="mat"><strong>${L.esc(L.lineLabel(row.line))}</strong><small>${L.num(row.qty)} u · ${L.esc(L.brandLabel(row.line.brand))}</small>
+        ${lock ? `<div style="margin-top:4px">${L.badge('Pedido en ' + lock.code, 'ok', 'truck')}</div>` : unas ? `<div style="margin-top:4px">${L.badge('Sin asignar', 'volt')}</div>` : ''}</td>
+        <td class="num"><span class="mono">${row.refPrice ? L.ars(row.refPrice) : '—'}</span><br><small class="muted">catálogo</small></td>
+        ${sids.map(sid => `<td class="cellw">${cellHTML(c, row, sid)}</td>`).join('')}</tr>`; }).join('');
+    const foot = sids.map(sid => { const o = L.offer(rid, sid); const b = sum.bySupplier[sid];
+      const tot = o && o.status === 'ENVIADA' ? `<b>${L.arsShort(L.offerTotal(o))}</b>oferta completa · ${o.lines.filter(l => l.mode !== 'SIN_OFERTA').length}/${c.r.lineIds.length}` : `<b>—</b>sin oferta`;
+      return `<td>${tot}<div style="margin-top:6px;color:var(--brand)">${b ? `Adjudicado ${L.arsShort(b.total)} · ${b.lines} ${b.lines === 1 ? 'línea' : 'líneas'}` : 'Nada adjudicado'}</div></td>`; }).join('');
+    const unas = c.open.filter(id => !c.alloc[id]).length;
+    return `<div class="card">
+      <div class="toolbar"><span class="lbl">Estrategia</span>
+        <button class="btn btn-sm btn-secondary" data-strat="BARATO" ${c.editable ? '' : 'disabled'}>${L.icon('coins', 14)}Más barato</button>
+        <button class="btn btn-sm btn-secondary" data-strat="RAPIDO" ${c.editable ? '' : 'disabled'}>${L.icon('truck', 14)}Más rápido</button>
+        <button class="btn btn-sm btn-secondary" data-strat="UNICO" ${c.editable ? '' : 'disabled'}>${L.icon('store', 14)}Único proveedor</button>
+        <button class="btn btn-sm btn-ghost" id="clear" ${Object.keys(c.alloc).length ? '' : 'disabled'}>Limpiar</button>
+        <span class="spacer"></span>
+        <button class="chip" id="only-un" aria-pressed="${onlyUnassigned}">${L.icon('filter', 12)}Solo sin asignar (${unas})</button>
+      </div>
+      <div class="tbl-wrap" style="border-radius:0 0 var(--r-lg) var(--r-lg)"><table class="tbl mx"><caption class="sr-only">Precio unitario por material y distribuidor. Tocá una celda para adjudicar.</caption>
+        <thead><tr><th style="width:22%">Material</th><th class="num" style="width:10%">Ref.</th>${sids.map(sid => `<th class="sup-col">${sw(sid)} ${L.esc(L.supplier(sid).short)}</th>`).join('')}</tr></thead>
+        <tbody>${body || `<tr><td colspan="${2 + sids.length}">${L.empty({ icon: 'check', title: 'No quedan líneas sin asignar', text: 'Sacá el filtro para ver toda la matriz.' })}</td></tr>`}</tbody>
+        <tfoot><tr><td>Total por distribuidor</td><td></td>${foot}</tr></tfoot></table></div></div>`;
+  }
+
+  /* ─── Variante Escenarios ─── */
+  function risksOf(c, alloc) { let n = 0; Object.entries(alloc).forEach(([lid, sid]) => { const row = c.cmp.rows.find(r => r.lineId === lid); const x = row && row.opts.find(y => y.supplierId === sid); if (x && !x.none && (x.stock !== 'CONFIRMADO' || (x.stock === 'PARCIAL' && x.stockQty < row.qty))) n++; }); return n; }
+  function scenarios(c) {
+    const out = [];
+    const mk = (id, label, alloc, shape) => { const a = filterAlloc(c, alloc); const s = L.allocationSummary(rid, a); const n = Object.keys(a).length;
+      out.push({ id, label, alloc: a, shape, total: s.total, lead: s.lead, assigned: n, count: c.open.length, suppliers: Object.keys(s.bySupplier).length, risks: risksOf(c, a) }); };
+    mk('BARATO', 'Más barato', L.allocate(rid, 'BARATO'), 'circle');
+    mk('RAPIDO', 'Más rápido', L.allocate(rid, 'RAPIDO'), 'square');
+    const responded = c.r.supplierIds.filter(sid => L.offerValid(L.offer(rid, sid)));
+    responded.forEach(sid => mk('SOLO:' + sid, 'Todo a ' + L.supplier(sid).short, singleAlloc(c, sid), 'diamond'));
+    if (Object.keys(c.alloc).length) mk('MANUAL', 'Tu asignación actual', c.alloc, 'star');
+    const singles = out.filter(s => s.id.startsWith('SOLO:')).sort((a, b) => b.assigned - a.assigned || a.total - b.total);
+    const bestSingle = singles[0] || null;
+    out.forEach(s => { s.bestSingle = bestSingle && s.id === bestSingle.id; });
+    return { list: out.filter((s, i, arr) => s.assigned > 0 && arr.findIndex(t => JSON.stringify(t.alloc) === JSON.stringify(s.alloc)) === i), bestSingle };
+  }
+  function gainLose(s, ref) {
+    if (!ref) return { gain: [], lose: [] };
+    if (s.id === ref.id) return { gain: ['Un solo pedido para seguir y un solo interlocutor.', 'Condición de pago única: ' + (L.offer(rid, ref.id.split(':')[1]).paymentTerms || '—') + '.'], lose: [ref.assigned < ref.count ? (ref.count - ref.assigned) + ' material' + (ref.count - ref.assigned > 1 ? 'es quedan' : ' queda') + ' sin asignar.' : 'Nada, frente a sí mismo: es la referencia.'] };
+    const gain = [], lose = []; const d = ref.total - s.total;
+    if (s.assigned > ref.assigned) gain.push('Cubre ' + (s.assigned - ref.assigned) + ' material' + (s.assigned - ref.assigned > 1 ? 'es' : '') + ' más (' + s.assigned + '/' + s.count + ').');
+    if (s.assigned < ref.assigned) lose.push('Cubre ' + (ref.assigned - s.assigned) + ' material' + (ref.assigned - s.assigned > 1 ? 'es' : '') + ' menos.');
+    if (s.assigned === ref.assigned) { if (d > 0) gain.push('Ahorrás ' + L.arsShort(d) + ' (' + L.pct(d / ref.total * 100, 1) + ').'); else if (d < 0) lose.push('Pagás ' + L.arsShort(-d) + ' más (' + L.pct(-d / ref.total * 100, 1) + ').'); }
+    else lose.push('El total no es comparable uno a uno: cubren distinto.');
+    if (s.lead < ref.lead) gain.push('Llega ' + (ref.lead - s.lead) + ' días antes (máx. ' + s.lead + ' d).'); else if (s.lead > ref.lead) lose.push('Tarda ' + (s.lead - ref.lead) + ' días más (máx. ' + s.lead + ' d).');
+    if (s.suppliers > ref.suppliers) lose.push(s.suppliers + ' pedidos para seguir en vez de ' + ref.suppliers + '.');
+    if (s.risks < ref.risks) gain.push((ref.risks - s.risks) + ' línea' + (ref.risks - s.risks > 1 ? 's' : '') + ' menos con stock sin confirmar.'); else if (s.risks > ref.risks) lose.push((s.risks - ref.risks) + ' línea' + (s.risks - ref.risks > 1 ? 's' : '') + ' más con stock sin confirmar o a pedido.');
+    if (!gain.length) gain.push('Nada frente al mejor proveedor único.'); if (!lose.length) lose.push('Nada frente al mejor proveedor único.');
+    return { gain, lose };
+  }
+  function escenariosHTML(c) {
+    const { list, bestSingle } = scenarios(c);
+    if (!list.length) return `<div class="card"><div class="card-b">${L.empty({ icon: 'chart', title: 'Todavía no hay escenarios', text: 'Hace falta al menos una oferta vigente con algo adjudicable. Esperá las respuestas o aprobá las alternativas pendientes.' })}</div></div>`;
+    const cur = JSON.stringify(c.alloc);
+    const W = 560, H = 320, P = { l: 70, r: 20, t: 20, b: 44 };
+    const maxT = Math.max(...list.map(s => s.total)) * 1.08, minT = Math.min(...list.map(s => s.total)) * 0.9;
+    const maxL = Math.max(...list.map(s => s.lead)) + 3;
+    const X = v => P.l + v / maxL * (W - P.l - P.r), Y = v => H - P.b - (v - minT) / (maxT - minT || 1) * (H - P.t - P.b);
+    const colors = { circle: 'var(--ok)', square: 'var(--info)', diamond: 'var(--copper)', star: 'var(--brand)' };
+    const mark = (s, x, y) => { const f = colors[s.shape]; if (s.shape === 'circle') return `<circle cx="${x}" cy="${y}" r="8" fill="${f}" stroke="#fff" stroke-width="2"/>`;
+      if (s.shape === 'square') return `<rect x="${x - 7}" y="${y - 7}" width="14" height="14" fill="${f}" stroke="#fff" stroke-width="2"/>`;
+      if (s.shape === 'diamond') return `<path d="M${x} ${y - 9} L${x + 9} ${y} L${x} ${y + 9} L${x - 9} ${y}Z" fill="${f}" stroke="#fff" stroke-width="2"/>`;
+      return `<path d="M${x} ${y - 10} L${x + 3} ${y - 3} L${x + 10} ${y - 3} L${x + 4} ${y + 2} L${x + 6} ${y + 9} L${x} ${y + 5} L${x - 6} ${y + 9} L${x - 4} ${y + 2} L${x - 10} ${y - 3} L${x - 3} ${y - 3}Z" fill="${f}" stroke="#fff" stroke-width="1.5"/>`; };
+    const ticksY = [0, 1, 2, 3].map(i => minT + (maxT - minT) * i / 3);
+    const ticksX = [0, 1, 2, 3, 4].map(i => Math.round(maxL * i / 4));
+    /* Posiciones de etiquetas: se separan si dos puntos caen cerca. */
+    const placed = [];
+    const pts = list.map(s => { const x = X(s.lead), y = Y(s.total); let ly = y - 14; while (placed.some(p => Math.abs(p.x - x) < 150 && Math.abs(p.y - ly) < 32)) ly += 32; placed.push({ x, y: ly });
+      const anchor = x > W - 150 ? 'end' : 'start'; const lx = anchor === 'end' ? x - 12 : x + 12;
+      return `<g class="pt" tabindex="0" role="button" data-sc="${L.esc(s.id)}" aria-label="${L.esc(s.label)}: ${L.ars(s.total)}, ${s.lead} días, ${s.assigned} de ${s.count} materiales. Usar este escenario.">${mark(s, x, y)}<text x="${lx}" y="${ly + 18}" text-anchor="${anchor}" font-size="11.5" font-weight="600" fill="var(--ink)">${L.esc(s.label)}</text><text x="${lx}" y="${ly + 31}" text-anchor="${anchor}" font-size="10.5" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">${L.arsShort(s.total)} · ${s.assigned}/${s.count}</text></g>`; }).join('');
+    const svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="Costo total contra plazo máximo de cada escenario">
+      ${ticksY.map(v => `<line x1="${P.l}" x2="${W - P.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${P.l - 8}" y="${Y(v) + 4}" text-anchor="end" font-size="10.5" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">${L.arsShort(v).replace('ARS ', '')}</text>`).join('')}
+      ${ticksX.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${P.t}" y2="${H - P.b}" stroke="var(--line)" stroke-dasharray="2 4"/><text x="${X(v)}" y="${H - P.b + 16}" text-anchor="middle" font-size="10.5" fill="var(--ink-3)" font-family="IBM Plex Mono, monospace">${v} d</text>`).join('')}
+      <text x="${(W + P.l) / 2}" y="${H - 6}" text-anchor="middle" font-size="11" fill="var(--ink-2)">Plazo máximo de entrega (días) →</text>
+      <text x="14" y="${(H - P.b + P.t) / 2}" transform="rotate(-90 14 ${(H - P.b + P.t) / 2})" text-anchor="middle" font-size="11" fill="var(--ink-2)">Costo total (ARS) →</text>
+      ${pts}</svg>`;
+    const maxTot = Math.max(...list.map(s => s.total)), maxLead = Math.max(...list.map(s => s.lead), 1);
+    const bars = `<div class="bars" aria-hidden="true">${list.map(s => `<div class="bar"><span>${L.esc(s.label)}</span><span><i style="width:${s.total / maxTot * 100}%"></i><i class="lead" style="width:${s.lead / maxLead * 100}%;margin-top:3px;height:6px"></i></span><span class="mono">${L.arsShort(s.total)} · ${s.lead} d</span></div>`).join('')}</div>`;
+    const cards = list.map(s => { const gl = gainLose(s, bestSingle); const on = JSON.stringify(s.alloc) === cur;
+      return `<div class="sc${on ? ' on' : ''}" id="sc-${L.esc(s.id.replace(':', '-'))}"><h4>${L.esc(s.label)}${s.bestSingle ? L.badge('mejor proveedor único', 'copper') : ''}${on ? L.badge('en uso', 'brand', 'check') : ''}</h4>
+        <div>${s.id === 'MANUAL' ? '' : `<button class="btn btn-sm ${on ? 'btn-ghost' : 'btn-primary'}" data-sc="${L.esc(s.id)}" ${c.editable && !on ? '' : 'disabled'}>${on ? 'En uso' : 'Usar este escenario'}</button>`}</div>
+        <div class="k"><span>Total <b>${L.ars(s.total)}</b></span><span>Plazo máx. <b>${s.lead} d</b></span><span>Cubre <b>${s.assigned}/${s.count}</b></span><span>Pedidos <b>${s.suppliers}</b></span><span>Stock sin confirmar <b>${s.risks}</b></span></div>
+        <div class="gl"><div class="gain"><strong>Qué ganás</strong>${gl.gain.map(x => L.esc(x)).join('<br>')}</div><div class="lose"><strong>Qué perdés</strong>${gl.lose.map(x => L.esc(x)).join('<br>')}</div></div></div>`; }).join('');
+    return `<div class="sc-wrap"><div class="card"><div class="card-h"><h3>Costo contra plazo</h3>${L.cap('propuesto')}<span class="spacer"></span><small class="muted">Abajo y a la izquierda es mejor</small></div>
+        <div class="card-b">${svg}<div class="row" style="gap:14px;font-size:var(--fs-xs);color:var(--ink-2);margin:6px 0 12px"><span>● Más barato</span><span>■ Más rápido</span><span>◆ Un solo proveedor</span><span>★ Tu asignación</span></div>${bars}
+        <details style="margin-top:12px"><summary style="cursor:pointer;font-size:var(--fs-sm)">Ver como tabla</summary><table class="tbl" style="margin-top:8px"><thead><tr><th>Escenario</th><th class="num">Total</th><th class="num">Plazo</th><th class="num">Cubre</th><th class="num">Pedidos</th></tr></thead><tbody>${list.map(s => `<tr><td>${L.esc(s.label)}</td><td class="num">${L.ars(s.total)}</td><td class="num">${s.lead} d</td><td class="num">${s.assigned}/${s.count}</td><td class="num">${s.suppliers}</td></tr>`).join('')}</tbody></table></details></div></div>
+      <div class="sc-list">${bestSingle ? `<div class="note">${L.icon('info', 16)}<p>Cada escenario se compara con el <strong>mejor proveedor único</strong> (${L.esc(bestSingle.label.replace('Todo a ', ''))}): el que más cubre y, a igual cobertura, el más barato. Solo cuentan ofertas vigentes y alternativas aprobadas.</p></div>` : ''}${cards}</div></div>`;
+  }
+
+  /* ─── Variante Asistente de compras (IA simulada) ─── */
+  const sig = () => JSON.stringify(L.offersOf(rid).map(o => [o.id, o.status, o.lines.map(l => l.alt ? l.alt.equivalence : '')]));
+  function recommend(c) {
+    const items = [], global = [];
+    const bestSingleSid = (() => { const a = L.allocate(rid, 'UNICO'); return Object.values(a)[0] || null; })();
+    c.cmp.rows.filter(row => c.open.includes(row.lineId)).forEach(row => {
+      const us = row.opts.filter(usableOpt).filter(x => !(c.rejectedBy[row.lineId] || []).includes(x.supplierId)).sort((a, b) => a.price - b.price);
+      const risks = [];
+      const pendAlt = row.opts.find(x => x.isAlt && x.equivalence === 'SUGERIDA' && x.valid);
+      if (!us.length) { risks.push('Nadie lo cotizó en condiciones adjudicables.' + (pendAlt ? ' ' + L.supplier(pendAlt.supplierId).short + ' ofrece una alternativa pendiente de equivalencia.' : '')); items.push({ lineId: row.lineId, sid: null, why: 'Queda sin asignar.', risks }); return; }
+      let pick = us[0]; let why;
+      const weak = x => x.stock === 'A_PEDIDO' || x.stock === 'DESCONOCIDO' || (x.stock === 'PARCIAL' && x.stockQty < row.qty);
+      const safer = us.find(x => !weak(x) && x.price <= us[0].price * 1.08);
+      if (weak(us[0]) && safer && safer !== us[0]) { pick = safer; why = `Elegí ${L.supplier(pick.supplierId).short} a ${L.ars(pick.price)}: cuesta ${L.pct((pick.price / us[0].price - 1) * 100, 1)} más que ${L.supplier(us[0].supplierId).short}, pero tiene stock confirmado y el otro figura «${STOCK[us[0].stock][0].toLowerCase()}».`; }
+      else { const next = us[1]; why = `Elegí ${L.supplier(pick.supplierId).short} a ${L.ars(pick.price)} c/u` + (next ? `, ${L.pct((1 - pick.price / next.price) * 100)} menos que ${L.supplier(next.supplierId).short} (${L.ars(next.price)}).` : ', la única oferta adjudicable.'); }
+      why += ` ${STOCK[pick.stock][0]}${pick.stock === 'PARCIAL' && pick.stockQty ? ' (' + pick.stockQty + ' de ' + row.qty + ')' : ''}, entrega en ${pick.lead} días, oferta válida hasta el ${L.dateShort(pick.validUntil)}.`;
+      if (pick.isAlt) why += ` Es la alternativa ${pick.altCode}, con equivalencia técnica aprobada.`;
+      if (pick.stock === 'PARCIAL' && pick.stockQty < row.qty) risks.push(`Stock parcial: ${L.supplier(pick.supplierId).short} tiene ${pick.stockQty} de ${row.qty}. Preguntá el plazo del resto antes de comprar.`);
+      if (pick.stock === 'A_PEDIDO') risks.push('A pedido: el plazo puede estirarse. Pedí la fecha comprometida por escrito.');
+      if (pick.stock === 'DESCONOCIDO') risks.push('Disponibilidad sin confirmar: pedile al distribuidor que la confirme.');
+      if (pendAlt && pendAlt.price < pick.price) risks.push(`${L.supplier(pendAlt.supplierId).short} ofrece la alternativa ${pendAlt.altCode} a ${L.ars(pendAlt.price)}: si Ingeniería aprueba la equivalencia, ahorrás ${L.ars((pick.price - pendAlt.price) * row.qty)}.`);
+      const vd = L.daysBetween(B.TODAY, pick.validUntil); if (vd <= 3) risks.push(`La oferta de ${L.supplier(pick.supplierId).short} vence el ${L.dateShort(pick.validUntil)} (${vd <= 0 ? 'hoy' : 'en ' + vd + (vd === 1 ? ' día' : ' días')}).`);
+      items.push({ lineId: row.lineId, sid: pick.supplierId, why, risks });
+    });
+    c.r.supplierIds.forEach(sid => { const o = L.offer(rid, sid); if (!o || o.status === 'PENDIENTE' || o.status === 'BORRADOR') global.push(`${L.supplier(sid).short} todavía no respondió y la solicitud vence el ${L.dateShort(c.r.deadline)}: esperar puede bajar el precio de algunas líneas.`); });
+    const alloc = {}; items.forEach(i => { if (i.sid) alloc[i.lineId] = i.sid; });
+    const sum = L.allocationSummary(rid, alloc);
+    const single = bestSingleSid ? L.allocationSummary(rid, singleAlloc(c, bestSingleSid)) : null;
+    return { at: L.now(), usd: AI_COST, sig: sig(), items, global, total: sum.total, lead: sum.lead, suppliers: Object.keys(sum.bySupplier).length, single: single && { sid: bestSingleSid, total: single.total, assigned: single.count - single.unassigned } };
+  }
+  function asistenteHTML(c) {
+    const reco = ((S().ui || {}).aiReco || {})[rid];
+    const ai = L.aiState(); const limited = estado === 'limite' || !L.aiCan(AI_COST) || ai.blocked;
+    const meter = `<div style="max-width:320px"><div class="row" style="justify-content:space-between;font-size:var(--fs-xs)"><span class="muted">IA este mes</span><span class="mono">${L.usd(estado === 'limite' ? ai.budget : ai.spent)} de ${L.usd(ai.budget)}</span></div><div class="meter ${estado === 'limite' ? 'err' : ai.tone}"><i style="width:${Math.min(100, estado === 'limite' ? 100 : ai.pct)}%"></i></div></div>`;
+    const head = `<div class="stage ai-stage"><div class="row" style="align-items:flex-start;gap:16px"><div style="flex:1;min-width:260px"><div class="row">${L.ai('Asistente de compras')}${L.sim()}${L.cap('propuesto')}</div>
+        <h3 style="margin:8px 0 4px">Una segunda opinión antes de adjudicar</h3><p class="muted" style="font-size:var(--fs-sm);margin:0">Lee las ofertas vigentes, el stock, el plazo y la validez, y te explica una asignación. No adjudica ni aprueba equivalencias: eso lo hacés vos.</p></div>
+        <div class="col" style="align-items:flex-end">${meter}
+        ${limited ? '' : `<button class="btn btn-volt" id="ai-run" ${c.editable ? '' : 'disabled'}>${L.icon('sparkles', 15)}${reco ? 'Volver a pedir' : 'Pedir recomendación'} · ${L.usd(AI_COST)}</button><small class="muted">Costo estimado por consulta. Límite mensual ${L.usd(ai.budget)}.</small>`}</div></div></div>`;
+    if (limited) return head + `<div class="note note-err" style="margin-top:var(--sp-4)" role="alert">${L.icon('lock', 16)}<div><p><strong>Llegaste al límite mensual de IA (${L.usd(ai.budget)}).</strong> El asistente no se ejecuta para no pasarte del presupuesto que fijó tu empresa.</p>
+      <p>Seguí a mano: <a href="${L.link('d-comparar.html', { r: rid, v: 'matriz' })}">aplicá «Más barato» en la Matriz</a> o <a href="${L.link('d-comparar.html', { r: rid, v: 'escenarios' })}">compará los Escenarios</a>. Ninguno consume IA. El límite se cambia en <a href="${L.link('d-cuenta.html')}">Plan, uso y cuenta</a>.</p></div></div>`;
+    if (!c.editable) return head;
+    if (!reco) return head + `<div class="card" style="margin-top:var(--sp-4)"><div class="card-b">${L.empty({ icon: 'bot', title: 'Todavía no pediste una recomendación', text: 'Cuesta alrededor de ' + L.usd(AI_COST) + ' por consulta. Mientras tanto, la Matriz y los Escenarios funcionan sin IA.' })}</div></div>`;
+    const stale = reco.sig !== sig();
+    const saving = reco.single ? reco.single.total - reco.total : 0;
+    const assigned = reco.items.filter(i => i.sid).length;
+    const list = reco.items.map(i => { const l = L.line(i.lineId); const inAlloc = c.alloc[i.lineId] === i.sid && i.sid;
+      return `<div class="reco-i">${i.sid ? `<input type="checkbox" id="rc-${i.lineId}" data-rc="${i.lineId}" ${inAlloc ? 'disabled checked' : 'checked'} aria-label="Aplicar la recomendación para ${L.esc(L.lineLabel(l))}">` : L.icon('alertc', 18)}
+        <div><label for="rc-${i.lineId}"><strong>${L.esc(L.lineLabel(l))}</strong> <span class="muted" style="font-size:var(--fs-xs)">${L.num(L.reqQty(c.r, l))} u</span></label><p>${L.esc(i.why)}</p>${i.risks.map(x => `<div class="risk">${L.icon('alert', 13)}<span>${L.esc(x)}</span></div>`).join('')}</div>
+        <div>${i.sid ? `<span class="pill">${sw(i.sid)}${L.esc(L.supplier(i.sid).short)}</span>` : L.badge('Sin asignar', 'volt')}${inAlloc ? `<div style="margin-top:4px">${L.badge('ya aplicado', 'brand', 'check')}</div>` : ''}</div></div>`; }).join('');
+    return head + `<div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);margin-top:var(--sp-4);align-items:start">
+      <div class="card"><div class="card-h"><h3>Asignación recomendada</h3>${L.ai('IA propone')}<span class="spacer"></span><small class="muted">${L.dateShort(reco.at)} ${L.time(reco.at)} · ${L.usd(reco.usd)}</small></div>
+        ${stale ? `<div class="card-b" style="padding-bottom:0"><div class="note note-warn">${L.icon('refresh', 16)}<p>Las ofertas o las equivalencias cambiaron desde esta recomendación. Pedila de nuevo para que tenga en cuenta lo último.</p></div></div>` : ''}
+        <div class="card-b" style="padding-bottom:6px"><p style="margin:0;font-size:var(--fs-sm)">Recomiendo repartir entre <strong>${reco.suppliers} ${reco.suppliers === 1 ? 'distribuidor' : 'distribuidores'}</strong> por <strong class="mono">${L.ars(reco.total)}</strong>, plazo máximo <strong>${reco.lead} días</strong>, ${assigned} de ${reco.items.length} materiales.${reco.single ? ` Frente a comprarle todo a ${L.esc(L.supplier(reco.single.sid).short)} (${L.ars(reco.single.total)}, ${reco.single.assigned} materiales) ${saving > 0 ? 'ahorrás ' + L.ars(saving) : saving < 0 ? 'pagás ' + L.ars(-saving) + ' más, pero cubrís más materiales' : 'cuesta lo mismo'}.` : ''}</p></div>
+        <div class="reco">${list}</div>
+        <div class="card-f"><button class="btn btn-primary" id="ai-apply" ${c.editable ? '' : 'disabled'}>${L.icon('check', 14)}Aplicar las líneas marcadas</button><a class="btn btn-ghost" href="${L.link('d-comparar.html', { r: rid, v: 'matriz' })}">Editar en la Matriz</a><span class="spacer"></span><small class="muted">Aplicar solo cambia tu borrador: todavía no se emite nada.</small></div></div>
+      <div class="card"><div class="card-h"><h3>Riesgos a mirar</h3></div><div class="card-b risks-g">${[...reco.global, ...reco.items.flatMap(i => i.risks.map(r => L.lineLabel(L.line(i.lineId)) + ': ' + r))].map(x => `<div class="note note-warn">${L.icon('alert', 16)}<p>${L.esc(x)}</p></div>`).join('') || '<p class="muted">Sin riesgos marcados.</p>'}
+        <p class="muted" style="font-size:var(--fs-xs);margin:0">Resultado simulado: en el prototipo no se llama a ningún modelo. La evidencia sale de las ofertas guardadas.</p></div></div></div>`;
+  }
+
+  /* ─── Adjudicación, aprobación y pedidos (común a las tres variantes) ─── */
+  function awardHTML(c) {
+    const ap = approvalOf(); const sum = L.allocationSummary(rid, c.alloc); const n = Object.keys(c.alloc).length; const rl = rule();
+    const errs = lastErrs || (n ? L.validateAward(rid, c.alloc) : []);
+    const orders = c.ords;
+    let apNote = '';
+    const matches = ap && Math.abs(ap.total - sum.total) < 1;
+    if (ap && ap.status === 'PENDIENTE') apNote = `<div class="note note-warn" id="ap-pending">${L.icon('clock', 16)}<div><p><strong>Esperando aprobación de Dirección.</strong> Pediste aprobar ${L.ars(ap.total)} el ${L.dateShort(ap.at)} a las ${L.time(ap.at)}. Daniel Ortega recibió el aviso.${!matches && n ? ' Cambiaste la asignación: al adjudicar de nuevo se actualiza el pedido de aprobación.' : ''}</p>
+      <div class="row"><a class="btn btn-sm btn-secondary" href="${L.link('m-aprobar.html', { ap: ap.id })}">${L.icon('phone', 14)}Aprobar como Daniel Ortega (Dirección)</a>${L.sim('solo demo')}</div></div></div>`;
+    else if (ap && ap.status === 'APROBADA' && c.editable) apNote = matches ? `<div class="note note-ok" id="ap-ok">${L.icon('check', 16)}<p><strong>Dirección aprobó ${L.ars(ap.total)}.</strong> ${ap.note ? '«' + L.esc(ap.note) + '» · ' : ''}Ya podés emitir los pedidos.</p></div>`
+      : `<div class="note note-warn">${L.icon('alert', 16)}<p>Dirección aprobó ${L.ars(ap.total)}, pero cambiaste la asignación (${L.ars(sum.total)}). Si supera el umbral, hay que volver a pedir la aprobación.</p></div>`;
+    else if (ap && ap.status === 'RECHAZADA' && c.editable) apNote = `<div class="note note-err" id="ap-no">${L.icon('x', 16)}<p><strong>Dirección rechazó la adjudicación de ${L.ars(ap.total)}.</strong> Motivo: ${L.esc(ap.note || 'sin motivo')}. Cambiá la asignación y volvé a adjudicar.</p></div>`;
+    const over = rl && sum.total > rl.threshold && !(ap && ap.status === 'APROBADA' && matches);
+    const ordersCard = orders.length ? `<div class="card" id="orders" style="margin-top:var(--sp-4)"><div class="card-h"><h3>Pedidos emitidos de ${L.esc(c.r.code)}</h3>${L.cap('existe')}<span class="spacer"></span><a class="btn btn-sm btn-secondary" href="${L.link('d-pedidos.html', { p: pid })}">Ver en Pedidos ${L.icon('arrowr', 14)}</a></div>
+      <div class="list">${orders.map(o => `<a class="list-i" href="${L.link('d-pedidos.html', { p: pid, o: o.id })}">${sw(o.supplierId)}<div class="grow"><strong class="mono">${o.code}</strong> · ${L.esc(L.supplier(o.supplierId).short)}<small>${o.lines.length} ${o.lines.length === 1 ? 'material' : 'materiales'} · emitido ${L.dateShort(o.createdAt)} ${L.time(o.createdAt)}</small></div><span class="mono">${L.ars(L.orderTotal(o))}</span>${L.badge(L.orderStatusLabel[o.status], L.orderStatusTone[o.status])}${L.icon('chevr', 16)}</a>`).join('')}</div>
+      ${Object.keys(c.rejectedBy).length && c.editable ? `<div class="card-b" style="border-top:1px solid var(--line)"><div class="note note-warn">${L.icon('refresh', 16)}<p>Un distribuidor rechazó su pedido: esas líneas volvieron a la matriz para que las adjudiques a otro.</p></div></div>` : ''}</div>` : '';
+    if (!c.editable) return apNote + ordersCard;
+    return `${apNote ? `<div style="margin-top:var(--sp-4)">${apNote}</div>` : ''}
+      ${errs.length ? `<div class="note note-err" id="award-errs" role="alert" style="margin-top:var(--sp-4)" tabindex="-1">${L.icon('alertc', 16)}<div><p><strong>No se puede adjudicar todavía:</strong></p><ul class="errs">${errs.map(e => `<li>${L.esc(e)}</li>`).join('')}</ul></div></div>` : ''}
+      ${ordersCard}
+      <div class="card award"><div class="card-f">
+        <div class="tot"><small>Adjudicación</small><b class="mono">${L.ars(sum.total)}</b><small>${n} de ${c.open.length} materiales · plazo máx. ${sum.lead || '—'} d${sum.count - sum.unassigned < c.open.length ? ` · <strong style="color:var(--ink)">${c.open.length - n} sin asignar</strong>` : ''}</small></div>
+        <div class="pills">${Object.entries(sum.bySupplier).map(([sid, b]) => `<span class="pill">${sw(sid)}${L.esc(L.supplier(sid).short)} · ${b.lines} · <span class="mono">${L.arsShort(b.total)}</span></span>`).join('') || '<span class="muted" style="font-size:var(--fs-sm)">Elegí una estrategia o tocá celdas de la matriz.</span>'}</div>
+        <span class="spacer"></span>
+        <div class="col" style="align-items:flex-end;gap:4px">${over ? `<small style="color:var(--warn);font-weight:600">${L.icon('shield', 12)} Supera ${L.ars(rl.threshold)}: necesita aprobación de Dirección</small>` : `<small class="muted">Se emite un pedido por distribuidor</small>`}
+        <button class="btn btn-primary btn-lg" id="award" ${n ? '' : 'disabled'}>${L.icon('send', 16)}${over ? (ap && ap.status === 'PENDIENTE' ? 'Actualizar pedido de aprobación' : 'Pedir aprobación a Dirección') : 'Adjudicar y emitir ' + Object.keys(sum.bySupplier).length + (Object.keys(sum.bySupplier).length === 1 ? ' pedido' : ' pedidos')}</button></div>
+      </div></div>`;
+  }
+
+  function doAward() {
+    const c = ctx(); lastErrs = null;
+    const res = L.award(rid, c.alloc);
+    if (res.ok) { L.store.update(s => { s.ui.alloc = s.ui.alloc || {}; delete s.ui.alloc[rid]; });
+      L.toast(res.orders.length + (res.orders.length === 1 ? ' pedido emitido' : ' pedidos emitidos'), { detail: res.orders.map(o => o.code + ' · ' + L.supplier(o.supplierId).short).join(', ') });
+      flash = 'orders'; render(); return; }
+    if (res.needsApproval) { L.toast('Se pidió aprobación a Dirección', { kind: 'info', detail: 'Adjudicación por ' + L.ars(res.approval.total) + '.' }); flash = 'ap-pending'; render(); return; }
+    lastErrs = res.errs; render(); const e = document.getElementById('award-errs'); if (e) e.focus();
+  }
+
+  function downloadXlsx() {
+    const c = ctx(); const sids = c.r.supplierIds;
+    const head = ['Material', 'Cantidad', 'Marca pedida', 'Ref. catálogo (ARS)']; sids.forEach(sid => { const s = L.supplier(sid).short; head.push(s + ' · precio (ARS)', s + ' · tipo', s + ' · stock', s + ' · plazo (d)'); }); head.push('Adjudicado a', 'Subtotal adjudicado (ARS)');
+    const rows = c.cmp.rows.map(row => { const out = [L.lineLabel(row.line), row.qty, L.brandLabel(row.line.brand), row.refPrice || ''];
+      sids.forEach(sid => { const o = L.offer(rid, sid); const x = row.opts.find(y => y.supplierId === sid);
+        if (!o || o.status !== 'ENVIADA') out.push('', 'sin oferta', '', ''); else if (!x || x.none) out.push('', 'no cotizó', '', '');
+        else out.push(x.price, x.isAlt ? 'alternativa ' + (x.equivalence === 'APROBADA' ? 'aprobada' : x.equivalence === 'RECHAZADA' ? 'rechazada' : 'sugerida') + ' ' + x.altCode : 'oferta confirmada' + (x.adjusted ? ' (ajustada)' : ''), (STOCK[x.stock] || STOCK.DESCONOCIDO)[0] + (x.stock === 'PARCIAL' && x.stockQty ? ' ' + x.stockQty : ''), x.lead); });
+      const lock = c.locked[row.lineId]; const sid = lock ? lock.supplierId : c.alloc[row.lineId]; const x = sid && row.opts.find(y => y.supplierId === sid);
+      out.push(sid ? L.supplier(sid).short + (lock ? ' (' + lock.code + ')' : '') : 'sin asignar', x && !x.none ? x.total : ''); return out; });
+    const res = [['Distribuidor', 'Estado', 'Total oferta (ARS)', 'Materiales cotizados', 'Válida hasta', 'Pago', 'Adjudicado (ARS)']];
+    const sum = L.allocationSummary(rid, c.alloc);
+    sids.forEach(sid => { const o = L.offer(rid, sid); res.push([L.supplier(sid).name, L.offerStatusLabel[o ? o.status : 'PENDIENTE'], o && o.status === 'ENVIADA' ? L.offerTotal(o) : '', o && o.status === 'ENVIADA' ? o.lines.filter(l => l.mode !== 'SIN_OFERTA').length : '', o && o.validUntil || '', o && o.paymentTerms || '', sum.bySupplier[sid] ? sum.bySupplier[sid].total : '']); });
+    res.push([]); res.push(['Solicitud', c.r.code]); res.push(['Obra', L.project(pid).name]); res.push(['Generado', L.now()]); res.push(['Aviso', 'Precios de referencia de catálogo no son ofertas confirmadas. Datos ficticios de demostración.']);
+    L.download('comparacion-' + c.r.code + '.xlsx', L.xlsx([{ name: 'Comparación', rows: [head, ...rows] }, { name: 'Resumen', rows: res }]));
+  }
+
+  /* ─── Render ─── */
+  let vhostReady = false;
+  function render() {
+    const root = document.getElementById('root');
+    if (estado === 'cargando') { root.innerHTML = `<div class="stack"><div class="skel" style="height:170px"></div><div class="skel" style="height:40px;width:360px"></div><div class="skel" style="height:420px"></div></div><p class="sr-only" role="status">Cargando las ofertas…</p>`; return; }
+    if (estado === 'error') { root.innerHTML = `<div class="card"><div class="card-b">${L.empty({ icon: 'alertc', title: 'No se pudieron cargar las ofertas', text: 'El servidor no respondió. Tu borrador de adjudicación está guardado y no se perdió.', action: `<a class="btn btn-primary" href="${L.link('d-comparar.html', { r: rid || '' })}">Reintentar</a>` })}</div></div>`; return; }
+    if (!rid || estado === 'vacio') { root.innerHTML = `<div class="card"><div class="card-b">${L.empty({ icon: 'compare', title: 'Esta obra no tiene solicitudes de cotización', text: 'Pedí cotización a los distribuidores y acá vas a comparar sus ofertas material por material.', action: `<a class="btn btn-primary" href="${L.link('d-cotizacion.html', { p: pid })}">Ir a Cotización</a>` })}</div></div>`; document.getElementById('xlsx').disabled = true; return; }
+    const c = ctx();
+    const a = document.activeElement; const focusKey = a && (a.dataset.cell || a.dataset.strat || a.id || a.dataset.sc);
+    root.innerHTML = `${headHTML(c)}${altsHTML(c)}
+      <div class="vbar"><div id="vhost"></div><span class="muted" id="vdesc">${L.esc(VARS.find(v => v.id === view).desc)}</span></div>
+      <div id="vbody">${!c.editable ? `<div class="note note-ok" style="margin-bottom:var(--sp-4)">${L.icon('check', 16)}<p>Todas las líneas de ${L.esc(c.r.code)} ya están pedidas. La comparación queda de solo lectura.</p></div>` : ''}${view === 'escenarios' ? escenariosHTML(c) : view === 'asistente' ? asistenteHTML(c) : matrizHTML(c)}</div>
+      ${awardHTML(c)}`;
+    L.variants(document.getElementById('vhost'), VARS, v => { if (v !== view) { view = v; lastErrs = null; render(); } }, 'comparar');
+    bind(c);
+    if (focusKey) { const el = root.querySelector(`[data-cell="${focusKey}"],[data-strat="${focusKey}"],[data-sc="${focusKey}"]`) || document.getElementById(focusKey); if (el && !el.disabled) el.focus(); }
+    if (flash) { const f = document.getElementById(flash); if (f) f.scrollIntoView({ block: 'center' }); flash = null; }
+  }
+  function bind(c) {
+    const root = document.getElementById('root');
+    const rs = document.getElementById('rsel'); if (rs) rs.onchange = () => { location.href = L.link('d-comparar.html', { r: rs.value, p: pid }); };
+    root.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => { const sid = b.dataset.sim; L.simulateOffer(rid, sid); L.toast(L.supplier(sid).short + ' respondió (simulado)', { detail: 'Se armó desde su catálogo con ajustes chicos.' }); });
+    root.querySelectorAll('[data-eq]').forEach(b => b.onclick = () => { const [o, l] = b.dataset.eq.split('|'); openEq(o, l); });
+    root.querySelectorAll('[data-cell]').forEach(b => b.onclick = () => { const [lid, sid] = b.dataset.cell.split('|'); const a = ctx().alloc; if (a[lid] === sid) delete a[lid]; else a[lid] = sid; lastErrs = null; setAlloc(a); });
+    root.querySelectorAll('[data-strat]').forEach(b => b.onclick = () => { const a = filterAlloc(c, L.allocate(rid, b.dataset.strat)); lastErrs = null; setAlloc(a); L.toast('Estrategia aplicada: ' + b.textContent.trim(), { detail: Object.keys(a).length + ' de ' + c.open.length + ' materiales asignados.' }); });
+    const cl = document.getElementById('clear'); if (cl) cl.onclick = () => { lastErrs = null; setAlloc({}); };
+    const ou = document.getElementById('only-un'); if (ou) ou.onclick = () => { onlyUnassigned = !onlyUnassigned; render(); };
+    root.querySelectorAll('[data-sc]').forEach(el => { const go = () => { if (!c.editable) return; const sc = scenarios(c).list.find(s => s.id === el.dataset.sc); if (!sc || sc.id === 'MANUAL') return; lastErrs = null; setAlloc(sc.alloc); L.toast('Escenario aplicado: ' + sc.label, { detail: 'Quedó como tu asignación. Podés ajustarla en la Matriz.' }); };
+      el.onclick = go; if (el.tagName === 'g') el.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
+    const run = document.getElementById('ai-run'); if (run) run.onclick = () => {
+      if (!L.aiSpend('Asistente', AI_COST, pid, 'Compras ' + c.r.code)) { L.toast('Llegaste al límite mensual de IA', { kind: 'err', detail: 'Seguí con la Matriz o los Escenarios.' }); render(); return; }
+      const reco = recommend(ctx()); L.store.update(s => { s.ui = s.ui || {}; s.ui.aiReco = s.ui.aiReco || {}; s.ui.aiReco[rid] = reco; }); L.toast('Recomendación lista', { detail: 'Costó ' + L.usd(AI_COST) + '. Revisala antes de aplicarla.' }); };
+    const ap = document.getElementById('ai-apply'); if (ap) ap.onclick = () => { const reco = S().ui.aiReco[rid]; const a = ctx().alloc; let n = 0;
+      reco.items.forEach(i => { const cb = document.getElementById('rc-' + i.lineId); if (i.sid && cb && cb.checked && !cb.disabled) { a[i.lineId] = i.sid; n++; } });
+      const clean = filterAlloc(ctx(), a); lastErrs = null; setAlloc(clean); L.toast(n ? n + (n === 1 ? ' línea aplicada' : ' líneas aplicadas') + ' a tu borrador' : 'No había líneas nuevas para aplicar', { kind: n ? 'ok' : 'info' }); };
+    const aw = document.getElementById('award'); if (aw) aw.onclick = doAward;
+  }
+
+  view = L.param('v') || L.pref('v:comparar') || 'matriz'; if (!VARS.find(v => v.id === view)) view = 'matriz';
+  document.getElementById('xlsx').onclick = downloadXlsx;
+  render();
+  if (L.param('dialogo') === 'equivalencia') { const o = L.param('o') || (S().offers.find(x => x.requestId === rid && x.lines.some(l => l.alt)) || {}).id; const o2 = S().offers.find(x => x.id === o); const lid = L.param('l') || (o2 && (o2.lines.find(l => l.alt) || {}).lineId); if (o && lid) openEq(o, lid); }
+  L.store.subscribe(() => render());
+});
+</script>
+</body></html>

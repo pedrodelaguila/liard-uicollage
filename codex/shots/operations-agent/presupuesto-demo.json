@@ -1,0 +1,20 @@
+{
+  "demo": true,
+  "projectId": "p1",
+  "version": 1,
+  "currency": "USD",
+  "taxExcluded": true,
+  "costs": {
+    "materialsCents": 375060,
+    "shippingCents": 0,
+    "laborCents": 180000,
+    "overheadCents": 65000,
+    "riskCents": 31003,
+    "totalCents": 651063,
+    "revenueCents": 1800000,
+    "marginCents": 1148937,
+    "marginPercent": 63.82983333333333,
+    "source": "Precio de referencia · no confirmado"
+  },
+  "limits": "Modelo de contribución estimada. No garantiza utilidad neta."
+}

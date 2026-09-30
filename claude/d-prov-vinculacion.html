@@ -1,0 +1,326 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Vinculación IA</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .runcard { padding: 18px 20px; }
+  .runcard .top-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+  .runcard h2 { font-size: var(--fs-lg); display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .runcard p { color: var(--stage-ink-2); font-size: var(--fs-sm); margin: 6px 0 0; max-width: 640px; }
+  .runcard .spacer { flex: 1; }
+  .rk { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+  .rk > div { padding: 10px 12px; border: 1px solid var(--stage-line); border-radius: var(--r-md); background: var(--stage-2); }
+  .rk strong { display: block; font: 600 var(--fs-xl)/1.1 var(--font-display); color: #fff; }
+  .rk small { color: var(--stage-ink-2); }
+  .stage .meter { background: var(--stage-3); }
+  .rk .meter > i, .prog .meter > i { transition: none; }
+  .btn kbd { background: transparent; color: inherit; border-color: currentColor; opacity: .8; margin-left: 2px; }
+  .attr legend .u { text-transform: none; }
+  .prog { margin-top: 16px; padding: 12px 14px; border-radius: var(--r-md); background: var(--stage-2); border: 1px solid var(--stage-line); }
+  .prog .row { justify-content: space-between; font-size: var(--fs-sm); }
+  .prog .meter { height: 10px; margin: 10px 0; }
+  .prog .mono { color: var(--stage-ink-2); font-size: var(--fs-xs); }
+  .refuse { margin-top: 14px; }
+  .runcard .note p { color: var(--ink); max-width: none; margin: 0; }
+  .toolbar2 { display: flex; align-items: center; gap: 12px; margin: var(--sp-6) 0 var(--sp-3); flex-wrap: wrap; }
+  .toolbar2 h2 { font-size: var(--fs-lg); }
+  .qtabs { margin: 0; padding: 0 12px; }
+  .qtbl tbody tr { cursor: pointer; }
+  .qtbl td .code { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+  .qtbl .nm { font-weight: 600; }
+  .ed { position: sticky; top: calc(var(--topbar-h) + 12px); }
+  .ed-h { padding: 16px; border-bottom: 1px solid var(--line); }
+  .ed-h .nm { font: 600 var(--fs-lg)/1.3 var(--font-display); margin: 4px 0 6px; }
+  .ed-h .meta { font-size: var(--fs-xs); color: var(--ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
+  .ed-b { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .attr fieldset { border: 0; padding: 0; margin: 0; }
+  .attr legend { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 6px; padding: 0; }
+  .attr legend .muted { text-transform: none; letter-spacing: 0; font-weight: 500; }
+  .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opt { position: relative; }
+  .opt input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+  .opt span { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); background: var(--surface); font-family: var(--font-mono); }
+  .opt input:checked + span { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .opt input:checked + span::before { content: '✓'; }
+  .opt input:focus-visible + span { box-shadow: var(--focus); }
+  .opt.sug span { border-style: dashed; border-color: var(--cyan); }
+  .impact { font-size: var(--fs-sm); }
+  .ed-f { display: flex; gap: 8px; flex-wrap: wrap; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface-2); border-radius: 0 0 var(--r-lg) var(--r-lg); }
+  .ed-f .spacer { flex: 1; }
+  .card-mode { max-width: 880px; margin: 0 auto; }
+  .card-mode .ed { position: static; }
+  .card-mode .ed-h .nm { font-size: var(--fs-2xl); }
+  .pos { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: var(--fs-sm); color: var(--ink-2); }
+  .pos .meter { flex: 1; max-width: 260px; }
+  .keys { display: flex; gap: 14px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 10px; justify-content: center; }
+  @media (max-width: 1100px) { .rk { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ed { position: static; } }
+</style>
+</head>
+<body data-role="SUPPLIER" data-active="prov-vinculacion" data-title="Vinculación IA" data-sub="Cada producto vinculado a un componente base aparece cuando un ingeniero cotiza ese material">
+<div id="act"><a class="btn btn-ghost" id="to-cat" href="d-prov-catalogo.html">Volver al catálogo</a></div>
+<div id="page">
+  <section class="stage runcard" id="run" aria-labelledby="run-t"></section>
+  <div class="toolbar2"><h2 id="tray-t">Estandarización</h2><span id="tray-cap"></span><span class="spacer" style="flex:1"></span><div id="vh"></div></div>
+  <div id="tray"></div>
+</div>
+<script>
+L.ready(() => {
+  const COST = 0.00146, STEP_MS = 650;
+  const S = () => L.store.get();
+  const sid = () => S().session.supplierId;
+  const mine = () => S().catalog.filter(c => c.supplierId === sid());
+  const $ = (q, r = document) => r.querySelector(q);
+  const est = () => L.param('estado');
+  const usd5 = v => 'USD ' + new Intl.NumberFormat('es-AR', { minimumFractionDigits: 5, maximumFractionDigits: 5 }).format(v);
+  const linked = c => c.linkStatus === 'AUTO' || c.linkStatus === 'MANUAL';
+  const pendingOf = () => mine().filter(c => c.readingStatus === 'PENDING' && c.linkStatus !== 'MANUAL');
+  const fmtS = ms => { const s = Math.max(0, Math.round(ms / 1000)); return s < 60 ? s + ' s' : Math.floor(s / 60) + ' min ' + (s % 60) + ' s'; };
+  $('#to-cat').href = L.link('d-prov-catalogo.html');
+
+  /* ─────────── Lectura simulada y determinística: el texto del nombre → componente base + atributos de listas cerradas ─────────── */
+  const KW = [['dif', /\bDIF(ERENCIAL)?\b/], ['itm', /TERMICA|TERMOMAG|\bITM\b|\bPIA\b/], ['piloto', /PILOTO|OJO DE BUEY|SENALIZ/], ['cont', /CONTACTOR/], ['gm', /GUARDAMOTOR/],
+    ['sec', /SECCIONADOR/], ['mccb', /CAJA MOLDEADA|\bMCCB\b|\bNSX\b/], ['dps', /DESCARGADOR|\bDPS\b|SOBRETENSION/], ['multi', /MULTIMEDIDOR|ANALIZADOR/], ['gab', /GABINETE/], ['borne', /BORNE/]];
+  const COLORS = { ROJO: 'Rojo', VERDE: 'Verde', AMARILLO: 'Amarillo', AMBAR: 'Ámbar', AZUL: 'Azul', BLANCO: 'Blanco', NARANJA: 'Naranja' };
+  const unitTxt = a => a.unit ? ' ' + a.unit : '';
+  function readName(item) {
+    let t = ' ' + String(item.name).toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '') + ' ';
+    const k = KW.find(([, re]) => re.test(t));
+    if (!k) return { status: 'READ', typeId: null, attrs: {}, note: 'La lectura no reconoció qué componente es: «' + item.name + '» no se parece a ningún componente base. Elegilo a mano.' };
+    const typeId = k[0], ty = L.type(typeId), has = key => ty.attrs.some(a => a.k === key), f = {};
+    const take = (re, fn) => { const m = t.match(re); if (m) { t = t.replace(m[0], ' '); fn(m); } };
+    const num = x => +String(x).replace(',', '.');
+    if (has('sens')) take(/(\d+)\s*MA\b/, m => f.sens = +m[1]);
+    if (has('icu')) take(/(\d+(?:[.,]\d+)?)\s*KA\b/, m => f.icu = num(m[1]));
+    if (has('imax')) take(/(\d+)\s*KA\b/, m => f.imax = +m[1]);
+    if (has('bobina')) take(/\b(\d+)\s*V(CA|AC)?\b/, m => f.bobina = m[1] + ' Vca');
+    if (has('tension')) take(/\b(\d+)\s*V(CA|AC|CC|DC)?\b/, m => f.tension = m[1] + ' V');
+    if (has('rango')) take(/(\d+(?:,\d+)?)\s*[-–]\s*(\d+(?:,\d+)?)\s*A\b/, m => f.rango = m[1] + '–' + m[2] + ' A');
+    if (has('ip')) take(/\bIP\s?(\d{2})\b/, m => f.ip = 'IP' + m[1]);
+    if (has('medida')) take(/(\d{3,4})\s*[X×]\s*(\d{3,4})/, m => f.medida = m[1] + '×' + m[2]);
+    if (has('seccion')) take(/(\d+(?:[.,]\d+)?)\s*MM2?\b/, m => f.seccion = num(m[1]));
+    if (has('polos')) { take(/\b([1-4])\s*X\s*(\d+)\b/, m => { f.polos = m[1] + 'P'; if (has('in')) f.in = +m[2]; }); if (!f.polos) take(/\b(1P\+N|[1-4]P)(?=\s)/, m => f.polos = m[1]); }
+    if (has('in') && f.in == null) take(/\b(\d+)\s*A\b/, m => f.in = +m[1]);
+    if (has('curva')) take(/\bCURVA\s*([BCD])\b|\s([BCD])\s/, m => f.curva = m[1] || m[2]);
+    if (has('color')) { const c = Object.keys(COLORS).find(x => new RegExp('\\b' + x + '\\b').test(t)); if (c) f.color = COLORS[c]; }
+    if (has('com')) { if (/MODBUS|RS485/.test(t)) f.com = 'Modbus RTU'; else if (/SIN COMUNIC/.test(t)) f.com = 'Sin comunicación'; }
+    if (has('disparo')) { if (/ELECTRONIC/.test(t)) f.disparo = 'Electrónica'; else if (/TERMOMAG/.test(t)) f.disparo = 'Termomagnética'; }
+    if (has('clase')) { if (/SUPERINM|\sSI\s/.test(t)) f.clase = 'SI'; else if (/CLASE\s*A\b|TIPO\s*A\b/.test(t)) f.clase = 'A'; else if (/\sAC\s/.test(t)) f.clase = 'AC'; }
+    const bare = (t.match(/(?<![A-Z0-9.,])\d+(?:[.,]\d+)?(?![A-Z0-9])/g) || []).map(num);
+    ty.attrs.forEach(a => { if (f[a.k] == null && typeof a.values[0] === 'number' && bare.length) f[a.k] = bare.shift(); });
+    const attrs = {}, bad = [];
+    ty.attrs.forEach(a => { const v = f[a.k]; if (v == null) return; const hit = a.values.find(x => String(x) === String(v)); if (hit !== undefined) attrs[a.k] = hit; else if (a.req) bad.push({ k: a.k, label: a.label, v: String(v) + unitTxt(a), list: a.values.join(', ') + unitTxt(a) }); });
+    if (bad.length) { const b = bad[0]; return { status: 'FAILED', typeId, attrs, bad, note: `La lectura leyó ${b.label.toLowerCase()} ${b.v}, que no está en la lista del componente base (${b.list}). Elegí el valor a mano si corresponde, o dejalo sin vincular.` }; }
+    const miss = ty.attrs.filter(a => a.req && attrs[a.k] == null);
+    if (miss.length) return { status: 'READ', typeId, attrs, miss: miss.map(a => a.k), note: 'Reconoció ' + ty.short.toLowerCase() + ', pero le falta ' + miss.map(a => a.label.toLowerCase()).join(', ') + ' en el nombre.' };
+    return { status: 'AUTO', typeId, attrs };
+  }
+  const guessOf = c => c.guess ? Object.assign({ note: c.readingNote }, c.guess) : (c.readingStatus !== 'PENDING' && !linked(c) ? readName(c) : null);
+  const linkState = c => {
+    if (c.linkStatus === 'MANUAL') return { t: 'Vinculado a mano', tone: 'ok', ic: 'link' };
+    if (c.linkStatus === 'AUTO') return { t: 'Vinculado por IA', tone: 'ok', ic: 'sparkles' };
+    if (c.readingStatus === 'PENDING') return { t: 'Por leer', tone: 'info', ic: 'clock' };
+    if (c.readingStatus === 'FAILED') return { t: 'No se pudo leer', tone: 'err', ic: 'alertc' };
+    if (c.unlinkedByUser) return { t: 'Sin vincular', tone: 'muted', ic: 'unlink' };
+    const g = guessOf(c); if (g && g.typeId) return { t: 'Les falta un atributo', tone: 'warn', ic: 'alert' };
+    return { t: 'Sin identificar', tone: 'warn', ic: 'help' };
+  };
+
+  /* ─────────── Impacto: obras cuyas líneas del BOM cotizan este material (matching por igualdad) ─────────── */
+  const lines = () => S().bomLines.filter(l => !l.deleted);
+  const impactNow = c => { const ls = lines().filter(l => L.matches(l, sid()).some(m => m.id === c.id)); return { lines: ls.length, projects: new Set(ls.map(l => l.projectId)).size }; };
+  /* Vista previa antes de vincular: misma regla que L.matches, sobre el borrador (ver «Pedidos al coordinador»). */
+  const impactDraft = (c, typeId, attrs) => { const ty = L.type(typeId); if (!ty) return { lines: 0, projects: 0 };
+    const ls = lines().filter(l => l.typeId === typeId && !L.missingAttrs(l).length && ty.attrs.filter(a => a.req).every(a => String(attrs[a.k]) === String(l.attrs[a.k])) && (!l.brand || l.brand === 'ANY' || l.brand === c.brand));
+    return { lines: ls.length, projects: new Set(ls.map(l => l.projectId)).size }; };
+  const obras = n => n === 1 ? '1 obra' : n + ' obras';
+
+  /* ─────────── Lectura (corrida en la página) ─────────── */
+  let run = null; let lastRun = null;
+  function startRun() {
+    const pend = pendingOf(); if (!pend.length || run) return;
+    if (!L.aiCan(pend.length * COST) || est() === 'limite') { renderRun(); L.toast('No se leyó nada', { kind: 'err', detail: 'La lectura pasaría el límite de IA del mes. Vinculá a mano abajo.' }); return; }
+    run = { ids: pend.map(c => c.id), done: 0, cost: 0, auto: 0, failed: 0, unl: 0, start: Date.now(), cancel: false, current: null };
+    renderRun(); step();
+  }
+  function step() {
+    if (!run) return;
+    if (run.cancel || run.done >= run.ids.length) return finishRun(run.cancel ? 'cancel' : 'ok');
+    const id = run.ids[run.done]; const c = mine().find(x => x.id === id);
+    run.current = c ? c.code : null; renderRun();
+    setTimeout(() => {
+      if (!run) return;
+      const it = mine().find(x => x.id === id);
+      if (it && it.readingStatus === 'PENDING' && it.linkStatus !== 'MANUAL') {
+        if (!L.aiSpend('Lectura catálogo', COST, null, it.code)) return finishRun('limit');
+        run.cost += COST;
+        const r = readName(it);
+        L.store.update(s => { const x = s.catalog.find(y => y.id === id);
+          x.readingStatus = r.status === 'FAILED' ? 'FAILED' : 'READ'; x.readAt = L.now();
+          if (r.status === 'AUTO') { x.typeId = r.typeId; x.attrs = r.attrs; x.linkStatus = 'AUTO'; delete x.guess; delete x.readingNote; }
+          else { x.typeId = null; x.attrs = {}; x.linkStatus = 'UNLINKED'; x.guess = { typeId: r.typeId, attrs: r.attrs, bad: r.bad || null, miss: r.miss || null }; x.readingNote = r.note; } });
+        if (r.status === 'AUTO') run.auto++; else if (r.status === 'FAILED') run.failed++; else run.unl++;
+      }
+      run.done++; step();
+    }, STEP_MS);
+  }
+  function finishRun(why) {
+    lastRun = Object.assign({}, run, { why, ms: Date.now() - run.start }); run = null; renderAll();
+    const txt = `${lastRun.auto} vinculados por IA, ${lastRun.unl + lastRun.failed} para revisar a mano · ${usd5(lastRun.cost)}`;
+    if (why === 'cancel') L.toast('Lectura cancelada', { kind: 'warn', detail: `Se leyeron ${lastRun.done} de ${lastRun.ids.length}; el resto queda por leer. ${txt}` });
+    else if (why === 'limit') L.toast('Lectura detenida por el límite de IA', { kind: 'err', detail: `Se leyeron ${lastRun.done} de ${lastRun.ids.length}; el resto queda por leer. Vinculalos a mano.` });
+    else L.toast('Lectura terminada', { detail: txt });
+  }
+  window.addEventListener('beforeunload', () => { if (run) run.cancel = true; });
+
+  function renderRun() {
+    const all = est() === 'vacio' ? mine().filter(linked) : mine();
+    const pend = est() === 'vacio' ? [] : pendingOf(); const ai = Object.assign({}, L.aiState()); if (est() === 'limite') Object.assign(ai, { spent: ai.budget, pct: 100, tone: 'err' });
+    const need = pend.length * COST; const refused = pend.length && (est() === 'limite' || !L.aiCan(need));
+    const read = all.filter(c => c.readingStatus === 'READ').length, failed = all.filter(c => c.readingStatus === 'FAILED' && !linked(c)).length, manual = all.filter(c => c.linkStatus === 'MANUAL').length, auto = all.filter(c => c.linkStatus === 'AUTO').length;
+    const demo = est() === 'leyendo' && !run;
+    const r = run || (demo ? { ids: [1, 2, 3, 4, 5], done: 2, cost: 2 * COST, start: Date.now() - 2 * STEP_MS, current: 'SCH-A9R-4P40-300', demo: true } : null);
+    let prog = '';
+    if (r) {
+      const el = Date.now() - r.start, per = r.done ? el / r.done : STEP_MS, rem = (r.ids.length - r.done) * per, pct = r.done / r.ids.length * 100;
+      prog = `<div class="prog" role="status" aria-live="polite" id="prog"><div class="row"><strong>Leyendo tu catálogo · ${r.done} de ${r.ids.length}</strong><span class="mono">${r.current ? 'ahora: ' + L.esc(r.current) : ''}</span></div>
+        <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="${r.ids.length}" aria-valuenow="${r.done}" aria-label="Productos leídos"><i style="width:${pct}%"></i></div>
+        <div class="row"><span>Transcurrido <strong class="mono" style="color:#fff">${fmtS(el)}</strong> · Tiempo restante <strong class="mono" style="color:#fff">≈ ${fmtS(rem)}</strong> · Costo <strong class="mono" style="color:#fff">${usd5(r.cost)}</strong> (${usd5(COST)} por producto)</span>
+        <button class="btn btn-sm btn-secondary" id="run-cancel">${L.icon('pause', 14)}Cancelar lectura</button></div>
+        ${r.demo ? '<p class="mono" style="margin-top:8px">Vista de ejemplo de una lectura en curso: no cambia tus datos.</p>' : ''}</div>`;
+    } else if (lastRun) {
+      prog = `<div class="prog" role="status"><div class="row"><strong>${lastRun.why === 'ok' ? 'Lectura terminada' : lastRun.why === 'cancel' ? 'Lectura cancelada' : 'Lectura detenida por el límite de IA'} · ${lastRun.done} de ${lastRun.ids.length} en ${fmtS(lastRun.ms)}</strong><span class="mono">${usd5(lastRun.cost)}</span></div>
+        <p style="margin-top:6px">${lastRun.auto} quedaron vinculados por IA · ${lastRun.failed} no se pudieron leer · ${lastRun.unl} sin identificar o con un atributo faltante${lastRun.done < lastRun.ids.length ? ' · ' + (lastRun.ids.length - lastRun.done) + ' siguen por leer' : ''}. Revisá abajo lo que quedó sin vincular.</p></div>`;
+    }
+    $('#run').innerHTML = `<div class="top-row"><div><h2 id="run-t">${L.icon('sparkles', 18)}Lectura del catálogo ${L.ai('IA')} ${L.sim('Lectura simulada')} ${L.cap('existe')}</h2>
+        <p>La IA lee el nombre de cada producto nuevo o cambiado y lo vincula a un componente base con valores de listas cerradas. Lo que no reconoce queda para vos. Nunca pisa un vínculo hecho a mano. En producción arranca sola después de cada carga; acá la disparás vos ${L.cap('propuesto')}.</p></div>
+      <span class="spacer"></span>
+      <div class="col" style="align-items:flex-end"><button class="btn btn-volt btn-lg" id="run-go"${!pend.length || run || refused ? ' disabled' : ''}>${L.icon('play', 16)}${pend.length ? (pend.length === 1 ? 'Leer 1 pendiente' : 'Leer ' + pend.length + ' pendientes') : 'Nada por leer'}</button>
+        <small class="muted">${pend.length ? 'Costo estimado ' + usd5(need) : 'Cuando cargues productos nuevos van a aparecer acá'}</small></div></div>
+      <div class="rk"><div><strong id="rk-read">${read}</strong><small>Productos leídos</small></div><div><strong id="rk-pend">${pend.length}</strong><small>Por leer</small></div><div><strong id="rk-failed">${failed}</strong><small>No se pudieron leer</small></div><div><strong>${auto} · ${manual}</strong><small>Vinculados por IA · a mano</small></div>
+        <div><strong class="mono" style="font-size:var(--fs-md)">${L.usd(ai.spent)} / ${L.usd(ai.budget)}</strong><div class="meter ${ai.tone}" style="margin:6px 0 2px" role="img" aria-label="Uso de IA del mes: ${L.pct(ai.pct)}"><i style="width:${Math.min(100, ai.pct)}%"></i></div><small>IA del mes ${L.cap('planificado')}</small></div></div>
+      ${refused ? `${est() === 'limite' ? '<p class="mono" style="margin-top:10px">Vista de ejemplo con el límite del mes alcanzado: tu consumo real no cambió.</p>' : ''}<div class="note note-err refuse" id="refuse">${L.icon('alertc', 16)}<p><strong>No hay presupuesto de IA para leer ${pend.length} ${pend.length === 1 ? 'producto' : 'productos'} (${usd5(need)}).</strong> Llegaste al límite del mes (${L.usd(ai.spent)} de ${L.usd(ai.budget)}), así que no se leyó nada y tu catálogo quedó como estaba. Vinculalos a mano en la bandeja de abajo, o ampliá el límite en Plan, uso y cuenta.</p></div>` : ''}
+      ${prog}`;
+    const go = $('#run-go'); if (go) go.onclick = startRun;
+    const cc = $('#run-cancel'); if (cc) cc.onclick = () => { if (run) { run.cancel = true; cc.disabled = true; cc.textContent = 'Cancelando…'; } else { L.setParam('estado', null); renderAll(); } };
+  }
+  setInterval(() => { if (run) renderRun(); }, 1000);
+
+  /* ─────────── Bandeja de estandarización ─────────── */
+  let tab = L.param('tab') || 'revisar';
+  let selId = L.param('item');
+  const drafts = {};
+  const queue = () => est() === 'vacio' ? [] : mine().filter(c => !linked(c) && !(c.readingStatus === 'PENDING'));
+  const tabs = () => ({ revisar: queue(), leer: est() === 'vacio' ? [] : pendingOf(), vinculados: mine().filter(linked) });
+  const draftOf = c => {
+    if (!drafts[c.id]) { const g = linked(c) ? { typeId: c.typeId, attrs: c.attrs } : guessOf(c); drafts[c.id] = { typeId: (g && g.typeId) || '', attrs: Object.assign({}, (g && g.attrs) || {}), fromAI: !linked(c) && !!(g && g.typeId) }; }
+    return drafts[c.id];
+  };
+
+  function editorHTML(c, mode) {
+    const st = linkState(c); const d = draftOf(c); const ty = L.type(d.typeId); const g = !linked(c) ? guessOf(c) : null;
+    const typesByFam = {}; Object.entries(S().types).forEach(([id, t]) => { (typesByFam[t.family] = typesByFam[t.family] || []).push([id, t]); });
+    const imp = ty ? impactDraft(c, d.typeId, d.attrs) : null; const now = linked(c) ? impactNow(c) : null;
+    const missing = ty ? ty.attrs.filter(a => a.req && d.attrs[a.k] == null) : [];
+    const note = c.readingStatus === 'PENDING' && !linked(c) ? `<div class="note">${L.icon('clock', 16)}<p>Todavía no se leyó. Podés esperar a la lectura o vincularlo a mano ya: la IA nunca pisa lo que hagas a mano.</p></div>`
+      : g && g.note ? `<div class="note ${c.readingStatus === 'FAILED' ? 'note-err' : 'note-warn'}" id="reason">${L.icon(c.readingStatus === 'FAILED' ? 'alertc' : 'alert', 16)}<p><strong>${L.esc(st.t)}.</strong> ${L.esc(c.readingNote || g.note)}</p></div>`
+      : c.linkStatus === 'MANUAL' ? `<div class="note note-ok">${L.icon('link', 16)}<p>Lo vinculaste a mano: ni la IA ni una nueva carga del catálogo lo cambian.</p></div>`
+      : c.linkStatus === 'AUTO' ? `<div class="note note-ai">${L.icon('sparkles', 16)}<p>Lo vinculó la IA leyendo el nombre. Si está mal, corregilo: queda vinculado a mano.</p></div>` : '';
+    return `<div class="card ed" id="editor" data-item="${c.id}">
+      <div class="ed-h"><div class="row">${L.badge(st.t, st.tone, st.ic)}${c.published ? '' : L.badge('Despublicado', 'muted', 'lock')}<span class="spacer"></span><a class="btn btn-sm btn-ghost" href="${L.link('d-prov-catalogo.html', { dialogo: 'editar', item: c.id })}">${L.icon('edit', 13)}Editar producto</a></div>
+        <div class="nm" id="ed-name">${L.esc(c.name)}</div>
+        <div class="meta"><span>Código de producto <strong class="mono">${L.esc(c.code)}</strong></span><span>Marca <strong>${L.esc(c.brand || '—')}</strong></span><span>Código de la marca <strong class="mono">${L.esc(c.brandCode || (c.brand ? c.brand.slice(0, 3).toUpperCase() : '—'))}</strong></span><span>Gama <strong>${L.esc(c.gama || '—')}</strong></span></div></div>
+      <div class="ed-b">${note}
+        <div class="field"><label for="ed-type">Componente base</label><select class="select" id="ed-type"><option value="">Elegí un componente base</option>${Object.entries(typesByFam).map(([fam, ts]) => `<optgroup label="${L.esc(fam)}">${ts.map(([id, t]) => `<option value="${id}"${id === d.typeId ? ' selected' : ''}>${L.esc(t.name)}</option>`).join('')}</optgroup>`).join('')}</select>
+          ${d.fromAI && g && g.typeId === d.typeId ? '<span class="hint">Propuesto por la lectura: confirmalo o cambialo.</span>' : ''}</div>
+        ${ty ? ty.attrs.map(a => { const badV = g && g.bad && g.bad.find(b => b.k === a.k); return `<div class="attr"><fieldset><legend>${L.esc(a.label)}${a.unit ? ' <span class="u">(' + a.unit + ')</span>' : ''} <span class="muted">${a.req ? '· esencial' : '· opcional'}${badV ? ' · la lectura leyó ' + L.esc(badV.v) + ', fuera de la lista' : ''}</span></legend><div class="opts">
+          ${a.values.map(v => `<label class="opt${d.fromAI && g && g.attrs && String(g.attrs[a.k]) === String(v) ? ' sug' : ''}"><input type="radio" name="a-${a.k}" value="${L.esc(String(v))}"${String(d.attrs[a.k]) === String(v) ? ' checked' : ''}><span>${L.esc(String(v))}</span></label>`).join('')}
+          ${a.req ? '' : `<label class="opt"><input type="radio" name="a-${a.k}" value=""${d.attrs[a.k] == null ? ' checked' : ''}><span>Sin valor</span></label>`}</div></fieldset></div>`; }).join('') : '<p class="muted" style="font-size:var(--fs-sm)">Elegí el componente base para ver sus atributos. Los valores salen de listas cerradas: si el tuyo no está, dejalo sin vincular.</p>'}
+        <div id="ed-err"></div>
+        <div class="impact" id="impact">${now && d.typeId === c.typeId && JSON.stringify(d.attrs) === JSON.stringify(c.attrs) ? (now.projects ? `<div class="note note-ok">${L.icon('target', 16)}<p id="impact-now">Esta fila ahora aparece en <strong>${obras(now.projects)}</strong> que cotizan este material (${now.lines} ${now.lines === 1 ? 'línea' : 'líneas'} del BOM).${c.published ? '' : ' Pero está despublicada: publicala para que la vean.'}</p></div>` : `<p class="muted" id="impact-now">Vinculado. Todavía ninguna obra cotiza este material con tu marca; cuando una lo pida, vas a aparecer.</p>`)
+          : ty && !missing.length ? `<p class="muted">${L.icon('target', 14)} Si lo vinculás así, aparece en <strong>${obras(imp.projects)}</strong> que cotizan este material hoy.</p>` : ''}</div>
+      </div>
+      <div class="ed-f"><button class="btn btn-primary" id="ed-link">${L.icon('link', 15)}${linked(c) ? 'Guardar vínculo' : 'Vincular'}${mode === 'cards' ? ' <kbd>Enter</kbd>' : ''}</button>
+        ${linked(c) ? `<button class="btn btn-secondary" id="ed-unlink">${L.icon('unlink', 15)}Desvincular${mode === 'cards' ? ' <kbd>U</kbd>' : ''}</button>` : ''}
+        <span class="spacer"></span><button class="btn btn-ghost" id="ed-next">Siguiente pendiente${mode === 'cards' ? ' <kbd>N</kbd>' : ' ' + L.icon('arrowr', 14)}</button></div></div>`;
+  }
+  function wireEditor(c) {
+    const ed = $('#editor'); if (!ed) return; const d = draftOf(c);
+    $('#ed-type').onchange = e => { d.typeId = e.target.value; d.attrs = {}; d.fromAI = false; renderTray(); $('#ed-type').focus(); };
+    ed.querySelectorAll('input[type=radio]').forEach(r => r.onchange = () => { const k = r.name.slice(2); const a = L.type(d.typeId).attrs.find(x => x.k === k); if (r.value === '') delete d.attrs[k]; else d.attrs[k] = a.values.find(v => String(v) === r.value); const nm = r.name, val = r.value; renderTray(); const back = document.querySelector(`#editor input[name="${nm}"][value="${CSS.escape(val)}"]`); if (back) back.focus(); });
+    $('#ed-link').onclick = () => linkItem(c.id);
+    const u = $('#ed-unlink'); if (u) u.onclick = () => unlinkItem(c.id);
+    $('#ed-next').onclick = () => nextPending(c.id);
+  }
+  function linkItem(id) {
+    const c = mine().find(x => x.id === id); const d = draftOf(c); const ty = L.type(d.typeId);
+    const err = $('#ed-err');
+    if (!ty) { err.innerHTML = `<div class="field-err">${L.icon('alertc', 12)}Elegí el componente base antes de vincular.</div>`; $('#ed-type').focus(); return; }
+    const miss = ty.attrs.filter(a => a.req && d.attrs[a.k] == null);
+    if (miss.length) { err.innerHTML = `<div class="field-err">${L.icon('alertc', 12)}Elegí ${miss.map(a => a.label.toLowerCase()).join(', ')}: sin los atributos esenciales no aparece al cotizar. No se guardó nada.</div>`; const f = document.querySelector(`#editor input[name="a-${miss[0].k}"]`); if (f) f.focus(); return; }
+    L.store.update(s => { const x = s.catalog.find(y => y.id === id && y.supplierId === s.session.supplierId); x.typeId = d.typeId; x.attrs = Object.assign({}, d.attrs); x.linkStatus = 'MANUAL'; x.linkedAt = L.now(); delete x.unlinkedByUser; });
+    delete drafts[id]; selId = id; renderAll();
+    const n = impactNow(mine().find(x => x.id === id));
+    L.toast('Producto vinculado a mano', { detail: n.projects ? `Esta fila ahora aparece en ${obras(n.projects)} que cotizan este material.` : 'Todavía ninguna obra cotiza este material; cuando una lo pida, vas a aparecer.', action: { label: 'Siguiente pendiente', onClick: () => nextPending(id) } });
+  }
+  function unlinkItem(id) {
+    const c = mine().find(x => x.id === id); const n = impactNow(c);
+    L.store.update(s => { const x = s.catalog.find(y => y.id === id && y.supplierId === s.session.supplierId); x.typeId = null; x.attrs = {}; x.linkStatus = 'UNLINKED'; x.unlinkedByUser = true; });
+    delete drafts[id]; renderAll();
+    L.toast('Producto desvinculado', { kind: 'warn', detail: n.projects ? `Deja de aparecer en ${obras(n.projects)} que cotizan este material.` : 'Ya no aparece al cotizar hasta que lo vincules.' });
+  }
+  function nextPending(fromId) {
+    const q = queue(); if (!q.length) { L.toast('No quedan productos para revisar', { detail: 'Todo tu catálogo leído está vinculado.' }); return; }
+    const i = q.findIndex(c => c.id === fromId); const nx = q[(i + 1) % q.length] || q[0];
+    tab = 'revisar'; selId = nx.id; L.setParam('item', selId); renderTray(); const ed = $('#ed-type'); if (ed) ed.focus();
+  }
+
+  let variant = 'bandeja';
+  function renderTray() {
+    const T = tabs(); let list = T[tab] || [];
+    if (!list.length && tab === 'revisar' && T.leer.length) tab = 'leer';
+    const list2 = T[tab] || []; if (!selId || !mine().some(c => c.id === selId)) selId = (list2[0] || T.revisar[0] || T.leer[0] || {}).id || null;
+    list = T[tab] || [];
+    const c = selId && mine().find(x => x.id === selId);
+    $('#tray-cap').innerHTML = variant === 'bandeja' ? L.cap('existe') : L.cap('propuesto');
+    if (!T.revisar.length && !T.leer.length && variant === 'tarjetas' || (est() === 'vacio')) {
+      $('#tray').innerHTML = `<div class="card">${L.empty({ icon: 'check', title: 'Todo tu catálogo está vinculado', text: 'Cada producto publicado aparece cuando un ingeniero cotiza ese material. Cuando cargues productos nuevos, los que la IA no reconozca van a aparecer acá.', action: `<a class="btn btn-secondary" href="${L.link('d-prov-catalogo.html')}">Ir al catálogo</a>` })}</div>`; return;
+    }
+    if (variant === 'tarjetas') {
+      const q = T.revisar.length ? T.revisar : T.leer; const cur = q.find(x => x.id === selId) || q[0]; selId = cur.id; const i = q.indexOf(cur);
+      const total = mine().length, done = mine().filter(linked).length;
+      $('#tray').innerHTML = `<div class="card-mode"><div class="pos"><strong>${i + 1} de ${q.length}</strong> ${T.revisar.length ? 'para revisar' : 'por leer'}<div class="meter ok" role="img" aria-label="${done} de ${total} vinculados"><i style="width:${done / total * 100}%"></i></div><span class="muted">${done} de ${total} vinculados</span>
+        <span class="spacer" style="flex:1"></span><button class="btn btn-sm btn-ghost" id="c-prev"${q.length < 2 ? ' disabled' : ''}>Anterior <kbd>K</kbd></button><button class="btn btn-sm btn-ghost" id="c-next"${q.length < 2 ? ' disabled' : ''}>Siguiente <kbd>J</kbd></button></div>
+        ${editorHTML(cur, 'cards')}
+        <div class="keys" aria-label="Atajos de teclado"><span><kbd>Tab</kbd> y flechas para elegir valores</span><span><kbd>Enter</kbd> vincular</span><span><kbd>U</kbd> desvincular</span><span><kbd>N</kbd> siguiente pendiente</span><span><kbd>J</kbd>/<kbd>K</kbd> siguiente / anterior</span></div></div>`;
+      const mv = dlt => { selId = q[(i + dlt + q.length) % q.length].id; L.setParam('item', selId); renderTray(); };
+      $('#c-prev').onclick = () => mv(-1); $('#c-next').onclick = () => mv(1); cardsMove = mv;
+      wireEditor(cur); return;
+    }
+    cardsMove = null;
+    $('#tray').innerHTML = `<div class="split"><div class="card"><div class="tabs qtabs" role="tablist" aria-label="Estado">
+        ${[['revisar', 'Para revisar'], ['leer', 'Por leer'], ['vinculados', 'Vinculados']].map(([id, lb]) => `<button role="tab" data-tab="${id}" aria-selected="${tab === id}">${lb} <span class="badge b-muted">${T[id].length}</span></button>`).join('')}</div>
+      <div class="tbl-wrap">${list.length ? `<table class="tbl qtbl" aria-label="Productos del catálogo"><thead><tr><th>Producto</th><th>Estado</th><th>Componente base</th></tr></thead><tbody>
+        ${list.map(x => { const st = linkState(x); const g = linked(x) ? { typeId: x.typeId, attrs: x.attrs } : guessOf(x); return `<tr data-id="${x.id}" tabindex="0" aria-selected="${x.id === selId}"><td><span class="nm">${L.esc(x.name)}</span><span class="code">${L.esc(x.code)} · ${L.esc(x.brand || 'sin marca')}</span></td><td>${L.badge(st.t, st.tone, st.ic)}</td><td class="muted" style="font-size:var(--fs-xs)">${g && g.typeId ? L.esc(L.type(g.typeId).short + ' · ' + L.attrText(g.typeId, g.attrs)) : '—'}</td></tr>`; }).join('')}</tbody></table>`
+        : L.empty({ icon: tab === 'leer' ? 'clock' : 'check', title: tab === 'leer' ? 'Nada por leer' : tab === 'revisar' ? 'Nada para revisar' : 'Todavía no vinculaste productos', text: tab === 'revisar' ? 'La IA vinculó todo lo que leyó. Si hay productos por leer, arrancá la lectura arriba.' : 'Los productos nuevos o con nombre cambiado aparecen acá hasta que se leen.' })}</div></div>
+      <div>${c ? editorHTML(c, 'tray') : `<div class="card">${L.empty({ icon: 'link', title: 'Elegí un producto', text: 'Seleccioná una fila para vincularla a un componente base.' })}</div>`}</div></div>`;
+    $('#tray').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; L.setParam('tab', tab === 'revisar' ? null : tab); selId = (tabs()[tab][0] || {}).id || selId; renderTray(); });
+    $('#tray').querySelectorAll('tr[data-id]').forEach(tr => { const pick = () => { selId = tr.dataset.id; L.setParam('item', selId); renderTray(); const again = document.querySelector(`tr[data-id="${selId}"]`); if (again) again.focus(); }; tr.onclick = pick; tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } }; });
+    if (c) wireEditor(c);
+  }
+  let cardsMove = null;
+  document.addEventListener('keydown', e => {
+    if (variant !== 'tarjetas' || document.querySelector('dialog[open]') || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tg = e.target; if (tg.tagName === 'SELECT' || tg.tagName === 'TEXTAREA' || (tg.tagName === 'INPUT' && tg.type !== 'radio')) return;
+    if (tg.tagName === 'BUTTON' || tg.tagName === 'A') { if (e.key === 'Enter') return; }
+    const k = e.key.toLowerCase();
+    if (k === 'enter' && selId) { e.preventDefault(); linkItem(selId); }
+    else if (k === 'u' && selId && $('#ed-unlink')) { e.preventDefault(); unlinkItem(selId); }
+    else if (k === 'n') { e.preventDefault(); nextPending(selId); }
+    else if ((k === 'j' || k === 'k') && cardsMove) { e.preventDefault(); cardsMove(k === 'j' ? 1 : -1); }
+  });
+
+  function renderAll() { renderRun(); renderTray(); }
+  L.variants($('#vh'), [{ id: 'bandeja', label: 'Bandeja', desc: 'Tabla con estados y editor al costado: para revisar muchos productos y elegir en qué orden' }, { id: 'tarjetas', label: 'Tarjetas una por una', desc: 'Un producto por vez, a pantalla completa, con atajos de teclado: para vaciar la cola rápido' }], v => { variant = v; renderTray(); }, 'vinculacion');
+  renderRun();
+  L.store.subscribe(() => { if (!run) renderAll(); else renderRun(); });
+});
+</script>
+</body></html>

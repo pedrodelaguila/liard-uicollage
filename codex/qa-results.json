@@ -1,0 +1,1222 @@
+{
+  "startedAt": "2026-09-30T05:07:20.151Z",
+  "checks": [
+    {
+      "name": "44 páginas × variante cargadas",
+      "result": "PASS",
+      "detail": "0 errores JavaScript"
+    },
+    {
+      "name": "guided: revisión requerida antes de RFQ",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: revisión humana guardada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: persistencia tras reload",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: snapshot RFQ cantidades efectivas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: s1 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: s1 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: s2 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: s2 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: margen calculado sin confundir recargo",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: descarga pedido real con contenido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: pedido consistente con oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: proveedor confirma pedido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: almacenamiento propaga entre ventanas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: d-engineering error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: d-rfq error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: d-operations error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: m-field error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: giro zoom despiece y 2D funcionales",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "guided: reset restaura seed",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: revisión requerida antes de RFQ",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: revisión humana guardada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: persistencia tras reload",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: snapshot RFQ cantidades efectivas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: s1 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: s1 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: s2 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: s2 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: margen calculado sin confundir recargo",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: descarga pedido real con contenido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: pedido consistente con oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: proveedor confirma pedido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: almacenamiento propaga entre ventanas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: d-engineering error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: d-rfq error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: d-operations error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: m-field error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: giro zoom despiece y 2D funcionales",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "expert: reset restaura seed",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: revisión requerida antes de RFQ",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: revisión humana guardada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: persistencia tras reload",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: snapshot RFQ cantidades efectivas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: s1 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: s1 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: s2 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: s2 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: margen calculado sin confundir recargo",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: descarga pedido real con contenido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: pedido consistente con oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: proveedor confirma pedido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: almacenamiento propaga entre ventanas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: d-engineering error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: d-rfq error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: d-operations error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: m-field error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: giro zoom despiece y 2D funcionales",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "assisted: reset restaura seed",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: revisión requerida antes de RFQ",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: revisión humana guardada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: persistencia tras reload",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: snapshot RFQ cantidades efectivas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: s1 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: s1 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: s2 stock desconocido bloquea oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: s2 oferta editable presentada",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: portal propio sin márgenes",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: margen calculado sin confundir recargo",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: descarga pedido real con contenido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: pedido consistente con oferta",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: proveedor confirma pedido",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: almacenamiento propaga entre ventanas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: d-engineering error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: d-rfq error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: d-operations error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: m-field error recuperable",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: giro zoom despiece y 2D funcionales",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "visual: reset restaura seed",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Gallery picker cambia todas las pantallas",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Filtros rol y horizonte funcionales",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "Gallery s bare full measure compatibles",
+      "result": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "file:// galería e ingeniería cargan",
+      "result": "PASS",
+      "detail": ""
+    }
+  ],
+  "screens": [
+    {
+      "name": "d-projects-guided",
+      "file": "shots/verified/d-projects-guided.png"
+    },
+    {
+      "name": "d-engineering-guided",
+      "file": "shots/verified/d-engineering-guided.png"
+    },
+    {
+      "name": "d-panel-guided",
+      "file": "shots/verified/d-panel-guided.png"
+    },
+    {
+      "name": "d-rfq-guided",
+      "file": "shots/verified/d-rfq-guided.png"
+    },
+    {
+      "name": "d-supplier-guided",
+      "file": "shots/verified/d-supplier-guided.png"
+    },
+    {
+      "name": "d-comparison-guided",
+      "file": "shots/verified/d-comparison-guided.png"
+    },
+    {
+      "name": "d-orders-guided",
+      "file": "shots/verified/d-orders-guided.png"
+    },
+    {
+      "name": "d-operations-guided",
+      "file": "shots/verified/d-operations-guided.png"
+    },
+    {
+      "name": "d-collaboration-guided",
+      "file": "shots/verified/d-collaboration-guided.png"
+    },
+    {
+      "name": "d-network-guided",
+      "file": "shots/verified/d-network-guided.png"
+    },
+    {
+      "name": "m-field-guided",
+      "file": "shots/verified/m-field-guided.png"
+    },
+    {
+      "name": "d-projects-expert",
+      "file": "shots/verified/d-projects-expert.png"
+    },
+    {
+      "name": "d-engineering-expert",
+      "file": "shots/verified/d-engineering-expert.png"
+    },
+    {
+      "name": "d-panel-expert",
+      "file": "shots/verified/d-panel-expert.png"
+    },
+    {
+      "name": "d-rfq-expert",
+      "file": "shots/verified/d-rfq-expert.png"
+    },
+    {
+      "name": "d-supplier-expert",
+      "file": "shots/verified/d-supplier-expert.png"
+    },
+    {
+      "name": "d-comparison-expert",
+      "file": "shots/verified/d-comparison-expert.png"
+    },
+    {
+      "name": "d-orders-expert",
+      "file": "shots/verified/d-orders-expert.png"
+    },
+    {
+      "name": "d-operations-expert",
+      "file": "shots/verified/d-operations-expert.png"
+    },
+    {
+      "name": "d-collaboration-expert",
+      "file": "shots/verified/d-collaboration-expert.png"
+    },
+    {
+      "name": "d-network-expert",
+      "file": "shots/verified/d-network-expert.png"
+    },
+    {
+      "name": "m-field-expert",
+      "file": "shots/verified/m-field-expert.png"
+    },
+    {
+      "name": "d-projects-assisted",
+      "file": "shots/verified/d-projects-assisted.png"
+    },
+    {
+      "name": "d-engineering-assisted",
+      "file": "shots/verified/d-engineering-assisted.png"
+    },
+    {
+      "name": "d-panel-assisted",
+      "file": "shots/verified/d-panel-assisted.png"
+    },
+    {
+      "name": "d-rfq-assisted",
+      "file": "shots/verified/d-rfq-assisted.png"
+    },
+    {
+      "name": "d-supplier-assisted",
+      "file": "shots/verified/d-supplier-assisted.png"
+    },
+    {
+      "name": "d-comparison-assisted",
+      "file": "shots/verified/d-comparison-assisted.png"
+    },
+    {
+      "name": "d-orders-assisted",
+      "file": "shots/verified/d-orders-assisted.png"
+    },
+    {
+      "name": "d-operations-assisted",
+      "file": "shots/verified/d-operations-assisted.png"
+    },
+    {
+      "name": "d-collaboration-assisted",
+      "file": "shots/verified/d-collaboration-assisted.png"
+    },
+    {
+      "name": "d-network-assisted",
+      "file": "shots/verified/d-network-assisted.png"
+    },
+    {
+      "name": "m-field-assisted",
+      "file": "shots/verified/m-field-assisted.png"
+    },
+    {
+      "name": "d-projects-visual",
+      "file": "shots/verified/d-projects-visual.png"
+    },
+    {
+      "name": "d-engineering-visual",
+      "file": "shots/verified/d-engineering-visual.png"
+    },
+    {
+      "name": "d-panel-visual",
+      "file": "shots/verified/d-panel-visual.png"
+    },
+    {
+      "name": "d-rfq-visual",
+      "file": "shots/verified/d-rfq-visual.png"
+    },
+    {
+      "name": "d-supplier-visual",
+      "file": "shots/verified/d-supplier-visual.png"
+    },
+    {
+      "name": "d-comparison-visual",
+      "file": "shots/verified/d-comparison-visual.png"
+    },
+    {
+      "name": "d-orders-visual",
+      "file": "shots/verified/d-orders-visual.png"
+    },
+    {
+      "name": "d-operations-visual",
+      "file": "shots/verified/d-operations-visual.png"
+    },
+    {
+      "name": "d-collaboration-visual",
+      "file": "shots/verified/d-collaboration-visual.png"
+    },
+    {
+      "name": "d-network-visual",
+      "file": "shots/verified/d-network-visual.png"
+    },
+    {
+      "name": "m-field-visual",
+      "file": "shots/verified/m-field-visual.png"
+    },
+    {
+      "name": "d-projects-guided-mobile",
+      "file": "shots/verified/d-projects-guided-mobile.png"
+    },
+    {
+      "name": "d-engineering-guided-mobile",
+      "file": "shots/verified/d-engineering-guided-mobile.png"
+    },
+    {
+      "name": "d-panel-guided-mobile",
+      "file": "shots/verified/d-panel-guided-mobile.png"
+    },
+    {
+      "name": "d-rfq-guided-mobile",
+      "file": "shots/verified/d-rfq-guided-mobile.png"
+    },
+    {
+      "name": "d-supplier-guided-mobile",
+      "file": "shots/verified/d-supplier-guided-mobile.png"
+    },
+    {
+      "name": "d-comparison-guided-mobile",
+      "file": "shots/verified/d-comparison-guided-mobile.png"
+    },
+    {
+      "name": "d-orders-guided-mobile",
+      "file": "shots/verified/d-orders-guided-mobile.png"
+    },
+    {
+      "name": "d-operations-guided-mobile",
+      "file": "shots/verified/d-operations-guided-mobile.png"
+    },
+    {
+      "name": "d-collaboration-guided-mobile",
+      "file": "shots/verified/d-collaboration-guided-mobile.png"
+    },
+    {
+      "name": "d-network-guided-mobile",
+      "file": "shots/verified/d-network-guided-mobile.png"
+    },
+    {
+      "name": "d-projects-expert-mobile",
+      "file": "shots/verified/d-projects-expert-mobile.png"
+    },
+    {
+      "name": "d-engineering-expert-mobile",
+      "file": "shots/verified/d-engineering-expert-mobile.png"
+    },
+    {
+      "name": "d-panel-expert-mobile",
+      "file": "shots/verified/d-panel-expert-mobile.png"
+    },
+    {
+      "name": "d-rfq-expert-mobile",
+      "file": "shots/verified/d-rfq-expert-mobile.png"
+    },
+    {
+      "name": "d-supplier-expert-mobile",
+      "file": "shots/verified/d-supplier-expert-mobile.png"
+    },
+    {
+      "name": "d-comparison-expert-mobile",
+      "file": "shots/verified/d-comparison-expert-mobile.png"
+    },
+    {
+      "name": "d-orders-expert-mobile",
+      "file": "shots/verified/d-orders-expert-mobile.png"
+    },
+    {
+      "name": "d-operations-expert-mobile",
+      "file": "shots/verified/d-operations-expert-mobile.png"
+    },
+    {
+      "name": "d-collaboration-expert-mobile",
+      "file": "shots/verified/d-collaboration-expert-mobile.png"
+    },
+    {
+      "name": "d-network-expert-mobile",
+      "file": "shots/verified/d-network-expert-mobile.png"
+    },
+    {
+      "name": "d-projects-assisted-mobile",
+      "file": "shots/verified/d-projects-assisted-mobile.png"
+    },
+    {
+      "name": "d-engineering-assisted-mobile",
+      "file": "shots/verified/d-engineering-assisted-mobile.png"
+    },
+    {
+      "name": "d-panel-assisted-mobile",
+      "file": "shots/verified/d-panel-assisted-mobile.png"
+    },
+    {
+      "name": "d-rfq-assisted-mobile",
+      "file": "shots/verified/d-rfq-assisted-mobile.png"
+    },
+    {
+      "name": "d-supplier-assisted-mobile",
+      "file": "shots/verified/d-supplier-assisted-mobile.png"
+    },
+    {
+      "name": "d-comparison-assisted-mobile",
+      "file": "shots/verified/d-comparison-assisted-mobile.png"
+    },
+    {
+      "name": "d-orders-assisted-mobile",
+      "file": "shots/verified/d-orders-assisted-mobile.png"
+    },
+    {
+      "name": "d-operations-assisted-mobile",
+      "file": "shots/verified/d-operations-assisted-mobile.png"
+    },
+    {
+      "name": "d-collaboration-assisted-mobile",
+      "file": "shots/verified/d-collaboration-assisted-mobile.png"
+    },
+    {
+      "name": "d-network-assisted-mobile",
+      "file": "shots/verified/d-network-assisted-mobile.png"
+    },
+    {
+      "name": "d-projects-visual-mobile",
+      "file": "shots/verified/d-projects-visual-mobile.png"
+    },
+    {
+      "name": "d-engineering-visual-mobile",
+      "file": "shots/verified/d-engineering-visual-mobile.png"
+    },
+    {
+      "name": "d-panel-visual-mobile",
+      "file": "shots/verified/d-panel-visual-mobile.png"
+    },
+    {
+      "name": "d-rfq-visual-mobile",
+      "file": "shots/verified/d-rfq-visual-mobile.png"
+    },
+    {
+      "name": "d-supplier-visual-mobile",
+      "file": "shots/verified/d-supplier-visual-mobile.png"
+    },
+    {
+      "name": "d-comparison-visual-mobile",
+      "file": "shots/verified/d-comparison-visual-mobile.png"
+    },
+    {
+      "name": "d-orders-visual-mobile",
+      "file": "shots/verified/d-orders-visual-mobile.png"
+    },
+    {
+      "name": "d-operations-visual-mobile",
+      "file": "shots/verified/d-operations-visual-mobile.png"
+    },
+    {
+      "name": "d-collaboration-visual-mobile",
+      "file": "shots/verified/d-collaboration-visual-mobile.png"
+    },
+    {
+      "name": "d-network-visual-mobile",
+      "file": "shots/verified/d-network-visual-mobile.png"
+    },
+    {
+      "name": "journey-rfq-guided",
+      "file": "shots/verified/journey-rfq-guided.png"
+    },
+    {
+      "name": "journey-offer-s1-guided",
+      "file": "shots/verified/journey-offer-s1-guided.png"
+    },
+    {
+      "name": "journey-offer-s2-guided",
+      "file": "shots/verified/journey-offer-s2-guided.png"
+    },
+    {
+      "name": "journey-comparison-guided",
+      "file": "shots/verified/journey-comparison-guided.png"
+    },
+    {
+      "name": "journey-order-guided",
+      "file": "shots/verified/journey-order-guided.png"
+    },
+    {
+      "name": "journey-field-guided",
+      "file": "shots/verified/journey-field-guided.png"
+    },
+    {
+      "name": "error-d-engineering-guided",
+      "file": "shots/verified/error-d-engineering-guided.png"
+    },
+    {
+      "name": "error-d-rfq-guided",
+      "file": "shots/verified/error-d-rfq-guided.png"
+    },
+    {
+      "name": "error-d-operations-guided",
+      "file": "shots/verified/error-d-operations-guided.png"
+    },
+    {
+      "name": "error-m-field-guided",
+      "file": "shots/verified/error-m-field-guided.png"
+    },
+    {
+      "name": "3d-controls-guided",
+      "file": "shots/verified/3d-controls-guided.png"
+    },
+    {
+      "name": "journey-rfq-expert",
+      "file": "shots/verified/journey-rfq-expert.png"
+    },
+    {
+      "name": "journey-offer-s1-expert",
+      "file": "shots/verified/journey-offer-s1-expert.png"
+    },
+    {
+      "name": "journey-offer-s2-expert",
+      "file": "shots/verified/journey-offer-s2-expert.png"
+    },
+    {
+      "name": "journey-comparison-expert",
+      "file": "shots/verified/journey-comparison-expert.png"
+    },
+    {
+      "name": "journey-order-expert",
+      "file": "shots/verified/journey-order-expert.png"
+    },
+    {
+      "name": "journey-field-expert",
+      "file": "shots/verified/journey-field-expert.png"
+    },
+    {
+      "name": "error-d-engineering-expert",
+      "file": "shots/verified/error-d-engineering-expert.png"
+    },
+    {
+      "name": "error-d-rfq-expert",
+      "file": "shots/verified/error-d-rfq-expert.png"
+    },
+    {
+      "name": "error-d-operations-expert",
+      "file": "shots/verified/error-d-operations-expert.png"
+    },
+    {
+      "name": "error-m-field-expert",
+      "file": "shots/verified/error-m-field-expert.png"
+    },
+    {
+      "name": "3d-controls-expert",
+      "file": "shots/verified/3d-controls-expert.png"
+    },
+    {
+      "name": "journey-rfq-assisted",
+      "file": "shots/verified/journey-rfq-assisted.png"
+    },
+    {
+      "name": "journey-offer-s1-assisted",
+      "file": "shots/verified/journey-offer-s1-assisted.png"
+    },
+    {
+      "name": "journey-offer-s2-assisted",
+      "file": "shots/verified/journey-offer-s2-assisted.png"
+    },
+    {
+      "name": "journey-comparison-assisted",
+      "file": "shots/verified/journey-comparison-assisted.png"
+    },
+    {
+      "name": "journey-order-assisted",
+      "file": "shots/verified/journey-order-assisted.png"
+    },
+    {
+      "name": "journey-field-assisted",
+      "file": "shots/verified/journey-field-assisted.png"
+    },
+    {
+      "name": "error-d-engineering-assisted",
+      "file": "shots/verified/error-d-engineering-assisted.png"
+    },
+    {
+      "name": "error-d-rfq-assisted",
+      "file": "shots/verified/error-d-rfq-assisted.png"
+    },
+    {
+      "name": "error-d-operations-assisted",
+      "file": "shots/verified/error-d-operations-assisted.png"
+    },
+    {
+      "name": "error-m-field-assisted",
+      "file": "shots/verified/error-m-field-assisted.png"
+    },
+    {
+      "name": "3d-controls-assisted",
+      "file": "shots/verified/3d-controls-assisted.png"
+    },
+    {
+      "name": "journey-rfq-visual",
+      "file": "shots/verified/journey-rfq-visual.png"
+    },
+    {
+      "name": "journey-offer-s1-visual",
+      "file": "shots/verified/journey-offer-s1-visual.png"
+    },
+    {
+      "name": "journey-offer-s2-visual",
+      "file": "shots/verified/journey-offer-s2-visual.png"
+    },
+    {
+      "name": "journey-comparison-visual",
+      "file": "shots/verified/journey-comparison-visual.png"
+    },
+    {
+      "name": "journey-order-visual",
+      "file": "shots/verified/journey-order-visual.png"
+    },
+    {
+      "name": "journey-field-visual",
+      "file": "shots/verified/journey-field-visual.png"
+    },
+    {
+      "name": "error-d-engineering-visual",
+      "file": "shots/verified/error-d-engineering-visual.png"
+    },
+    {
+      "name": "error-d-rfq-visual",
+      "file": "shots/verified/error-d-rfq-visual.png"
+    },
+    {
+      "name": "error-d-operations-visual",
+      "file": "shots/verified/error-d-operations-visual.png"
+    },
+    {
+      "name": "error-m-field-visual",
+      "file": "shots/verified/error-m-field-visual.png"
+    },
+    {
+      "name": "3d-controls-visual",
+      "file": "shots/verified/3d-controls-visual.png"
+    },
+    {
+      "name": "0-gallery",
+      "file": "shots/verified/0-gallery.png"
+    },
+    {
+      "name": "gallery-engineering",
+      "file": "shots/verified/gallery-engineering.png"
+    },
+    {
+      "name": "gallery-panel",
+      "file": "shots/verified/gallery-panel.png"
+    },
+    {
+      "name": "gallery-procurement",
+      "file": "shots/verified/gallery-procurement.png"
+    },
+    {
+      "name": "gallery-supplier",
+      "file": "shots/verified/gallery-supplier.png"
+    },
+    {
+      "name": "gallery-operations",
+      "file": "shots/verified/gallery-operations.png"
+    },
+    {
+      "name": "gallery-collaboration",
+      "file": "shots/verified/gallery-collaboration.png"
+    },
+    {
+      "name": "gallery-field",
+      "file": "shots/verified/gallery-field.png"
+    }
+  ],
+  "errors": [],
+  "overflow": [],
+  "accessibility": [],
+  "timings": [
+    {
+      "file": "d-projects",
+      "v": "guided",
+      "loadMs": 144
+    },
+    {
+      "file": "d-engineering",
+      "v": "guided",
+      "loadMs": 159
+    },
+    {
+      "file": "d-panel",
+      "v": "guided",
+      "loadMs": 149
+    },
+    {
+      "file": "d-rfq",
+      "v": "guided",
+      "loadMs": 160
+    },
+    {
+      "file": "d-supplier",
+      "v": "guided",
+      "loadMs": 146
+    },
+    {
+      "file": "d-comparison",
+      "v": "guided",
+      "loadMs": 142
+    },
+    {
+      "file": "d-orders",
+      "v": "guided",
+      "loadMs": 143
+    },
+    {
+      "file": "d-operations",
+      "v": "guided",
+      "loadMs": 153
+    },
+    {
+      "file": "d-collaboration",
+      "v": "guided",
+      "loadMs": 146
+    },
+    {
+      "file": "d-network",
+      "v": "guided",
+      "loadMs": 146
+    },
+    {
+      "file": "m-field",
+      "v": "guided",
+      "loadMs": 151
+    },
+    {
+      "file": "d-projects",
+      "v": "expert",
+      "loadMs": 148
+    },
+    {
+      "file": "d-engineering",
+      "v": "expert",
+      "loadMs": 153
+    },
+    {
+      "file": "d-panel",
+      "v": "expert",
+      "loadMs": 150
+    },
+    {
+      "file": "d-rfq",
+      "v": "expert",
+      "loadMs": 180
+    },
+    {
+      "file": "d-supplier",
+      "v": "expert",
+      "loadMs": 146
+    },
+    {
+      "file": "d-comparison",
+      "v": "expert",
+      "loadMs": 152
+    },
+    {
+      "file": "d-orders",
+      "v": "expert",
+      "loadMs": 161
+    },
+    {
+      "file": "d-operations",
+      "v": "expert",
+      "loadMs": 151
+    },
+    {
+      "file": "d-collaboration",
+      "v": "expert",
+      "loadMs": 146
+    },
+    {
+      "file": "d-network",
+      "v": "expert",
+      "loadMs": 148
+    },
+    {
+      "file": "m-field",
+      "v": "expert",
+      "loadMs": 143
+    },
+    {
+      "file": "d-projects",
+      "v": "assisted",
+      "loadMs": 145
+    },
+    {
+      "file": "d-engineering",
+      "v": "assisted",
+      "loadMs": 151
+    },
+    {
+      "file": "d-panel",
+      "v": "assisted",
+      "loadMs": 142
+    },
+    {
+      "file": "d-rfq",
+      "v": "assisted",
+      "loadMs": 146
+    },
+    {
+      "file": "d-supplier",
+      "v": "assisted",
+      "loadMs": 147
+    },
+    {
+      "file": "d-comparison",
+      "v": "assisted",
+      "loadMs": 149
+    },
+    {
+      "file": "d-orders",
+      "v": "assisted",
+      "loadMs": 152
+    },
+    {
+      "file": "d-operations",
+      "v": "assisted",
+      "loadMs": 159
+    },
+    {
+      "file": "d-collaboration",
+      "v": "assisted",
+      "loadMs": 165
+    },
+    {
+      "file": "d-network",
+      "v": "assisted",
+      "loadMs": 157
+    },
+    {
+      "file": "m-field",
+      "v": "assisted",
+      "loadMs": 151
+    },
+    {
+      "file": "d-projects",
+      "v": "visual",
+      "loadMs": 155
+    },
+    {
+      "file": "d-engineering",
+      "v": "visual",
+      "loadMs": 154
+    },
+    {
+      "file": "d-panel",
+      "v": "visual",
+      "loadMs": 158
+    },
+    {
+      "file": "d-rfq",
+      "v": "visual",
+      "loadMs": 160
+    },
+    {
+      "file": "d-supplier",
+      "v": "visual",
+      "loadMs": 143
+    },
+    {
+      "file": "d-comparison",
+      "v": "visual",
+      "loadMs": 150
+    },
+    {
+      "file": "d-orders",
+      "v": "visual",
+      "loadMs": 150
+    },
+    {
+      "file": "d-operations",
+      "v": "visual",
+      "loadMs": 147
+    },
+    {
+      "file": "d-collaboration",
+      "v": "visual",
+      "loadMs": 143
+    },
+    {
+      "file": "d-network",
+      "v": "visual",
+      "loadMs": 144
+    },
+    {
+      "file": "m-field",
+      "v": "visual",
+      "loadMs": 150
+    }
+  ],
+  "finishedAt": "2026-09-30T05:08:09.520Z"
+}

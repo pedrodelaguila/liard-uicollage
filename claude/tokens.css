@@ -1,0 +1,80 @@
+/* liard horizon · design tokens
+   Una sola fuente de color, tipo, espacio y movimiento. Nada de colores sueltos en las pantallas:
+   si falta un token, se agrega acá. */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  /* Tipografía */
+  --font-sans: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Space Grotesk', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --fs-xs: 11.5px; --fs-sm: 13px; --fs-md: 14.5px; --fs-lg: 17px; --fs-xl: 21px; --fs-2xl: 28px; --fs-3xl: 40px;
+  --lh: 1.45;
+
+  /* Superficies: papel técnico cálido + tinta azul noche */
+  --bg: #f3f2ee;          /* fondo de la app */
+  --bg-grid: #e7e5de;     /* líneas de grilla del papel */
+  --surface: #ffffff;
+  --surface-2: #f8f7f4;
+  --surface-3: #efede7;
+  --ink: #111a2b;         /* texto principal */
+  --ink-2: #3b4658;       /* secundario */
+  --ink-3: #6b7486;       /* terciario, ayuda */
+  --line: #dedbd2;        /* bordes */
+  --line-strong: #c7c3b7;
+
+  /* Escenario oscuro (plano, 3D, IA) */
+  --stage: #0c1220;
+  --stage-2: #141c2e;
+  --stage-3: #1d2740;
+  --stage-line: #2a3654;
+  --stage-ink: #e6ebf5;
+  --stage-ink-2: #9aa6bf;
+
+  /* Marca y señal */
+  --brand: #1f4fd8;       /* azul eléctrico: acción primaria */
+  --brand-ink: #ffffff;
+  --brand-soft: #e5ecff;
+  --brand-strong: #163aa3;
+  --volt: #f2b705;        /* amarillo tensión: foco, selección, 3D */
+  --volt-soft: #fff4cc;
+  --copper: #c8642b;      /* cobre: costos, margen */
+  --copper-soft: #fbe9dd;
+  --cyan: #13a3b5;        /* IA */
+  --cyan-soft: #daf3f6;
+
+  /* Estados (siempre con texto o ícono, nunca solo color) */
+  --ok: #1b8a4b;    --ok-soft: #e0f3e8;
+  --warn: #b7700b;  --warn-soft: #fcefd6;
+  --err: #c2362b;   --err-soft: #fbe3e0;
+  --info: #2c62c9;  --info-soft: #e3ecfb;
+  --muted: #6b7486; --muted-soft: #eceae4;
+
+  /* Procedencia del dato: regla central del producto */
+  --src-detected: #13a3b5;   /* detectado por el modelo */
+  --src-inferred: #8a5cd1;   /* inferido por regla o IA */
+  --src-manual: #1b8a4b;     /* cargado o confirmado a mano */
+  --src-ref: #6b7486;        /* precio de referencia de catálogo */
+  --src-confirmed: #1f4fd8;  /* confirmado por el proveedor en su oferta */
+
+  /* Forma */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px; --r-pill: 999px;
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+  --shadow-1: 0 1px 0 rgba(17,26,43,.04), 0 1px 3px rgba(17,26,43,.06);
+  --shadow-2: 0 2px 4px rgba(17,26,43,.05), 0 8px 24px rgba(17,26,43,.08);
+  --shadow-3: 0 12px 40px rgba(17,26,43,.18);
+  --focus: 0 0 0 3px rgba(31,79,216,.35);
+
+  /* Movimiento */
+  --ease-out: cubic-bezier(.2,.8,.2,1);
+  --ease-spring: cubic-bezier(.34,1.4,.64,1);
+  --t-fast: 120ms; --t-med: 220ms; --t-slow: 420ms;
+
+  /* Shell */
+  --sidebar-w: 248px;
+  --topbar-h: 60px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --t-fast: 0ms; --t-med: 0ms; --t-slow: 0ms; }
+}

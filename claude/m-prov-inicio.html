@@ -1,0 +1,32 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Inicio distribuidor</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .kp { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .kp .kpi { padding: 12px; } .kp .kpi strong { font-size: 24px; }
+  .todo a { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 12px 14px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+  .todo a:last-child { border-bottom: 0; } .todo small { display: block; color: var(--ink-3); } .todo .grow { flex: 1; min-width: 0; }
+</style></head>
+<body class="m" data-role="SUPPLIER" data-active="prov-inicio" data-title="Sur Eléctrica" data-sub="Lo que te pide atención hoy">
+<div id="page"></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get(); const SID = S().session.supplierId; const page = document.getElementById('page');
+  function render() {
+    const s = S(); const reqs = s.requests.filter(r => r.supplierIds.includes(SID)); const off = r => L.offer(r.id, SID);
+    const todo = reqs.filter(r => r.status === 'ABIERTA' && r.deadline >= B.TODAY && ['PENDIENTE', 'BORRADOR'].includes(off(r).status)).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
+    const ords = s.orders.filter(o => o.supplierId === SID && o.status === 'SENT');
+    const times = reqs.map(r => ({ r, o: off(r) })).filter(x => x.o.submittedAt && ['ENVIADA', 'DECLINADA'].includes(x.o.status)).map(x => (new Date(x.o.submittedAt) - new Date(x.r.createdAt)) / 36e5).sort((a, b) => a - b);
+    const med = times.length ? times[Math.floor((times.length - 1) / 2)] : null;
+    const b = s.billing.supplier;
+    const items = [...ords.map(o => ({ t: 'Confirmar ' + o.code, sub: o.lines.length + ' materiales · ' + L.ars(L.orderTotal(o)), badge: L.badge('Pedido', 'warn'), href: 'm-prov-pedidos.html?o=' + o.id })),
+      ...todo.map(r => { const d = L.daysBetween(B.TODAY, r.deadline); return { t: (off(r).status === 'BORRADOR' ? 'Terminar ' : 'Cotizar ') + r.code, sub: L.project(r.projectId).name + ' · ' + r.lineIds.length + ' materiales', badge: L.badge(d === 0 ? 'Hoy' : d === 1 ? 'Mañana' : d + ' días', d <= 2 ? 'warn' : 'muted', 'clock'), href: 'm-prov-oferta.html?r=' + r.id }; })];
+    page.innerHTML = `<div class="kp"><div class="card kpi"><span class="eyebrow">Para responder</span><strong>${todo.length + ords.length}</strong><small>${todo.length} solicitudes · ${ords.length} pedidos</small></div>
+        <div class="card kpi"><span class="eyebrow">Respuesta</span><strong>${med == null ? '—' : (med < 48 ? L.pct(med, 1).replace(' %', ' h') : Math.round(med / 24) + ' d')}</strong><small>${times.length ? 'Mediana en liard' : 'Sin respuestas aún'}</small></div></div>
+      <section class="card mt todo" aria-labelledby="t"><div class="card-h"><h3 id="t">Ahora</h3>${L.cap('propuesto')}</div>
+        ${items.length ? items.map(i => `<a href="${i.href}"><span class="grow"><strong>${L.esc(i.t)}</strong><small>${L.esc(i.sub)}</small></span>${i.badge}${L.icon('chevr', 18)}</a>`).join('') : L.empty({ icon: 'check', title: 'Nada pendiente', text: 'Respondiste todo.' })}</section>
+      <section class="card mt card-b"><div class="row"><span class="eyebrow">Leads del mes</span>${L.cap('planificado')}</div><p style="margin:6px 0 0"><b>${b.leadsThisMonth}</b> solicitudes · ${b.leadsFree} incluidas · ${Math.max(0, b.leadsThisMonth - b.leadsFree)} con comisión por lead</p></section>
+      <a class="btn btn-secondary btn-lg btn-block mt" href="d-prov-solicitudes.html">Ver todas las solicitudes</a>`;
+  }
+  L.store.subscribe(render); render();
+});
+</script></body></html>

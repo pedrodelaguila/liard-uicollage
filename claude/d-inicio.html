@@ -1,0 +1,163 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Inicio</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .hello { display: flex; align-items: flex-end; gap: 16px; margin-bottom: var(--sp-4); flex-wrap: wrap; }
+  .hello h2 { font-size: var(--fs-2xl); letter-spacing: -.02em; }
+  .hello p { margin: 4px 0 0; color: var(--ink-3); }
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .kpis .kpi { position: relative; }
+  .kpis .kpi a { position: absolute; inset: 0; border-radius: var(--r-lg); }
+  .kpis .kpi a:focus-visible { box-shadow: var(--focus); }
+  .kpis .kpi strong { font-size: var(--fs-2xl); }
+  .kpi.hot strong { color: var(--err); }
+
+  /* Tubería: escenario oscuro con carriles por etapa */
+  .pipe { padding: 18px 18px 14px; margin-bottom: var(--sp-4); }
+  .pipe-h { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .pipe-h h3 { font-size: var(--fs-md); color: #fff; }
+  .pipe-h .spacer { flex: 1; }
+  .pipe-h .seg { background: var(--stage-2); } .pipe-h .seg button { color: var(--stage-ink-2); } .pipe-h .seg button[aria-pressed='true'] { background: var(--stage-3); color: #fff; box-shadow: none; }
+  .lanes { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; position: relative; }
+  .lane { background: var(--stage-2); padding: 10px 8px 12px; min-height: 176px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .lane:first-child { border-radius: 10px 0 0 10px; } .lane:last-child { border-radius: 0 10px 10px 0; }
+  .lane-h { display: flex; align-items: baseline; gap: 6px; padding: 0 4px 6px; border-bottom: 1px solid var(--stage-line); }
+  .lane-h b { font: 600 10.5px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .08em; color: var(--stage-ink-2); flex: 1; min-width: 0; }
+  .lane-h span { font: 600 13px var(--font-mono); color: #fff; }
+  .lane.t-err .lane-h b { color: #ff8b80; } .lane.t-warn .lane-h b { color: var(--volt); } .lane.t-ok .lane-h b { color: #5fd08f; } .lane.t-info .lane-h b { color: #8fb2ff; }
+  .tok { display: block; padding: 8px 9px; border-radius: 8px; background: var(--stage-3); border: 1px solid var(--stage-line); color: var(--stage-ink); text-decoration: none; font-size: var(--fs-xs); transition: transform var(--t-fast), border-color var(--t-fast); animation: tokIn var(--t-slow) var(--ease-out) both; }
+  .tok:hover { border-color: var(--volt); transform: translateY(-1px); }
+  .tok strong { display: block; font-size: 12.5px; color: #fff; line-height: 1.25; }
+  .tok small { display: block; color: var(--stage-ink-2); margin-top: 3px; }
+  .tok .bar { display: flex; gap: 2px; margin-top: 7px; height: 5px; }
+  .tok .bar i { flex: 1; border-radius: 2px; background: var(--stage-line); }
+  .tok .bar .s-COMPLETED { background: #5fd08f; } .tok .bar .s-PROCESSING { background: var(--cyan); } .tok .bar .s-ERROR { background: #ff8b80; } .tok .bar .s-STALE { background: var(--volt); }
+  .lane .none { color: var(--stage-line); font: 500 11px var(--font-mono); padding: 4px; }
+  @keyframes tokIn { from { opacity: 0; transform: translateY(6px); } }
+  .pipe-tbl .tbl { color: var(--ink); }
+
+  .cols { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+  .todo .list-i { align-items: flex-start; }
+  .todo .n-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; flex: none; }
+  .n-err { background: var(--err-soft); color: var(--err); } .n-warn { background: var(--warn-soft); color: var(--warn); } .n-info { background: var(--info-soft); color: var(--info); } .n-ok { background: var(--ok-soft); color: var(--ok); } .n-muted { background: var(--muted-soft); color: var(--ink-2); }
+  .todo .grow strong { display: block; font-size: var(--fs-sm); }
+  .todo .grow .obra { font-size: var(--fs-xs); color: var(--ink-3); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .ai-m { display: flex; flex-direction: column; gap: 8px; }
+  .ai-m .big { font: 600 var(--fs-2xl)/1 var(--font-display); }
+  .ai-rows { list-style: none; margin: 8px 0 0; padding: 0; font-size: var(--fs-sm); }
+  .ai-rows li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px dashed var(--line); }
+  .ai-rows li:last-child { border: 0; }
+  .act .tl li { padding-bottom: 12px; }
+  .act .tl .who { font-weight: 600; }
+  .ap { display: flex; flex-direction: column; gap: 8px; }
+  @media (max-width: 1280px) { .lanes { grid-template-columns: repeat(4, minmax(0, 1fr)); } .lane { border-radius: 8px !important; min-height: 120px; } }
+  @media (max-width: 1100px) { .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .cols { grid-template-columns: 1fr; } }
+  @media (prefers-reduced-motion: reduce) { .tok { animation: none; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="inicio" data-title="Inicio" data-sub="Qué pasa en tus obras y qué te toca hacer hoy.">
+<div id="act"></div>
+<div id="page"><div id="root"></div></div>
+<script>
+(function () {
+  const esc = L.esc;
+  const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+  const LANES = [['nuevo', 'Sin planos', 'muted'], ['proceso', 'En proceso', 'info'], ['atencion', 'Requiere atención', 'err'], ['revision', 'En revisión', 'warn'], ['lista', 'Lista para cotizar', 'ok'], ['comparacion', 'Esperando ofertas', 'info'], ['pedido', 'Pedidos', 'ok']];
+  const ui = { mode: L.pref('inicio:pipe') || 'carriles' };
+
+  /* Próxima acción concreta por obra (misma lógica que Obras). */
+  function nextAction(pid) {
+    const s = L.store.get(); const ps = L.plansOf(pid); const lk = (h, x) => L.link(h, Object.assign({ p: pid }, x || {}));
+    const err = ps.filter(p => p.status === 'ERROR').length, run = ps.filter(p => p.status === 'PROCESSING').length, todo = ps.filter(p => p.status === 'PENDING' || p.status === 'STALE').length;
+    const un = L.unidentifiedOf(pid).length; const blk = L.linesOf(pid).filter(l => L.lineIssues(l).some(i => i.blocks)).length;
+    const req = L.requestsOf(pid).find(r => r.status === 'ABIERTA'); const ords = L.ordersOf(pid);
+    if (!ps.length) return { t: 'Subí los planos', d: 'La obra no tiene planos todavía.', href: lk('d-obra.html'), ic: 'upload', tone: 'muted', w: 5 };
+    if (err) return { t: 'Reintentá ' + plural(err, 'plano con error', 'planos con error'), d: 'La detección no terminó a tiempo (504). No se reintenta solo.', href: lk('d-obra.html'), ic: 'refresh', tone: 'err', w: 0 };
+    if (run) return { t: plural(run, 'plano procesándose', 'planos procesándose'), d: 'Te avisamos cuando terminen.', href: lk('d-obra.html'), ic: 'activity', tone: 'info', w: 6 };
+    if (todo) return { t: 'Procesá ' + plural(todo, 'plano', 'planos'), d: 'Pendientes o por revisar.', href: lk('d-obra.html'), ic: 'play', tone: 'warn', w: 2 };
+    if (un) return { t: 'Resolvé ' + plural(un, 'símbolo sin identificar', 'símbolos sin identificar'), d: 'Asignalos o descartalos antes de cotizar.', href: lk('d-plano.html'), ic: 'scan', tone: 'warn', w: 1 };
+    if (blk) return { t: 'Decidí la marca en ' + plural(blk, 'línea', 'líneas'), d: 'Una marca o «Cualquier marca».', href: lk('d-bom.html'), ic: 'tag', tone: 'warn', w: 1 };
+    if (req) {
+      const ap = s.approvals.find(a => a.requestId === req.id && a.status === 'PENDIENTE');
+      if (ap) return { t: 'Esperando aprobación de Dirección', d: req.code + ' · ' + L.ars(ap.total) + '.', href: lk('d-comparar.html', { r: req.id }), ic: 'shield', tone: 'warn', w: 1 };
+      const sent = L.offersOf(req.id).filter(o => o.status === 'ENVIADA');
+      const alts = sent.reduce((a, o) => a + o.lines.filter(l => l.mode === 'ALTERNATIVA' && l.alt && l.alt.equivalence === 'SUGERIDA').length, 0);
+      if (alts) return { t: 'Revisá ' + plural(alts, 'alternativa sugerida', 'alternativas sugeridas'), d: req.code + ': la equivalencia técnica la aprobás vos.', href: lk('d-comparar.html', { r: req.id }), ic: 'compare', tone: 'warn', w: 1 };
+      if (sent.length) return { t: 'Compará ' + plural(sent.length, 'oferta', 'ofertas'), d: req.code + ' · ' + sent.length + ' de ' + req.supplierIds.length + ' distribuidores respondieron.', href: lk('d-comparar.html', { r: req.id }), ic: 'compare', tone: 'info', w: 3 };
+      return { t: 'Esperando ofertas', d: req.code + ' · nadie respondió todavía.', href: lk('d-comparar.html', { r: req.id }), ic: 'clock', tone: 'muted', w: 7 };
+    }
+    if (ords.length) { const w = ords.filter(o => o.status === 'SENT').length; return w ? { t: plural(w, 'pedido espera', 'pedidos esperan') + ' respuesta', d: 'El distribuidor confirma o rechaza.', href: L.link('d-pedidos.html'), ic: 'truck', tone: 'info', w: 6 } : { t: 'Pedidos confirmados', d: plural(ords.length, 'pedido', 'pedidos') + ' · coordiná la entrega.', href: L.link('d-pedidos.html'), ic: 'check', tone: 'ok', w: 9 }; }
+    return { t: 'Pedí cotización', d: 'No queda nada bloqueando.', href: lk('d-cotizacion.html'), ic: 'send', tone: 'ok', w: 2 };
+  }
+
+  function kpis(projects) {
+    const s = L.store.get(); const ids = projects.map(p => p.id);
+    const running = s.plans.filter(p => !p.deleted && ids.includes(p.projectId) && p.status === 'PROCESSING').length;
+    const errs = s.plans.filter(p => !p.deleted && ids.includes(p.projectId) && p.status === 'ERROR').length;
+    const un = ids.reduce((a, id) => a + L.unidentifiedOf(id).length, 0);
+    const open = s.requests.filter(r => r.status === 'ABIERTA' && ids.includes(r.projectId));
+    const offers = open.reduce((a, r) => a + L.offersOf(r.id).filter(o => o.status === 'ENVIADA').length, 0);
+    const waiting = s.orders.filter(o => o.status === 'SENT' && ids.includes(o.projectId)).length;
+    const ref = projects.filter(p => !L.ordersOf(p.id).length).reduce((a, p) => a + L.referenceQuote(p.id).bestTotal, 0);
+    const k = (lab, val, sub, href, hot) => `<div class="card kpi${hot ? ' hot' : ''}"><span class="eyebrow">${lab}</span><strong>${val}</strong><small>${sub}</small>${href ? `<a href="${href}" aria-label="${esc(lab)}: ${esc(String(val))}"></a>` : ''}</div>`;
+    return `<div class="kpis" aria-label="Indicadores">
+      ${k('Obras activas', projects.length, plural(projects.filter(p => L.projectStage(p.id).id !== 'pedido').length, 'antes del pedido', 'antes del pedido'), L.link('d-obras.html'))}
+      ${k('Planos procesándose', running, errs ? plural(errs, 'con error', 'con error') : 'ninguno con error', null, errs > 0)}
+      ${k('Símbolos sin identificar', un, un ? 'bloquean cotizaciones' : 'nada pendiente', null, un > 0)}
+      ${k('Ofertas para comparar', offers, plural(open.length, 'solicitud abierta', 'solicitudes abiertas'), L.link('d-comparar.html'))}
+      ${k('Pedidos sin respuesta', waiting, 'Referencia sin pedir: ' + L.arsShort(ref), L.link('d-pedidos.html'))}
+    </div>`;
+  }
+  function pipeline(projects) {
+    const by = {}; projects.forEach(p => { const id = L.projectStage(p.id).id; (by[id] = by[id] || []).push(p); });
+    const tok = p => { const nx = nextAction(p.id); const ps = L.plansOf(p.id); return `<a class="tok" href="${nx.href}" data-tok="${p.id}"><strong>${esc(p.name)}</strong><small>${esc(nx.t)}</small>${ps.length ? `<span class="bar" aria-hidden="true">${ps.map(x => `<i class="s-${x.status}"></i>`).join('')}</span>` : ''}</a>`; };
+    const lanes = `<div class="lanes">${LANES.map(([id, label, tone]) => `<section class="lane t-${tone}" aria-label="${label}: ${(by[id] || []).length}"><div class="lane-h"><b>${label}</b><span>${(by[id] || []).length}</span></div>${(by[id] || []).map(tok).join('') || '<span class="none">—</span>'}</section>`).join('')}</div>`;
+    const tbl = `<div class="card tbl-wrap pipe-tbl"><table class="tbl"><thead><tr><th>Etapa</th><th>Obra</th><th>Próximo paso</th><th class="num">Planos listos</th></tr></thead><tbody>${LANES.flatMap(([id, label, tone]) => (by[id] || []).map(p => { const nx = nextAction(p.id); const ps = L.plansOf(p.id); return `<tr><td>${L.badge(label, tone)}</td><td><strong>${esc(p.name)}</strong></td><td><a href="${nx.href}">${esc(nx.t)}</a></td><td class="num mono">${ps.filter(x => x.status === 'COMPLETED').length}/${ps.length}</td></tr>`; })).join('')}</tbody></table></div>`;
+    return `<section class="stage pipe" aria-labelledby="h-pipe"><div class="pipe-h"><h3 id="h-pipe">Obras por etapa</h3>${L.cap('propuesto')}<span class="muted" style="font-size:var(--fs-xs)">Cada obra está en la etapa que calcula liard con su estado real.</span><span class="spacer"></span>
+      <div class="seg" role="group" aria-label="Vista de la tubería"><button data-mode="carriles" aria-pressed="${ui.mode === 'carriles'}">Carriles</button><button data-mode="tabla" aria-pressed="${ui.mode === 'tabla'}">Tabla</button></div></div>
+      ${ui.mode === 'tabla' ? tbl : lanes}</section>`;
+  }
+  function todos(projects) {
+    const items = projects.map(p => ({ p, nx: nextAction(p.id) })).filter(x => x.nx.w < 7).sort((a, b) => a.nx.w - b.nx.w);
+    return `<section class="card todo" aria-labelledby="h-todo"><div class="card-h"><h3 id="h-todo">Lo que te toca</h3>${L.cap('propuesto')}<span class="spacer"></span><span class="badge b-muted">${items.length}</span></div>
+      ${items.length ? `<div class="list">${items.map(({ p, nx }) => `<a class="list-i" href="${nx.href}"><span class="n-ic n-${nx.tone}">${L.icon(nx.ic, 16)}</span><div class="grow"><span class="obra">${esc(p.name)}</span><strong>${esc(nx.t)}</strong><small>${esc(nx.d)}</small></div>${L.icon('chevr', 16)}</a>`).join('')}</div>` : L.empty({ icon: 'check', title: 'No tenés nada pendiente', text: 'Cuando una obra necesite una decisión tuya, aparece acá.' })}</section>`;
+  }
+  function approvals() {
+    const s = L.store.get(); const aps = s.approvals.filter(a => a.status === 'PENDIENTE');
+    const alts = [];
+    s.requests.filter(r => r.status === 'ABIERTA').forEach(r => L.offersOf(r.id).filter(o => o.status === 'ENVIADA').forEach(o => o.lines.filter(l => l.mode === 'ALTERNATIVA' && l.alt && l.alt.equivalence === 'SUGERIDA').forEach(l => alts.push({ r, o, l }))));
+    const n = aps.length + alts.length;
+    return `<section class="card" aria-labelledby="h-ap"><div class="card-h"><h3 id="h-ap">Aprobaciones pendientes</h3>${L.cap('propuesto')}<span class="spacer"></span><span class="badge ${n ? 'b-warn' : 'b-muted'}">${n}</span></div>
+      ${n ? `<div class="list">${aps.map(a => { const r = L.request(a.requestId); return `<a class="list-i" href="${L.link('d-comparar.html', { p: r.projectId, r: r.id })}"><span class="n-ic n-warn">${L.icon('shield', 16)}</span><div class="grow"><strong>Adjudicación ${esc(r.code)} · ${L.ars(a.total)}</strong><small>Espera a ${esc(L.who(a.approver))} (Dirección) desde ${L.dateShort(a.at)}.</small></div>${L.icon('chevr', 16)}</a>`; }).join('')}
+        ${alts.map(({ r, o, l }) => `<a class="list-i" href="${L.link('d-comparar.html', { p: r.projectId, r: r.id })}"><span class="n-ic n-info">${L.icon('compare', 16)}</span><div class="grow"><strong>Equivalencia técnica · ${esc(l.alt.code)}</strong><small>${esc(L.supplier(o.supplierId).short)} propone una alternativa en ${esc(r.code)}: sugerida, no aprobada.</small></div>${L.icon('chevr', 16)}</a>`).join('')}</div>`
+      : `<div class="card-b"><p class="muted" style="margin:0;font-size:var(--fs-sm)">No hay adjudicaciones ni equivalencias esperando una decisión.</p></div>`}</section>`;
+  }
+  function ai() {
+    const a = L.aiState(); const s = L.store.get(); const m = B.TODAY.slice(0, 7);
+    const byKind = {}; s.ai.ledger.filter(e => e.at.slice(0, 7) === m).forEach(e => { byKind[e.kind] = (byKind[e.kind] || 0) + e.usd; });
+    return `<section class="card" aria-labelledby="h-ai"><div class="card-h"><h3 id="h-ai">Presupuesto de IA</h3>${L.ai('IA')}${L.cap('propuesto')}<span class="spacer"></span>${L.badge(a.blocked ? 'Límite alcanzado' : a.tone === 'warn' ? 'Cerca del límite' : 'Dentro del límite', a.tone)}</div>
+      <div class="card-b ai-m"><div class="row" style="align-items:baseline"><span class="big">${L.usd(a.spent)}</span><span class="muted">de ${L.usd(a.budget)} este mes</span></div>
+        <div class="meter ${a.tone}" role="meter" aria-label="Uso de IA del mes" aria-valuemin="0" aria-valuemax="${a.budget}" aria-valuenow="${a.spent.toFixed(2)}" aria-valuetext="${L.pct(a.pct)} del presupuesto"><i style="width:${Math.min(100, a.pct)}%"></i></div>
+        <small class="muted">${L.pct(a.pct)} usado · avisa al ${s.ai.alertAtPct} % · ${s.ai.hardLimit ? 'corta al 100 %: después seguís a mano' : 'sin corte al 100 %'}</small>
+        <ul class="ai-rows">${Object.entries(byKind).sort((x, y) => y[1] - x[1]).map(([k, v]) => `<li><span>${esc(k)}</span><span class="mono">${L.usd(v)}</span></li>`).join('')}</ul>
+        <a href="${L.link('d-cuenta.html')}" style="font-size:var(--fs-sm);font-weight:600">Ver uso y límites</a></div></section>`;
+  }
+  function activity() {
+    const s = L.store.get(); const items = s.activity.filter(a => L.project(a.projectId) && !L.project(a.projectId).deleted).slice().sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 8);
+    return `<section class="card act" aria-labelledby="h-act"><div class="card-h"><h3 id="h-act">Actividad reciente</h3>${L.cap('propuesto')}</div><div class="card-b">
+      ${items.length ? `<ul class="tl">${items.map(a => `<li><span class="who">${esc(L.who(a.who))}</span> · ${esc(a.text)}<small>${esc(L.project(a.projectId).name)} · ${L.dateShort(a.at)} ${L.time(a.at)}</small></li>`).join('')}</ul>` : '<p class="muted">Todavía no hay actividad.</p>'}</div></section>`;
+  }
+  let sig = '';
+  const sigOf = () => { const s = L.store.get(); return JSON.stringify([s.projects.map(p => p.id + p.deleted), s.plans.map(p => p.status + (p.deleted ? 1 : 0)), s.unidentified.map(u => u.status), s.bomLines.length, s.bomLines.map(l => l.brand), s.requests.map(r => r.status), s.offers.map(o => o.status), s.orders.map(o => o.status), s.approvals.map(a => a.status), s.activity.length, s.ai.ledger.length, ui.mode]); };
+  function render() {
+    const s = L.store.get(); const me = L.member(s.session.userId); const projects = s.projects.filter(p => !p.deleted);
+    const root = document.getElementById('root');
+    const nTodo = projects.map(p => nextAction(p.id)).filter(n => n.w < 7).length;
+    root.innerHTML = `<div class="hello"><div><p class="eyebrow">${L.date(B.TODAY)} · ${esc(s.company.name)}</p><h2>Hola, ${esc(me.name.split(' ')[0])}.</h2><p>${nTodo ? 'Tenés ' + plural(nTodo, 'obra que necesita', 'obras que necesitan') + ' algo de vos.' : 'No hay nada esperando por vos.'}</p></div><span class="spacer" style="flex:1"></span><a class="btn btn-secondary" href="${L.link('d-obras.html', { dialogo: 'nueva' })}">${L.icon('plus', 15)}Nueva obra</a></div>
+      ${projects.length ? kpis(projects) + pipeline(projects) + `<div class="cols"><div class="col" style="gap:var(--sp-4)">${todos(projects)}${activity()}</div><div class="col" style="gap:var(--sp-4)">${approvals()}${ai()}</div></div>`
+        : `<div class="card">${L.empty({ icon: 'folder', title: 'Empezá por tu primera obra', text: 'Creá una obra, subí sus planos y liard arma el BOM para cotizar.', action: `<a class="btn btn-primary" href="${L.link('d-obras.html', { dialogo: 'nueva' })}">${L.icon('plus', 15)}Nueva obra</a>` })}</div>`}`;
+    sig = sigOf();
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (!b) return; ui.mode = b.dataset.mode; L.pref('inicio:pipe', ui.mode); render(); const f = document.querySelector(`[data-mode="${ui.mode}"]`); if (f) f.focus(); });
+  L.ready(() => { render(); L.store.subscribe(render); setInterval(() => { if (sigOf() !== sig) render(); }, 1000); });
+})();
+</script></body></html>

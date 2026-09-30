@@ -1,0 +1,629 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Planos de la obra</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  /* ── Encabezado de obra ── */
+  .ob-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-4); align-items: start; margin-bottom: var(--sp-4); }
+  .ob-meta { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; color: var(--ink-3); font-size: var(--fs-sm); }
+  .ob-meta .ic { color: var(--ink-3); }
+  .ob-kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin-bottom: var(--sp-4); overflow: hidden; }
+  .ob-kpis .kpi + .kpi { border-left: 1px solid var(--line); }
+  .ob-kpis .kpi strong { font-size: var(--fs-xl); }
+  .ob-kpis .kpi small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .var-row { display: flex; align-items: center; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+  .var-row .var-desc { font-size: var(--fs-xs); color: var(--ink-3); max-width: 280px; text-align: right; }
+
+  /* ── Zona de carga ── */
+  .dz { position: relative; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; padding: 16px 18px; border: 1.5px dashed var(--line-strong); border-radius: var(--r-lg); background: var(--surface-2); transition: border-color var(--t-fast), background var(--t-fast); }
+  .dz.over { border-color: var(--brand); background: var(--brand-soft); }
+  .dz-ic { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--stage); color: var(--volt); }
+  .dz strong { display: block; font-size: var(--fs-md); }
+  .dz small { color: var(--ink-3); font-size: var(--fs-xs); }
+  .dz-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .dz-msg { margin-top: 10px; }
+
+  /* ── Flujo guiado ── */
+  .flow { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .flow > li { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; position: relative; }
+  .flow > li::before { content: ''; position: absolute; left: 19px; top: 44px; bottom: -16px; width: 2px; background: var(--line); }
+  .flow > li:last-child::before { display: none; }
+  .flow > li.is-done::before { background: var(--ok); }
+  .f-dot { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 600 13px var(--font-mono); background: var(--surface-3); color: var(--ink-3); border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); z-index: 1; }
+  .is-done .f-dot { background: var(--ok); color: #fff; box-shadow: none; }
+  .is-cur .f-dot { background: var(--stage); color: var(--volt); box-shadow: 0 0 0 4px var(--volt-soft); }
+  .is-block .f-dot { background: var(--err); color: #fff; box-shadow: 0 0 0 4px var(--err-soft); }
+  .f-card { min-width: 0; }
+  .is-cur .f-card { border-color: color-mix(in srgb, var(--stage) 40%, var(--line)); box-shadow: var(--shadow-2); }
+  .f-card > header { display: flex; align-items: center; gap: 10px; padding: 14px 16px; flex-wrap: wrap; }
+  .f-card > header h3 { font-size: var(--fs-md); }
+  .f-card > header .f-state { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  .f-body { padding: 0 16px 16px; }
+  .f-sum { color: var(--ink-3); font-size: var(--fs-sm); margin: -6px 0 12px; }
+  .is-todo .f-card { background: var(--surface-2); }
+  .blk { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .blk li { display: flex; gap: 8px; align-items: center; font-size: var(--fs-sm); padding: 8px 10px; border-radius: var(--r-sm); background: var(--err-soft); }
+  .blk li .ic { color: var(--err); }
+  .blk li a { margin-left: auto; font-weight: 600; white-space: nowrap; }
+  .blk li.ok { background: var(--ok-soft); } .blk li.ok .ic { color: var(--ok); }
+
+  /* ── Tarjetas de plano (guiado) ── */
+  .plans { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin-top: 12px; }
+  .pc { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); overflow: hidden; min-width: 0; }
+  .pc-thumb { position: relative; aspect-ratio: 320 / 110; }
+  .pc-thumb > svg { display: block; width: 100%; height: 100%; }
+  .icon-btn.has-n { position: relative; } .icon-btn .cnum { position: absolute; top: 1px; right: 0; min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--brand); color: #fff; font: 600 9px/14px var(--font-mono); text-align: center; }
+  .pc-thumb .badge { position: absolute; left: 8px; top: 8px; }
+  .pc-thumb .pc-fmt { position: absolute; right: 8px; top: 8px; font: 600 10px/1 var(--font-mono); color: var(--stage-ink-2); border: 1px solid var(--stage-line); border-radius: 4px; padding: 3px 5px; background: rgba(12,18,32,.7); }
+  .pc-thumb .pc-mult { position: absolute; right: 8px; bottom: 8px; font: 700 12px/1 var(--font-mono); color: var(--stage); background: var(--volt); border-radius: 4px; padding: 3px 6px; }
+  .pc-b { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .pc-b strong { font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pc-b small { color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .pc-f { display: flex; gap: 2px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--surface-2); align-items: center; }
+  .pc-f .spacer { flex: 1; }
+  .pc-err { font-size: var(--fs-xs); color: var(--err); }
+
+  /* ── Progreso ── */
+  .prog { display: flex; flex-direction: column; gap: 4px; min-width: 120px; }
+  .prog .meter { height: 6px; position: relative; }
+  .prog .meter > i { transition: width 900ms linear; }
+  .prog .meter.run > i { background: linear-gradient(90deg, var(--brand), var(--cyan)); background-size: 200% 100%; animation: flowbar 1.6s linear infinite; }
+  .prog .meter.queued > i { background: repeating-linear-gradient(135deg, var(--line-strong) 0 6px, var(--surface-3) 6px 12px); width: 100% !important; }
+  .prog small { font: 500 11px/1.3 var(--font-mono); color: var(--ink-3); }
+  @keyframes flowbar { to { background-position: -200% 0; } }
+
+  /* ── Experto ── */
+  .xp { display: grid; grid-template-columns: minmax(0, 1fr) 290px; gap: var(--sp-4); align-items: start; }
+  .xp-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .xp-bar .spacer { flex: 1; }
+  .xp .tbl td, .xp .tbl th { padding: 8px 8px; }
+  .xp .tbl .acts .icon-btn { width: 26px; }
+  .xp .tbl td.nm strong { display: block; font-size: var(--fs-sm); }
+  .xp .tbl td.nm small { color: var(--ink-3); font-family: var(--font-mono); font-size: 11px; display: block; max-width: 170px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xp .tbl td.nm { max-width: 190px; }
+  .xp .tbl .prog small, .xp .tbl td small.mono { white-space: nowrap; }
+  .xp .tbl tr.errrow td { padding-top: 0; border-top: 0; }
+  .xp .tbl tr.has-err td { border-bottom: 0; }
+  .xp .tbl .acts { display: flex; gap: 2px; justify-content: flex-end; align-items: center; }
+  .xp .tbl .icon-btn { width: 28px; height: 28px; }
+  .xp-side .rt { flex-direction: column; align-items: stretch; }
+  .xp-side { display: flex; flex-direction: column; gap: var(--sp-4); position: sticky; top: calc(var(--topbar-h) + 16px); }
+  .q-stage { padding: 14px; }
+  .q-stage h3 { font-size: var(--fs-md); display: flex; gap: 8px; align-items: center; }
+  .q-list { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .q-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 10px; border-radius: var(--r-md); background: var(--stage-2); border: 1px solid var(--stage-line); }
+  .q-list li strong { font-size: var(--fs-sm); color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .q-list .prog { grid-column: 1 / -1; }
+  .q-list .prog small { color: var(--stage-ink-2); }
+  .q-list .meter { background: var(--stage-3); }
+  .q-list .btn-ghost { color: var(--volt); }
+  .q-empty { color: var(--stage-ink-2); font-size: var(--fs-sm); margin: 10px 0 0; }
+  .mini-l { list-style: none; margin: 0; padding: 0; } .mini-l li { display: flex; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); align-items: center; } .mini-l li:last-child { border: 0; }
+  .mini-l li a { margin-left: auto; white-space: nowrap; font-weight: 600; }
+  .demo-sw { display: flex; flex-wrap: wrap; color: var(--ink); align-items: center; gap: 6px 10px; padding: 10px 12px; border: 1px dashed var(--warn); border-radius: var(--r-md); background: var(--warn-soft); font-size: var(--fs-sm); }
+  .demo-sw .switch { font-weight: 600; } .stage .demo-sw .muted { color: var(--ink-2); }
+
+  /* ── Tabla de referencia ── */
+  .rt { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .rt-file { display: flex; gap: 10px; align-items: center; min-width: 0; flex: 1; }
+  .rt-file .ic-box { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: var(--brand-soft); color: var(--brand); flex: none; }
+  .rt-file > div { min-width: 0; }
+  .rt-file strong { display: block; font-family: var(--font-mono); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rt-file small { color: var(--ink-3); }
+
+  /* ── Recorte ── */
+  .crop { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 14px; }
+  .crop-stage { position: relative; aspect-ratio: 1000 / 440; touch-action: none; cursor: crosshair; user-select: none; }
+  .crop-stage.full { cursor: not-allowed; }
+  .crop-stage > svg { display: block; width: 100%; height: 100%; }
+  .crop-hud { left: 10px; bottom: 10px; font: 500 11px var(--font-mono); color: var(--stage-ink-2); padding: 6px 10px; }
+  .zl { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow: auto; }
+  .zl li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+  .zl .zn { font: 700 11px/22px var(--font-mono); text-align: center; border-radius: 4px; background: var(--volt); color: var(--stage); }
+  .zl .input { height: 30px; font-size: var(--fs-xs); }
+  .zform { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+  .zform .field > label { font-size: 10px; }
+  .zform .input { height: 30px; }
+  details.kb { border: 1px solid var(--line); border-radius: var(--r-md); padding: 8px 10px; }
+  details.kb summary { cursor: pointer; font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); }
+  .cmts { list-style: none; margin: 0 0 12px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .cmts li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; }
+  .cmts .av { width: 30px; height: 30px; font-size: 11px; }
+  .cmts small { color: var(--ink-3); }
+  .cmts p { margin: 2px 0 0; font-size: var(--fs-sm); }
+  .mp-tbl td, .mp-tbl th { padding: 6px 8px !important; }
+  .delta { color: var(--copper); font-weight: 600; }
+
+  @media (max-width: 1360px) { .xp { grid-template-columns: minmax(0, 1fr); } .xp-side { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 1100px) { .ob-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ob-kpis .kpi:nth-child(4) { border-left: 0; } .ob-kpis .kpi:nth-child(n+4) { border-top: 1px solid var(--line); } .crop { grid-template-columns: 1fr; } .ob-head { grid-template-columns: 1fr; } .var-row { justify-content: flex-start; } .var-row .var-desc { text-align: left; } }
+  @media (max-width: 760px) { .xp-side { grid-template-columns: 1fr; } .dz { grid-template-columns: 1fr; } .dz-actions { justify-content: flex-start; } }
+  @media (prefers-reduced-motion: reduce) { .prog .meter.run > i { animation: none; } .prog .meter > i { transition: none; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="obra" data-title="Planos" data-sub="">
+<div id="act"><span id="var-host"></span></div>
+<div id="page">
+  <input type="file" id="file-plans" class="sr-only" multiple accept=".dxf,.pdf" aria-label="Elegir planos (.dxf o .pdf)" tabindex="-1">
+  <input type="file" id="file-ref" class="sr-only" accept=".dxf" aria-label="Elegir tabla de referencia (.dxf)" tabindex="-1">
+  <div id="hdr"></div>
+  <div id="view"></div>
+</div>
+<script>
+(function () {
+  const pid = L.currentProjectId();
+  const pr0 = L.project(pid);
+  document.body.dataset.title = pr0.name;
+  document.body.dataset.sub = 'Planos · ' + pr0.client + ' · ' + pr0.city;
+  document.title = 'liard · Planos · ' + pr0.name;
+
+  const MAX_FILES = 15, MAX_PDFS = 10, MAX_ZONES = 15;
+  const PROCESSABLE = ['PENDING', 'ERROR', 'STALE'];
+  const ui = { variant: 'guiado', selected: new Set(), sig: '', msg: null };
+  const pr = () => L.project(pid);
+  const plans = () => L.plansOf(pid);
+  const failOn = () => !!L.pref('obras:falla');
+  const queued = p => p.status === 'PROCESSING' && p.job && Date.now() < p.job.startedAt;
+  const unOf = planId => L.store.get().unidentified.filter(u => u.planId === planId && u.status === 'PENDIENTE').length;
+  const linesOfPlan = planId => L.linesOf(pid).filter(l => l.perPlan && l.perPlan[planId] != null);
+  const cmtCount = planId => L.commentsOf('plan:' + planId).length;
+  const esc = L.esc;
+  const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+
+  /* Costo de detección estimado: promedio de las detecciones registradas este mes (sale del registro de uso). */
+  function detectCost() {
+    const s = L.store.get(); const m = B.TODAY.slice(0, 7);
+    const d = s.ai.ledger.filter(e => e.kind === 'Detección' && e.at.slice(0, 7) === m);
+    return d.length ? d.reduce((a, e) => a + e.usd, 0) / d.length : 0;
+  }
+
+  /* ── Vista esquemática generada (no es el contenido del archivo: el prototipo no lee DXF) ── */
+  function hash(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function thumb(p) {
+    const h = hash(p.id + p.name); const n = 4 + (h % 7); const W = 320, H = 110; const x0 = 22, x1 = W - 22; const step = (x1 - x0) / (n - 1);
+    let g = `<rect width="${W}" height="${H}" fill="var(--stage)"/><g stroke="var(--stage-2)" stroke-width="1">${Array.from({ length: 14 }, (_, i) => `<path d="M${i * 24} 0V${H}"/>`).join('')}${Array.from({ length: 5 }, (_, i) => `<path d="M0 ${i * 24}H${W}"/>`).join('')}</g>`;
+    g += `<path d="M${W / 2} 6V26" stroke="var(--volt)" stroke-width="2"/><rect x="${W / 2 - 5}" y="12" width="10" height="9" fill="none" stroke="var(--volt)" stroke-width="1.5"/>`;
+    g += `<path d="M${x0} 30H${x1}" stroke="var(--volt)" stroke-width="3" stroke-linecap="round"/>`;
+    for (let i = 0; i < n; i++) { const x = x0 + i * step; const kind = (h >> i) & 3; const y2 = 78 + ((h >> (i + 3)) & 1) * 10;
+      g += `<path d="M${x} 30V${y2}" stroke="var(--stage-ink-2)" stroke-width="1.3"/>`;
+      g += kind === 0 ? `<circle cx="${x}" cy="52" r="5" fill="var(--stage)" stroke="var(--cyan)" stroke-width="1.4"/>` : `<path d="M${x - 5} 46l10 12" stroke="var(--stage-ink)" stroke-width="1.6"/><rect x="${x - 3}" y="44" width="6" height="16" fill="none" stroke="var(--stage-ink-2)" stroke-width="1"/>`;
+      g += `<text x="${x}" y="${y2 + 12}" fill="var(--stage-ink-2)" font-size="8" font-family="IBM Plex Mono, monospace" text-anchor="middle">Q${i + 1}</text>`; }
+    return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Vista esquemática de ${esc(p.name)}">${g}</svg>`;
+  }
+  /* Plano con varios tableros, para recortar. Coordenadas en un lienzo 1000 × 440. */
+  function multiBoard(seedStr) {
+    const h = hash(seedStr); const boards = [{ x: 30, w: 400, t: 'TGBT' }, { x: 460, w: 250, t: 'TS-1' }, { x: 740, w: 230, t: 'TS-2' }];
+    let g = `<rect width="1000" height="440" fill="var(--stage)"/><g stroke="var(--stage-2)" stroke-width="1">${Array.from({ length: 42 }, (_, i) => `<path d="M${i * 24} 0V440"/>`).join('')}${Array.from({ length: 19 }, (_, i) => `<path d="M0 ${i * 24}H1000"/>`).join('')}</g>`;
+    boards.forEach((b, k) => {
+      const n = Math.max(4, Math.round(b.w / 44)); const x0 = b.x + 24, x1 = b.x + b.w - 24, st = (x1 - x0) / (n - 1);
+      g += `<rect x="${b.x}" y="30" width="${b.w}" height="370" rx="4" fill="none" stroke="var(--stage-line)" stroke-dasharray="6 5"/>`;
+      g += `<text x="${b.x + 12}" y="52" fill="var(--stage-ink)" font-size="13" font-weight="600" font-family="IBM Plex Mono, monospace">${b.t}</text>`;
+      g += `<path d="M${b.x + b.w / 2} 64V104" stroke="var(--volt)" stroke-width="2.5"/><rect x="${b.x + b.w / 2 - 9}" y="74" width="18" height="16" fill="none" stroke="var(--volt)" stroke-width="2"/>`;
+      g += `<path d="M${x0} 110H${x1}" stroke="var(--volt)" stroke-width="4" stroke-linecap="round"/>`;
+      for (let i = 0; i < n; i++) { const x = x0 + i * st; const kind = (h >> (i + k)) & 3;
+        g += `<path d="M${x} 110V330" stroke="var(--stage-ink-2)" stroke-width="1.5"/>`;
+        g += kind === 0 ? `<circle cx="${x}" cy="180" r="10" fill="var(--stage)" stroke="var(--cyan)" stroke-width="2"/><path d="M${x - 6} 240l12 18" stroke="var(--stage-ink)" stroke-width="2"/>` : `<path d="M${x - 9} 170l18 22" stroke="var(--stage-ink)" stroke-width="2"/><rect x="${x - 6}" y="228" width="12" height="30" fill="none" stroke="var(--stage-ink-2)" stroke-width="1.5"/>`;
+        g += `<text x="${x}" y="352" fill="var(--stage-ink-2)" font-size="10" font-family="IBM Plex Mono, monospace" text-anchor="middle">Q${i + 1}</text><text x="${x}" y="368" fill="var(--stage-ink-2)" font-size="9" font-family="IBM Plex Mono, monospace" text-anchor="middle" opacity=".7">${[10, 16, 20, 32][(h >> i) & 3]}A</text>`; }
+    });
+    g += `<rect x="760" y="410" width="210" height="22" fill="none" stroke="var(--stage-line)"/><text x="768" y="425" fill="var(--stage-ink-2)" font-size="9" font-family="IBM Plex Mono, monospace">RÓTULO · ESC 1:50</text>`;
+    return g;
+  }
+
+  /* ── Estado de un plano ── */
+  function statusBadge(p) {
+    const icons = { PENDING: 'clock', PROCESSING: 'refresh', COMPLETED: 'check', ERROR: 'alertc', STALE: 'alert' };
+    return L.badge(L.planStatusLabel[p.status], L.planStatusTone[p.status], icons[p.status]);
+  }
+  function progHTML(p, dark) {
+    if (p.status !== 'PROCESSING') return '';
+    if (queued(p)) { const s = Math.ceil((p.job.startedAt - Date.now()) / 1000); return `<div class="prog" data-prog="${p.id}"><div class="meter queued" role="progressbar" aria-label="Progreso de ${esc(p.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-valuetext="En cola"><i></i></div><small data-prog-t>En cola · arranca en ${s} s</small></div>`; }
+    const f = L.jobProgress(p); const pc = Math.round(f * 100); const left = Math.max(0, Math.ceil((p.job.startedAt + p.job.durationMs - Date.now()) / 1000));
+    return `<div class="prog" data-prog="${p.id}"><div class="meter run" role="progressbar" aria-label="Progreso de ${esc(p.name)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pc}"><i style="width:${pc}%"></i></div><small data-prog-t>${pc} % · quedan ${left} s</small></div>`;
+  }
+  function actionBtn(p, sm) {
+    const cls = 'btn ' + (sm ? 'btn-sm ' : '') ;
+    if (p.status === 'PROCESSING') return queued(p) ? `<button class="${cls}btn-ghost" data-cancel="${p.id}" aria-label="Cancelar ${esc(p.name)} (todavía no empezó)">${L.icon('x', 13)}Cancelar</button>` : `<button class="${cls}btn-ghost" disabled>${L.icon('refresh', 13)}Procesando</button>`;
+    if (p.status === 'ERROR') return `<button class="${cls}btn-secondary" data-proc="${p.id}">${L.icon('refresh', 13)}Reintentar</button>`;
+    if (PROCESSABLE.includes(p.status)) return `<button class="${cls}btn-secondary" data-proc="${p.id}">${L.icon('play', 13)}Procesar</button>`;
+    return '';
+  }
+  function planTools(p) {
+    const busy = p.status === 'PROCESSING';
+    const c = cmtCount(p.id);
+    return `<button class="icon-btn" data-mult="${p.id}" title="Editar repeticiones" aria-label="Editar repeticiones de ${esc(p.name)}">${L.icon('layers', 15)}</button>
+      <button class="icon-btn${c ? ' has-n' : ''}" data-cmt="${p.id}" title="Comentarios" aria-label="Comentarios de ${esc(p.name)} (${c})">${L.icon('message', 15)}${c ? `<span class="cnum" aria-hidden="true">${c}</span>` : ''}</button>
+      <button class="icon-btn" data-ren="${p.id}" title="Renombrar" aria-label="Renombrar ${esc(p.name)}">${L.icon('edit', 15)}</button>
+      <button class="icon-btn" data-del="${p.id}" title="${busy ? 'No se puede eliminar mientras se procesa' : 'Eliminar plano'}" aria-label="Eliminar ${esc(p.name)}"${busy ? ' disabled style="opacity:.4;cursor:not-allowed"' : ''}>${L.icon('trash', 15)}</button>`;
+  }
+
+  /* ── Encabezado ── */
+  function header() {
+    const ps = plans(); const st = L.projectStage(pid); const p = pr();
+    const done = ps.filter(x => x.status === 'COMPLETED').length;
+    const un = L.unidentifiedOf(pid).length; const lines = L.linesOf(pid); const ai = L.aiState();
+    const blk = lines.filter(l => L.lineIssues(l).some(i => i.blocks)).length;
+    return `<div class="ob-head"><div>
+        <div class="ob-meta">${L.badge(st.label, st.tone)}<span>${L.icon('user', 13)} ${esc(p.client || 'Sin cliente')}</span><span>${L.icon('flag', 13)} ${esc(p.city || 'Sin ciudad')}</span><span>${L.icon('calendar', 13)} Creada el ${L.date(p.createdAt)}</span>${L.cap('existe')}</div>
+      </div>
+      <div class="var-row"><span class="var-desc" id="var-desc">${esc(ui.varDesc || '')}</span></div></div>
+      <div class="card ob-kpis" aria-label="Resumen de la obra">
+        <div class="kpi"><span class="eyebrow">Planos listos</span><strong class="num" style="text-align:left">${done}<span class="muted" style="font-size:var(--fs-md)"> / ${ps.length}</span></strong><small>${plural(ps.filter(x => PROCESSABLE.includes(x.status)).length, 'por procesar', 'por procesar')}</small></div>
+        <div class="kpi"><span class="eyebrow">Tableros a armar</span><strong>${L.boardsOf(pid)}</strong><small>con repeticiones, planos listos</small></div>
+        <div class="kpi"><span class="eyebrow">Líneas del BOM</span><strong>${lines.length}</strong><small>${blk ? plural(blk, 'bloquea', 'bloquean') + ' la cotización' : 'ninguna bloquea'}</small></div>
+        <div class="kpi"><span class="eyebrow">Símbolos sin identificar</span><strong style="color:${un ? 'var(--err)' : 'inherit'}">${un}</strong><small>${un ? 'resolvelos antes de cotizar' : 'nada pendiente'}</small></div>
+        <div class="kpi"><span class="eyebrow">IA del mes ${L.ai('uso')}</span><strong>${L.usd(ai.spent)}</strong><small>de ${L.usd(ai.budget)} · ${L.pct(ai.pct)}</small></div>
+      </div>`;
+  }
+
+  /* ── Bloques compartidos por las dos variantes ── */
+  function dropzone() {
+    return `<div class="dz" data-dz tabindex="-1">
+      <span class="dz-ic">${L.icon('upload', 20)}</span>
+      <div><strong>Arrastrá acá los planos o elegilos</strong><small>Un archivo por tablero · .dxf o .pdf · hasta ${MAX_FILES} por subida (${MAX_PDFS} PDF como máximo). Los PDF se convierten a DXF al subirlos. ${L.sim('Detección simulada')}</small></div>
+      <div class="dz-actions"><button class="btn btn-primary" data-pick>${L.icon('upload', 15)}Subir planos</button><button class="btn btn-secondary" data-crop>${L.icon('scissors', 15)}Recortar tableros</button></div>
+    </div>${ui.msg ? `<div class="dz-msg note note-${ui.msg.kind}" role="${ui.msg.kind === 'err' ? 'alert' : 'status'}" data-upmsg>${L.icon(ui.msg.kind === 'err' ? 'alertc' : 'check', 16)}<div><p><strong>${esc(ui.msg.title)}</strong></p>${ui.msg.lines.map(t => `<p>${esc(t)}</p>`).join('')}</div><button class="icon-btn" data-msgx aria-label="Cerrar mensaje" style="margin-left:auto">${L.icon('x', 14)}</button></div>` : ''}`;
+  }
+  function refTable() {
+    const rt = pr().referenceTable; const busy = plans().some(p => p.status === 'PROCESSING');
+    if (!rt) return `<div class="rt"><div class="rt-file"><span class="ic-box" style="background:var(--surface-3);color:var(--ink-3)">${L.icon('table', 18)}</span><div><strong style="font-family:var(--font-sans)">Sin tabla de referencia</strong><small>Sin ella los planos se procesan igual, con los nombres estándar en vez de los del cliente.</small></div></div><button class="btn btn-secondary btn-sm" data-ref-up>${L.icon('upload', 13)}Subir tabla (.dxf)</button></div>`;
+    return `<div class="rt"><div class="rt-file"><span class="ic-box">${L.icon('table', 18)}</span><div><strong title="${esc(rt.file)}">${esc(rt.file)}</strong><small>${rt.rows != null ? rt.rows + ' filas de símbolos' : 'Cargada ' + (rt.uploadedAt ? L.dateShort(rt.uploadedAt) : '') + ' · filas sin leer (simulado)'}</small></div></div>
+      <div class="row"><button class="btn btn-secondary btn-sm" data-ref-up ${busy ? 'disabled title="Esperá que termine el procesamiento"' : ''}>${L.icon('refresh', 13)}Reemplazar</button><button class="btn btn-ghost btn-sm" data-ref-del ${busy ? 'disabled title="Esperá que termine el procesamiento"' : ''}>${L.icon('trash', 13)}Eliminar</button></div></div>`;
+  }
+  function failSwitch() {
+    return `<label class="demo-sw"><span class="switch"><input type="checkbox" data-fail ${failOn() ? 'checked' : ''}> Simular falla de detección</span><span class="muted" style="font-size:var(--fs-xs)">Solo demo: la próxima tanda termina en error 504.</span></label>`;
+  }
+  function blockersList(extra) {
+    const b = L.blockers(pid).concat(extra || []);
+    if (!b.length) return `<ul class="blk"><li class="ok">${L.icon('check', 15)}Nada impide pedir cotización.</li></ul>`;
+    return `<ul class="blk" aria-label="Lo que impide cotizar">${b.map(x => `<li>${L.icon('alertc', 15)}<span>${esc(x.text)}</span>${x.href ? `<a href="${L.link(x.href, { p: pid })}">${x.code === 'SIMBOLOS' ? 'Resolver' : x.code === 'LINEAS' ? 'Decidir marcas' : x.code === 'BOM_VACIO' ? 'Ver BOM' : 'Ver'}</a>` : ''}</li>`).join('')}</ul>`;
+  }
+  function counts() { const c = { PENDING: 0, PROCESSING: 0, COMPLETED: 0, ERROR: 0, STALE: 0 }; plans().forEach(p => c[p.status]++); return c; }
+  function processAllBtn() {
+    const ps = plans().filter(p => PROCESSABLE.includes(p.status)); const busy = plans().some(p => p.status === 'PROCESSING');
+    const est = detectCost() * ps.length; const can = L.aiCan(est);
+    const dis = !ps.length || busy || !can;
+    const why = busy ? 'Ya hay una tanda en curso; esperá a que termine.' : !ps.length ? 'No hay planos para procesar.' : !can ? 'Llegaste al límite de IA del mes.' : '';
+    return `<button class="btn btn-primary" data-procall ${dis ? 'disabled' : ''} ${why ? `title="${why}"` : ''}>${L.icon('play', 14)}Procesar ${ps.length ? plural(ps.length, 'plano', 'planos') : 'todo'}</button>${ps.length && !busy ? `<small class="muted">Costo estimado ${L.usd(est)} ${L.ai('IA')} · promedio de tus detecciones del mes</small>` : why ? `<small class="muted">${why}</small>` : ''}`;
+  }
+
+  /* ── Variante Guiado ── */
+  function guided() {
+    const ps = plans(); const c = counts(); const p = pr(); const un = L.unidentifiedOf(pid); const lines = L.linesOf(pid);
+    const blkLines = lines.filter(l => L.lineIssues(l).some(i => i.blocks));
+    const reqs = L.requestsOf(pid);
+    const s1 = p.referenceTable ? 'done' : 'opt';
+    const s2 = ps.length ? 'done' : 'todo';
+    const toProc = c.PENDING + c.ERROR + c.STALE;
+    const s3 = !ps.length ? 'todo' : c.ERROR ? 'block' : (toProc || c.PROCESSING) ? 'todo' : 'done';
+    const s4 = s3 !== 'done' && !c.COMPLETED ? 'todo' : (un.length || blkLines.length || !lines.length) ? 'todo' : 'done';
+    const s5 = reqs.length ? 'done' : 'todo';
+    const order = [['ref', s1], ['up', s2], ['proc', s3], ['rev', s4], ['cot', s5]];
+    const cur = (order.slice(1).find(([, s]) => s !== 'done') || ['cot'])[0];
+    const cls = (id, s) => 'is-' + (s === 'done' ? 'done' : s === 'block' ? 'block' : id === cur ? 'cur' : s === 'opt' ? 'done' : 'todo');
+    const stateB = (s, id) => s === 'done' ? L.badge('Hecho', 'ok', 'check') : s === 'opt' ? L.badge('Opcional · sin cargar', 'muted') : s === 'block' ? L.badge('Bloqueado', 'err', 'alertc') : id === cur ? L.badge('Paso actual', 'brand') : L.badge('Pendiente', 'muted');
+    const step = (n, id, s, title, cap, sum, body) => `<li class="${cls(id, s)}" id="paso-${id}"><span class="f-dot" aria-hidden="true">${s === 'done' ? L.icon('check', 16) : n}</span>
+      <section class="card f-card" aria-labelledby="h-${id}"><header><h3 id="h-${id}">${n}. ${title}</h3>${L.cap(cap)}<span class="f-state">${stateB(s, id)}</span></header><div class="f-body"><p class="f-sum">${sum}</p>${body}</div></section></li>`;
+
+    const plansCards = ps.length ? `<div class="plans">${ps.map(pl => { const u = unOf(pl.id); return `<article class="pc" data-plan="${pl.id}">
+        <div class="pc-thumb stage" style="border-radius:0;border:0">${thumb(pl)}${statusBadge(pl)}<span class="pc-fmt">${pl.format}</span>${(pl.multiplier || 1) > 1 ? `<span class="pc-mult" title="Repeticiones">×${pl.multiplier}</span>` : ''}</div>
+        <div class="pc-b"><strong title="${esc(pl.name)}">${esc(pl.name)}</strong><small title="${esc(pl.file)}">${esc(pl.title || pl.file)}</small>${progHTML(pl)}
+          ${pl.status === 'ERROR' ? `<span class="pc-err">${L.icon('alertc', 12)} ${esc(pl.lastError || 'La detección falló.')}</span>` : ''}
+          ${u ? `<a href="${L.link('d-plano.html', { p: pid, plan: pl.id })}" class="badge b-err" style="align-self:flex-start;text-decoration:none">${L.icon('scan', 12)}${plural(u, 'símbolo sin identificar', 'símbolos sin identificar')}</a>` : ''}
+          ${pl.status === 'COMPLETED' || pl.status === 'STALE' ? `<small>${plural(linesOfPlan(pl.id).length, 'línea', 'líneas')} en el BOM${pl.processedAt ? ' · procesado ' + L.dateShort(pl.processedAt) + ' ' + L.time(pl.processedAt) : ''}</small>` : ''}</div>
+        <div class="pc-f">${actionBtn(pl, true)}<span class="spacer"></span>${planTools(pl)}</div></article>`; }).join('')}</div>` : '';
+
+    const running = ps.filter(x => x.status === 'PROCESSING');
+    return `<ol class="flow" aria-label="Pasos de la obra">
+      ${step(1, 'ref', s1, 'Tabla de referencia <span class="muted" style="font-weight:500">(opcional)</span>', 'existe', 'La leyenda de símbolos del cliente. Reemplazarla o eliminarla deja los planos listos como «Por revisar».', refTable())}
+      ${step(2, 'up', s2, 'Subir planos', 'existe', ps.length ? plural(ps.length, 'plano cargado', 'planos cargados') + '. Cada plano es un tablero; si se repite en la obra, editá sus repeticiones.' : 'Todavía no hay planos. Subí un archivo por tablero, o recortá un plano que trae varios.', dropzone() + plansCards)}
+      ${step(3, 'proc', s3, 'Procesar', 'existe', !ps.length ? 'Cuando subas planos, los procesás acá.' : [plural(c.COMPLETED, 'listo', 'listos'), c.PROCESSING + ' en proceso', plural(c.PENDING, 'pendiente', 'pendientes'), c.ERROR + ' con error', c.STALE + ' por revisar'].join(' · ') + '.',
+        `<div class="row" style="margin-bottom:12px">${processAllBtn()}</div>${failSwitch()}
+         ${running.length ? `<ul class="mini-l" style="margin-top:12px" aria-label="Tanda en curso">${running.map(x => `<li><strong style="min-width:110px">${esc(x.name)}</strong><div style="flex:1">${progHTML(x)}</div>${actionBtn(x, true)}</li>`).join('')}</ul>` : ''}
+         ${c.ERROR ? `<div class="note note-err" style="margin-top:12px">${L.icon('alertc', 16)}<div><p><strong>${plural(c.ERROR, 'plano terminó con error', 'planos terminaron con error')}.</strong> Un 504 no se reintenta solo: reintentalo, o recortalo en partes si es muy grande. El resto de la obra queda como estaba.</p></div></div>` : ''}`)}
+      ${step(4, 'rev', s4, 'Revisar', 'existe', !c.COMPLETED && !c.STALE ? 'Cuando haya planos listos vas a revisar sus símbolos y el BOM.' : `${plural(un.length, 'símbolo sin identificar', 'símbolos sin identificar')} · ${plural(blkLines.length, 'línea sin decisión', 'líneas sin decisión')} de marca o cantidad.`,
+        `<div class="row"><a class="btn btn-secondary btn-sm" href="${L.link('d-plano.html', { p: pid })}">${L.icon('scan', 13)}Revisar en el plano</a><a class="btn btn-secondary btn-sm" href="${L.link('d-bom.html', { p: pid })}">${L.icon('list', 13)}Abrir el BOM</a></div>
+         ${un.length ? `<ul class="mini-l" style="margin-top:10px">${[...new Set(un.map(u => u.planId))].map(id => { const pl = L.plan(id); const n = un.filter(u => u.planId === id).length; return `<li>${L.icon('scan', 14)}<span><strong>${esc(pl.name)}</strong> · ${plural(n, 'símbolo sin identificar', 'símbolos sin identificar')}</span><a href="${L.link('d-plano.html', { p: pid, plan: id })}">Resolver</a></li>`; }).join('')}</ul>` : ''}`)}
+      ${step(5, 'cot', s5, 'Cotizar', 'existe', reqs.length ? plural(reqs.length, 'solicitud enviada', 'solicitudes enviadas') + '.' : 'Pedí cotización cuando no quede nada bloqueando.',
+        blockersList() + `<div class="row" style="margin-top:12px">${reqs.length ? `<a class="btn btn-primary btn-sm" href="${L.link('d-comparar.html', { p: pid, r: reqs[0].id })}">${L.icon('compare', 13)}Ver ofertas de ${esc(reqs[0].code)}</a>` : L.blockers(pid).length ? `<button class="btn btn-primary btn-sm" disabled title="Resolvé lo de arriba primero">${L.icon('send', 13)}Pedir cotización</button>` : `<a class="btn btn-primary btn-sm" href="${L.link('d-cotizacion.html', { p: pid })}">${L.icon('send', 13)}Pedir cotización</a>`}</div>`)}
+    </ol>`;
+  }
+
+  /* ── Variante Experto ── */
+  function expert() {
+    const ps = plans(); const sortK = ui.sortK || 'name', dir = ui.dir || 1;
+    const order = { PROCESSING: 0, ERROR: 1, STALE: 2, PENDING: 3, COMPLETED: 4 };
+    const val = p => sortK === 'status' ? order[p.status] : sortK === 'mult' ? p.multiplier || 1 : sortK === 'lines' ? linesOfPlan(p.id).length : sortK === 'un' ? unOf(p.id) : sortK === 'fmt' ? p.format : p.name.toLowerCase();
+    const rows = ps.slice().sort((a, b) => (val(a) > val(b) ? 1 : val(a) < val(b) ? -1 : 0) * dir);
+    [...ui.selected].forEach(id => { const p = L.plan(id); if (!p || p.deleted || !PROCESSABLE.includes(p.status)) ui.selected.delete(id); });
+    const selN = ui.selected.size; const procN = ps.filter(p => PROCESSABLE.includes(p.status)).length;
+    const running = ps.filter(p => p.status === 'PROCESSING').sort((a, b) => a.job.startedAt - b.job.startedAt);
+    const aria = k => sortK === k ? ` aria-sort="${dir === 1 ? 'ascending' : 'descending'}"` : '';
+    const table = ps.length ? `<div class="tbl-wrap"><table class="tbl" id="tbl-plans"><thead><tr>
+        <th style="width:34px"><input type="checkbox" data-selall aria-label="Seleccionar todos los procesables" ${procN && selN === procN ? 'checked' : ''} ${procN ? '' : 'disabled'}></th>
+        <th data-sort="name"${aria('name')}>Plano</th><th data-sort="status"${aria('status')}>Estado</th><th>Progreso</th>
+        <th data-sort="mult" class="num"${aria('mult')}>Repet.</th><th data-sort="lines" class="num"${aria('lines')}>Líneas</th><th data-sort="un" class="num"${aria('un')} title="Símbolos sin identificar">Sin id.</th><th class="num">Acciones</th></tr></thead>
+      <tbody>${rows.map(p => { const u = unOf(p.id); const n = linesOfPlan(p.id).length; const can = PROCESSABLE.includes(p.status); return `<tr data-plan="${p.id}" class="${p.status === 'ERROR' ? 'has-err' : ''}"${ui.selected.has(p.id) ? ' aria-selected="true"' : ''}>
+        <td><input type="checkbox" data-sel="${p.id}" aria-label="Seleccionar ${esc(p.name)}" ${ui.selected.has(p.id) ? 'checked' : ''} ${can ? '' : 'disabled'}></td>
+        <td class="nm"><strong>${esc(p.name)}</strong><small title="${esc(p.file)}">${esc(p.file)}</small></td>
+        <td>${statusBadge(p)}</td>
+        <td style="min-width:120px">${progHTML(p) || (p.processedAt ? `<small class="muted mono" title="${p.durationS ? 'Tardó ' + p.durationS + ' s' : ''}">${L.dateShort(p.processedAt)} ${L.time(p.processedAt)}</small>` : '<small class="muted">—</small>')}</td>
+        <td class="num"><button class="btn btn-ghost btn-sm mono" data-mult="${p.id}" aria-label="Editar repeticiones de ${esc(p.name)}: ${p.multiplier || 1}">×${p.multiplier || 1}</button></td>
+        <td class="num mono">${p.status === 'COMPLETED' || p.status === 'STALE' ? n : '—'}</td>
+        <td class="num">${u ? `<a class="badge b-err" href="${L.link('d-plano.html', { p: pid, plan: p.id })}" style="text-decoration:none">${u}</a>` : '<span class="muted mono">0</span>'}</td>
+        <td><div class="acts">${actionBtn(p, true)}${planTools(p).replace(/<button class="icon-btn" data-mult[^>]*>[\s\S]*?<\/button>/, '')}</div></td></tr>${p.status === 'ERROR' ? `<tr class="errrow" data-plan-err="${p.id}"><td></td><td colspan="7"><div class="note note-err" style="padding:8px 10px;white-space:normal">${L.icon('alertc', 14)}<p>${esc(p.lastError || 'La detección falló.')}</p></div></td></tr>` : ''}`; }).join('')}</tbody></table></div>`
+      : L.empty({ icon: 'layers', title: 'La obra no tiene planos', text: 'Subí un archivo por tablero (.dxf o .pdf), o recortá un plano que trae varios tableros.', action: `<button class="btn btn-primary" data-pick>${L.icon('upload', 15)}Subir planos</button>` });
+
+    return `<div class="xp"><div class="col" style="gap:var(--sp-4);min-width:0">
+      ${dropzone()}
+      <section class="card" aria-labelledby="h-xp"><div class="xp-bar"><h3 id="h-xp" style="font-size:var(--fs-md)">Planos de la obra</h3>${L.cap('existe')}<span class="muted" style="font-size:var(--fs-xs)">${plural(ps.length, 'plano', 'planos')} · ${L.boardsOf(pid)} tableros listos con repeticiones</span><span class="spacer"></span>
+        <button class="btn btn-secondary btn-sm" data-procsel ${selN && !running.length ? '' : 'disabled'} ${running.length ? 'title="Ya hay una tanda en curso; esperá a que termine."' : ''}>${L.icon('play', 13)}Procesar seleccionados (${selN})</button>
+        <button class="btn btn-primary btn-sm" data-procall ${procN && !running.length && L.aiCan(detectCost() * procN) ? '' : 'disabled'} ${running.length ? 'title="Ya hay una tanda en curso; esperá a que termine."' : !procN ? 'title="No hay planos para procesar."' : ''}>${L.icon('play', 13)}Procesar todo (${procN})</button></div>
+        ${table}</section></div>
+      <aside class="xp-side" aria-label="Cola y estado">
+        <section class="stage q-stage" aria-labelledby="h-q"><h3 id="h-q">${L.icon('activity', 16)}Cola de procesamiento ${L.cap('existe')}</h3>
+          ${running.length ? `<ul class="q-list">${running.map(p => `<li><strong>${esc(p.name)}</strong>${queued(p) ? `<button class="btn btn-ghost btn-sm" data-cancel="${p.id}" aria-label="Cancelar ${esc(p.name)} (todavía no empezó)">Cancelar</button>` : `<span class="mono" style="font-size:11px;color:var(--stage-ink-2)">${p.job.fail ? 'falla simulada' : 'detectando'}</span>`}${progHTML(p, true)}</li>`).join('')}</ul>
+            <p class="q-empty">Los que todavía no empezaron se pueden cancelar: vuelven a Pendiente.</p>` : `<p class="q-empty">No hay nada procesándose. ${L.sim('Detección simulada')}</p>`}
+          <div style="margin-top:12px">${failSwitch()}</div></section>
+        <section class="card" aria-labelledby="h-rt"><div class="card-h"><h3 id="h-rt">Tabla de referencia</h3><span class="spacer"></span>${L.cap('existe')}</div><div class="card-b">${refTable()}</div></section>
+        <section class="card" aria-labelledby="h-bl"><div class="card-h"><h3 id="h-bl">Para cotizar</h3><span class="spacer"></span>${L.cap('existe')}</div><div class="card-b" style="padding-top:6px">${blockersList()}</div></section>
+      </aside></div>`;
+  }
+
+  /* ── Render con foco preservado (el reloj re-renderiza cada segundo mientras hay trabajos) ── */
+  function sigOf() { return plans().map(p => p.id + p.status + (queued(p) ? 'q' : '') + (p.multiplier || 1) + p.name + unOf(p.id) + cmtCount(p.id)).join('|') + '|' + JSON.stringify(pr().referenceTable) + failOn() + ui.selected.size + (ui.msg ? ui.msg.title : ''); }
+  function render() {
+    const a = document.activeElement; const key = a && (a.dataset && (Object.keys(a.dataset)[0] ? Object.keys(a.dataset)[0] + '=' + Object.values(a.dataset)[0] : null));
+    document.getElementById('hdr').innerHTML = header();
+    const view = document.getElementById('view');
+    if (L.param('estado') === 'cargando') { view.innerHTML = `<div class="grid g3">${'<div class="card pad"><div class="skel" style="height:90px"></div><div class="skel" style="margin-top:10px;width:60%"></div></div>'.repeat(6)}</div>`; return; }
+    view.innerHTML = ui.variant === 'experto' ? expert() : guided();
+    ui.sig = sigOf();
+    if (key) { const [k, v] = key.split('='); const el = view.querySelector(`[data-${k.replace(/[A-Z]/g, m => '-' + m.toLowerCase())}="${CSS.escape(v)}"]`); if (el && !el.disabled) el.focus({ preventScroll: true }); }
+    const t = view.querySelector('#tbl-plans'); if (t) L.sortable(t, (k, d) => { ui.sortK = k; ui.dir = d; render(); });
+  }
+  function liveTick() {
+    if (!document.getElementById('view')) return;
+    if (sigOf() !== ui.sig) { render(); return; }
+    document.querySelectorAll('[data-prog]').forEach(el => { const p = L.plan(el.dataset.prog); if (!p || p.status !== 'PROCESSING') return;
+      if (queued(p)) { el.querySelector('[data-prog-t]').textContent = 'En cola · arranca en ' + Math.ceil((p.job.startedAt - Date.now()) / 1000) + ' s'; return; }
+      const pc = Math.round(L.jobProgress(p) * 100); const left = Math.max(0, Math.ceil((p.job.startedAt + p.job.durationMs - Date.now()) / 1000));
+      el.querySelector('i').style.width = pc + '%'; el.querySelector('[role=progressbar]').setAttribute('aria-valuenow', pc); el.querySelector('[data-prog-t]').textContent = pc + ' % · quedan ' + left + ' s'; });
+  }
+
+  /* ── Acciones ── */
+  function setMsg(kind, title, lines) { ui.msg = { kind, title, lines }; }
+  function planNameFrom(file) { const base = file.replace(/\.(dxf|pdf)$/i, ''); const i = base.lastIndexOf('_'); return (i > 0 && i < base.length - 1 ? base.slice(i + 1) : base).slice(0, 60); }
+  function uniqueName(name, taken) { let n = name, k = 2; while (taken.has(n.toLowerCase())) n = name + ' (' + (k++) + ')'; taken.add(n.toLowerCase()); return n; }
+  function upload(fileList) {
+    const files = Array.from(fileList || []); const errs = [];
+    if (!files.length) return;
+    const bad = files.filter(f => !/\.(dxf|pdf)$/i.test(f.name));
+    if (bad.length) errs.push('Extensión inválida en: ' + bad.map(f => f.name).join(', ') + '. Solo se permiten archivos .dxf o .pdf.');
+    if (files.length > MAX_FILES) errs.push('Máximo ' + MAX_FILES + ' planos por subida: elegiste ' + files.length + '. Subilos en dos tandas.');
+    const pdfs = files.filter(f => /\.pdf$/i.test(f.name)).length; if (pdfs > MAX_PDFS) errs.push('Se pueden subir hasta ' + MAX_PDFS + ' PDF por vez: quitá ' + (pdfs - MAX_PDFS) + '.');
+    const empty = files.filter(f => f.size === 0 && !bad.includes(f)); if (empty.length) errs.push('Están vacíos: ' + empty.map(f => f.name).join(', ') + '.');
+    const have = new Set(plans().map(p => p.file.toLowerCase())); const dup = files.filter(f => have.has(f.name.toLowerCase()));
+    if (dup.length) errs.push('Ya están en la obra: ' + dup.map(f => f.name).join(', ') + '. Renombrá el archivo o eliminá el plano anterior.');
+    if (errs.length) { setMsg('err', 'No se subió ningún plano.', errs.concat(['Los planos que ya estaban quedan como estaban.'])); render(); L.toast('No se subió ningún plano', { kind: 'err', detail: errs[0] }); return; }
+    const taken = new Set(plans().map(p => p.name.toLowerCase()));
+    const made = L.store.update(s => {
+      const out = files.map(f => { const fmt = /\.pdf$/i.test(f.name) ? 'PDF' : 'DXF'; const p = { id: L.uid('pl'), projectId: pid, name: uniqueName(planNameFrom(f.name), taken), title: '', file: f.name, format: fmt, status: 'PENDING', multiplier: 1, reviewed: false, uploadedAt: L.now(), sizeKB: Math.max(1, Math.round(f.size / 1024)) }; s.plans.push(p); return p; });
+      L._log(s, pid, s.session.userId, 'Subió ' + plural(out.length, 'plano', 'planos') + ': ' + out.map(p => p.name).join(', ') + '.');
+      return out;
+    });
+    setMsg('ok', plural(made.length, 'plano subido', 'planos subidos') + '.', ['Quedaron Pendientes: procesalos cuando quieras.' + (pdfs ? ' ' + plural(pdfs, 'PDF convertido', 'PDF convertidos') + ' a DXF (simulado).' : '')]);
+    render(); L.toast(plural(made.length, 'plano subido', 'planos subidos'), { detail: made.map(p => p.name).join(', ') });
+  }
+  function processIds(ids) {
+    ids = ids.filter(id => { const p = L.plan(id); return p && PROCESSABLE.includes(p.status); });
+    if (!ids.length) { L.toast('No hay planos para procesar', { kind: 'info' }); return; }
+    const est = detectCost() * ids.length;
+    if (!L.aiCan(est)) { L.toast('No se mandó a procesar', { kind: 'err', detail: 'Llegaste al límite de IA del mes. Subí el límite en Plan, uso y cuenta; los planos quedan como estaban.' }); return; }
+    const fail = failOn();
+    L.processPlans(ids, { fail });
+    ids.forEach(id => ui.selected.delete(id));
+    L.toast(ids.length === 1 ? 'Mandaste a procesar ' + L.plan(ids[0]).name : 'Mandaste a procesar ' + ids.length + ' planos', { kind: 'info', detail: fail ? 'Falla de detección simulada activada: la tanda va a terminar en error.' : 'Los que todavía no empezaron se pueden cancelar.' });
+  }
+  function cancel(id) { const p = L.plan(id); if (L.cancelProcessing(id)) L.toast(p.name + ' volvió a Pendiente', { detail: 'Se canceló antes de empezar.' }); else L.toast('Ya empezó: no se puede cancelar', { kind: 'warn', detail: p.name + ' sigue procesándose.' }); }
+
+  function refUpload(f) {
+    if (!f) return;
+    if (!/\.dxf$/i.test(f.name)) { L.toast('No se cargó la tabla', { kind: 'err', detail: 'Solo se permiten archivos .dxf para la tabla de referencia.' }); setMsg('err', 'No se cargó la tabla de referencia.', ['Solo se permiten archivos .dxf para la tabla de referencia: «' + f.name + '» no lo es.']); render(); return; }
+    const had = pr().referenceTable; const done = plans().filter(p => p.status === 'COMPLETED');
+    const apply = () => { L.store.update(s => { const p = s.projects.find(x => x.id === pid); p.referenceTable = { file: f.name, rows: null, uploadedAt: L.now() };
+      if (had) s.plans.filter(x => x.projectId === pid && !x.deleted && x.status === 'COMPLETED').forEach(x => { x.status = 'STALE'; });
+      L._log(s, pid, s.session.userId, (had ? 'Reemplazó' : 'Subió') + ' la tabla de referencia (' + f.name + ')' + (had && done.length ? ': ' + plural(done.length, 'plano quedó', 'planos quedaron') + ' por revisar.' : '.')); });
+      ui.msg = null; L.toast(had ? 'Tabla de referencia reemplazada' : 'Tabla de referencia subida', { detail: had && done.length ? plural(done.length, 'plano quedó', 'planos quedaron') + ' «Por revisar». Volvé a procesarlos para usar la tabla nueva.' : f.name }); };
+    if (had && done.length) L.confirm('Reemplazar la tabla de referencia', 'Vas a reemplazar «' + had.file + '» por «' + f.name + '». ' + plural(done.length, 'plano listo va', 'planos listos van') + ' a quedar «Por revisar»: sus símbolos se leyeron con la tabla anterior. El BOM actual se conserva hasta que los vuelvas a procesar.', 'Reemplazar', 'primary').then(ok => ok && apply());
+    else apply();
+  }
+  async function refDelete() {
+    const rt = pr().referenceTable; const done = plans().filter(p => p.status === 'COMPLETED');
+    if (!await L.confirm('Eliminar la tabla de referencia', 'Se elimina «' + rt.file + '». Los planos se siguen procesando con los nombres estándar.' + (done.length ? ' ' + plural(done.length, 'plano listo va', 'planos listos van') + ' a quedar «Por revisar».' : ''), 'Eliminar', 'danger')) return;
+    L.store.update(s => { const p = s.projects.find(x => x.id === pid); p.referenceTable = null; s.plans.filter(x => x.projectId === pid && !x.deleted && x.status === 'COMPLETED').forEach(x => { x.status = 'STALE'; }); L._log(s, pid, s.session.userId, 'Eliminó la tabla de referencia.'); });
+    L.toast('Tabla de referencia eliminada', { detail: done.length ? plural(done.length, 'plano quedó', 'planos quedaron') + ' «Por revisar».' : '' });
+  }
+
+  function multDialog(id) {
+    const p = L.plan(id); if (!p) return;
+    const lines = linesOfPlan(id);
+    const box = document.createElement('div');
+    box.innerHTML = `<div class="field"><label for="mult-in">Repeticiones de ${esc(p.name)}</label><input class="input num" id="mult-in" inputmode="numeric" value="${p.multiplier || 1}" autocomplete="off" style="max-width:140px"><span class="hint">Cuántas veces se repite este tablero en la obra, de 1 a 1000. Un tablero repetido N veces cuenta N veces al comprar.</span></div>
+      <div id="mult-prev" style="margin-top:14px"></div>`;
+    const inp = box.querySelector('#mult-in'); const prev = box.querySelector('#mult-prev');
+    const valid = v => v.trim() !== '' && /^\d+$/.test(v.trim()) && +v >= 1 && +v <= 1000;
+    const draw = () => {
+      const v = inp.value; const ok = valid(v); const m = ok ? +v : null;
+      if (!lines.length) { prev.innerHTML = `<p class="muted" style="font-size:var(--fs-sm)">${p.status === 'COMPLETED' || p.status === 'STALE' ? 'Este plano no aporta líneas al BOM.' : 'Cuando proceses el plano, sus cantidades se van a multiplicar por las repeticiones.'}</p>`; return; }
+      prev.innerHTML = `<p class="eyebrow" style="margin-bottom:6px">Cantidad a comprar ${m != null && m !== (p.multiplier || 1) ? '· antes → después' : ''}</p><div class="tbl-wrap" style="max-height:220px;border:1px solid var(--line)"><table class="tbl mp-tbl"><thead><tr><th>Material</th><th class="num">En el plano</th><th class="num">A comprar</th></tr></thead><tbody>${lines.map(l => { const now = L.qty(l); const after = m == null ? now : now + l.perPlan[id] * (m - (p.multiplier || 1)); return `<tr><td>${esc(L.lineLabel(l))}</td><td class="num mono">${l.perPlan[id]}</td><td class="num mono">${after !== now ? `${now} → <span class="delta">${after}</span>` : now}</td></tr>`; }).join('')}</tbody></table></div>`;
+    };
+    inp.addEventListener('input', () => { L.fieldError(inp, null); draw(); }); draw();
+    const d = L.dialog({ title: 'Editar repeticiones', body: box, actions: [{ label: 'Cancelar' }, { label: 'Guardar', kind: 'primary', onClick: () => {
+      if (!valid(inp.value)) { L.fieldError(inp, 'Tiene que ser un número entero entre 1 y 1000.'); inp.focus(); return false; }
+      const m = +inp.value.trim(); const before = p.multiplier || 1;
+      if (m === before) { L.toast('No hay cambios para guardar', { kind: 'info' }); return; }
+      L.store.update(s => { const x = s.plans.find(y => y.id === id); x.multiplier = m; L._log(s, pid, s.session.userId, 'Cambió las repeticiones de ' + x.name + ' de ' + before + ' a ' + m + '.'); });
+      L.toast('Repeticiones guardadas', { detail: p.name + ' cuenta ×' + m + (lines.length ? ': ' + plural(lines.length, 'línea cambia', 'líneas cambian') + ' su cantidad a comprar.' : '.') });
+    } }] });
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); d.querySelector('footer .btn-primary').click(); } });
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  }
+  function renameDialog(id) {
+    const p = L.plan(id); const box = document.createElement('div');
+    box.innerHTML = `<div class="field"><label for="ren-in">Nombre del plano</label><input class="input" id="ren-in" value="${esc(p.name)}" maxlength="80" autocomplete="off"><span class="hint">El nombre del tablero como lo llaman en la obra (por ejemplo «TS-B»). El archivo sigue siendo ${esc(p.file)}.</span></div>`;
+    const inp = box.querySelector('#ren-in');
+    const d = L.dialog({ title: 'Renombrar plano', body: box, actions: [{ label: 'Cancelar' }, { label: 'Guardar', kind: 'primary', onClick: () => {
+      const v = inp.value.trim();
+      if (!v) { L.fieldError(inp, 'Escribí un nombre.'); return false; }
+      if (v.length > 60) { L.fieldError(inp, 'Usá como máximo 60 caracteres (tiene ' + v.length + ').'); return false; }
+      if (plans().some(x => x.id !== id && x.name.toLowerCase() === v.toLowerCase())) { L.fieldError(inp, 'Ya hay un plano con ese nombre en la obra.'); return false; }
+      if (v === p.name) return;
+      L.store.update(s => { const x = s.plans.find(y => y.id === id); L._log(s, pid, s.session.userId, 'Renombró ' + x.name + ' a ' + v + '.'); x.name = v; });
+      L.toast('Plano renombrado', { detail: p.name + ' → ' + v });
+    } }] });
+    inp.addEventListener('input', () => L.fieldError(inp, null));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); d.querySelector('footer .btn-primary').click(); } });
+    setTimeout(() => { inp.focus(); inp.select(); }, 30);
+  }
+  async function deletePlan(id) {
+    const p = L.plan(id); const n = linesOfPlan(id).length; const u = unOf(id);
+    if (p.status === 'PROCESSING') { L.toast('No se puede eliminar mientras se procesa', { kind: 'warn' }); return; }
+    if (!await L.confirm('Eliminar plano', 'Se elimina «' + p.name + '» y lo que aportaba al BOM (' + plural(n, 'línea', 'líneas') + (u ? ', ' + plural(u, 'símbolo sin identificar', 'símbolos sin identificar') : '') + '). Los otros planos quedan como estaban.', 'Eliminar plano', 'danger')) return;
+    L.store.update(s => {
+      const x = s.plans.find(y => y.id === id); x.deleted = true; x.deletedAt = L.now();
+      s.bomLines.filter(l => l.projectId === pid && l.perPlan && l.perPlan[id] != null).forEach(l => { delete l.perPlan[id]; if (!Object.keys(l.perPlan).length && !l.extraQty && l.src !== 'MANUAL') l.deleted = true; });
+      s.unidentified.filter(q => q.planId === id && q.status === 'PENDIENTE').forEach(q => { q.status = 'PLANO_ELIMINADO'; });
+      L._log(s, pid, s.session.userId, 'Eliminó el plano ' + x.name + '.');
+    });
+    L.toast('Plano eliminado', { detail: p.name });
+  }
+  function commentsDialog(id) {
+    const p = L.plan(id); const box = document.createElement('div');
+    const list = () => { const cs = L.commentsOf('plan:' + id); return cs.length ? `<ul class="cmts">${cs.map(c => { const m = L.member(c.who); return `<li><span class="av">${m ? m.initials : '··'}</span><div><strong style="font-size:var(--fs-sm)">${esc(L.who(c.who))}</strong> <small>${L.dateShort(c.at)} · ${L.time(c.at)}</small><p>${esc(c.text)}</p></div></li>`; }).join('')}</ul>` : `<p class="muted" style="font-size:var(--fs-sm)">Todavía no hay comentarios sobre ${esc(p.name)}.</p>`; };
+    box.innerHTML = `<p class="muted" style="font-size:var(--fs-xs);margin-bottom:10px">${L.cap('propuesto')} Los comentarios los ve todo el equipo de la obra.</p><div data-cl>${list()}</div><div class="field"><label for="cmt-in">Nuevo comentario</label><textarea class="textarea" id="cmt-in" maxlength="600" placeholder="Por ejemplo: el 4.º piso cambia, hay que separarlo"></textarea></div>`;
+    const inp = box.querySelector('#cmt-in');
+    L.dialog({ title: 'Comentarios · ' + p.name, body: box, actions: [{ label: 'Cerrar' }, { label: 'Comentar', kind: 'primary', onClick: () => {
+      const v = inp.value.trim(); if (!v) { L.fieldError(inp, 'Escribí el comentario.'); return false; }
+      if (v.length > 500) { L.fieldError(inp, 'Usá como máximo 500 caracteres.'); return false; }
+      L.addComment('plan:' + id, pid, v); inp.value = ''; L.fieldError(inp, null); box.querySelector('[data-cl]').innerHTML = list(); L.toast('Comentario publicado'); return false;
+    } }] });
+    inp.addEventListener('input', () => L.fieldError(inp, null));
+    setTimeout(() => inp.focus(), 30);
+  }
+
+  /* ── Recortar tableros ── */
+  function cropDialog() {
+    const dxfs = plans().filter(p => p.format === 'DXF' || p.format === 'PDF');
+    const st = { src: dxfs[0] ? dxfs[0].id : 'nuevo', file: null, zones: [], drag: null };
+    const box = document.createElement('div');
+    box.innerHTML = `<div class="crop"><div class="col" style="gap:10px;min-width:0">
+        <div class="row"><div class="field" style="flex:1"><label for="crop-src">Plano con varios tableros</label><select class="select" id="crop-src">${dxfs.map(p => `<option value="${p.id}">${esc(p.name)} · ${esc(p.file)}</option>`).join('')}<option value="nuevo">Subir otro DXF…</option></select></div>
+          <div class="field" data-newf style="flex:1"><label for="crop-file">Archivo DXF</label><input type="file" class="input" id="crop-file" accept=".dxf" style="padding:6px"></div></div>
+        <div class="stage crop-stage" data-cs tabindex="-1"><svg viewBox="0 0 1000 440" preserveAspectRatio="none" aria-label="Vista esquemática del plano: arrastrá para marcar cada tablero" role="img"><g data-bg></g><g data-zs></g><rect data-tmp fill="rgba(242,183,5,.12)" stroke="var(--volt)" stroke-width="2" stroke-dasharray="6 4" width="0" height="0"/></svg>
+          <div class="hud crop-hud">Arrastrá para marcar un tablero · vista esquemática, el archivo no se lee ${L.sim('Simulado')}</div></div>
+        <details class="kb"><summary>Agregar zona con el teclado (coordenadas en %)</summary><div class="zform" style="margin-top:8px">
+          <div class="field"><label for="zx">Desde X</label><input class="input num" id="zx" inputmode="decimal" value="0"></div><div class="field"><label for="zy">Desde Y</label><input class="input num" id="zy" inputmode="decimal" value="0"></div>
+          <div class="field"><label for="zw">Ancho</label><input class="input num" id="zw" inputmode="decimal" value="30"></div><div class="field"><label for="zh">Alto</label><input class="input num" id="zh" inputmode="decimal" value="100"></div></div>
+          <div class="row" style="margin-top:8px"><div class="field" style="flex:1"><label for="zn">Nombre</label><input class="input" id="zn" placeholder="Por ejemplo TS-1"></div><button type="button" class="btn btn-secondary btn-sm" data-zadd style="align-self:flex-end">${L.icon('plus', 13)}Agregar zona</button></div><div data-zerr></div></details>
+      </div>
+      <div class="col" style="gap:8px;min-width:0"><div class="row"><strong style="font-size:var(--fs-sm)">Zonas</strong><span class="spacer"></span><span class="badge b-muted" data-zc>0 / ${MAX_ZONES}</span></div>
+        <ul class="zl" data-zl aria-label="Zonas marcadas"></ul><div data-zmsg></div>
+        <p class="muted" style="font-size:var(--fs-xs);margin:0">Cada zona se vuelve un plano nuevo, Pendiente. Máximo ${MAX_ZONES} por recorte, como en el servicio de recorte.</p></div></div>`;
+    const svg = box.querySelector('svg'), bg = box.querySelector('[data-bg]'), zs = box.querySelector('[data-zs]'), tmp = box.querySelector('[data-tmp]'), zl = box.querySelector('[data-zl]'), cs = box.querySelector('[data-cs]');
+    const srcSel = box.querySelector('#crop-src'), newf = box.querySelector('[data-newf]'), fileIn = box.querySelector('#crop-file');
+    const srcName = () => st.src === 'nuevo' ? (st.file ? st.file.name : null) : L.plan(st.src).file;
+    const drawBg = () => { bg.innerHTML = multiBoard(srcName() || 'vacío'); newf.style.display = st.src === 'nuevo' ? '' : 'none'; };
+    const drawZones = () => {
+      zs.innerHTML = st.zones.map((z, i) => `<g><rect x="${z.x * 10}" y="${z.y * 4.4}" width="${z.w * 10}" height="${z.h * 4.4}" fill="rgba(242,183,5,.10)" stroke="var(--volt)" stroke-width="2"/><rect x="${z.x * 10}" y="${z.y * 4.4}" width="${Math.max(26, z.name.length * 7.5 + 26)}" height="20" fill="var(--volt)"/><text x="${z.x * 10 + 6}" y="${z.y * 4.4 + 14}" font-size="12" font-weight="700" font-family="IBM Plex Mono, monospace" fill="var(--stage)">${i + 1} ${esc(z.name)}</text></g>`).join('');
+      zl.innerHTML = st.zones.length ? st.zones.map((z, i) => `<li><span class="zn">${i + 1}</span><input class="input" data-zname="${i}" value="${esc(z.name)}" aria-label="Nombre de la zona ${i + 1}" maxlength="60"><button type="button" class="icon-btn" data-zdel="${i}" aria-label="Quitar zona ${i + 1}">${L.icon('x', 14)}</button></li>`).join('') : `<li class="muted" style="display:block;font-size:var(--fs-sm)">Todavía no marcaste zonas. Arrastrá sobre el plano, o usá el teclado.</li>`;
+      box.querySelector('[data-zc]').textContent = st.zones.length + ' / ' + MAX_ZONES;
+      cs.classList.toggle('full', st.zones.length >= MAX_ZONES);
+      box.querySelector('[data-zmsg]').innerHTML = st.zones.length >= MAX_ZONES ? `<div class="note note-warn">${L.icon('alert', 15)}<p>Llegaste a ${MAX_ZONES} zonas, el máximo por recorte. Creá estos planos y hacé otro recorte para el resto.</p></div>` : '';
+      const b = d && d.querySelector('footer .btn-primary'); if (b) { b.textContent = st.zones.length ? 'Crear ' + plural(st.zones.length, 'plano', 'planos') : 'Crear planos'; }
+    };
+    const nextName = () => { let k = st.zones.length + 1; const taken = new Set(plans().map(p => p.name.toLowerCase()).concat(st.zones.map(z => z.name.toLowerCase()))); while (taken.has(('Tablero ' + k).toLowerCase())) k++; return 'Tablero ' + k; };
+    const addZone = z => { if (st.zones.length >= MAX_ZONES) return false; st.zones.push(z); drawZones(); return true; };
+    const pt = e => { const r = svg.getBoundingClientRect(); return { x: Math.max(0, Math.min(100, (e.clientX - r.left) / r.width * 100)), y: Math.max(0, Math.min(100, (e.clientY - r.top) / r.height * 100)) }; };
+    svg.addEventListener('pointerdown', e => { if (st.zones.length >= MAX_ZONES || e.button !== 0) return; st.drag = pt(e); svg.setPointerCapture(e.pointerId); });
+    svg.addEventListener('pointermove', e => { if (!st.drag) return; const q = pt(e); const x = Math.min(q.x, st.drag.x), y = Math.min(q.y, st.drag.y); tmp.setAttribute('x', x * 10); tmp.setAttribute('y', y * 4.4); tmp.setAttribute('width', Math.abs(q.x - st.drag.x) * 10); tmp.setAttribute('height', Math.abs(q.y - st.drag.y) * 4.4); });
+    svg.addEventListener('pointerup', e => { if (!st.drag) return; const q = pt(e); const z = { x: Math.min(q.x, st.drag.x), y: Math.min(q.y, st.drag.y), w: Math.abs(q.x - st.drag.x), h: Math.abs(q.y - st.drag.y) }; st.drag = null; tmp.setAttribute('width', 0); tmp.setAttribute('height', 0);
+      if (z.w < 3 || z.h < 3) return; z.name = nextName(); Object.keys(z).forEach(k => { if (typeof z[k] === 'number') z[k] = Math.round(z[k] * 10) / 10; }); addZone(z); });
+    zl.addEventListener('input', e => { const i = e.target.dataset.zname; if (i != null) { st.zones[+i].name = e.target.value; L.fieldError(e.target, null); zs.innerHTML = ''; const v = e.target; const pos = v.selectionStart; drawZones(); const again = zl.querySelector(`[data-zname="${i}"]`); again.focus(); again.setSelectionRange(pos, pos); } });
+    zl.addEventListener('click', e => { const b = e.target.closest('[data-zdel]'); if (b) { st.zones.splice(+b.dataset.zdel, 1); drawZones(); } });
+    box.querySelector('[data-zadd]').onclick = () => {
+      const f = ['zx', 'zy', 'zw', 'zh'].map(k => box.querySelector('#' + k)); const v = f.map(i => Number(String(i.value).replace(',', '.')));
+      const err = box.querySelector('[data-zerr]'); err.innerHTML = '';
+      let msg = null;
+      if (v.some(n => isNaN(n) || n < 0 || n > 100)) msg = 'Cada coordenada va de 0 a 100 (porcentaje del plano).';
+      else if (v[2] < 3 || v[3] < 3) msg = 'La zona tiene que medir al menos 3 % de ancho y de alto.';
+      else if (v[0] + v[2] > 100.01 || v[1] + v[3] > 100.01) msg = 'La zona se sale del plano: X + ancho y Y + alto no pueden pasar de 100.';
+      else if (st.zones.length >= MAX_ZONES) msg = 'Ya marcaste ' + MAX_ZONES + ' zonas, el máximo por recorte.';
+      if (msg) { err.innerHTML = `<div class="field-err" role="alert" style="margin-top:6px">${L.icon('alertc', 12)}${esc(msg)}</div>`; return; }
+      const nm = box.querySelector('#zn'); addZone({ x: v[0], y: v[1], w: v[2], h: v[3], name: nm.value.trim() || nextName() }); nm.value = '';
+      box.querySelector('#zx').value = Math.min(97, v[0] + v[2]);
+    };
+    srcSel.onchange = () => { st.src = srcSel.value; drawBg(); };
+    fileIn.onchange = () => { const f = fileIn.files[0]; if (f && !/\.dxf$/i.test(f.name)) { L.fieldError(fileIn, 'El recorte trabaja sobre DXF: «' + f.name + '» no lo es.'); st.file = null; fileIn.value = ''; } else { L.fieldError(fileIn, null); st.file = f || null; } drawBg(); };
+    if (!dxfs.length) srcSel.value = 'nuevo';
+    const d = L.dialog({ title: 'Recortar tableros', wide: true, body: box, actions: [{ label: 'Cancelar' }, { label: 'Crear planos', kind: 'primary', onClick: () => {
+      const msg = box.querySelector('[data-zmsg]'); const fail = t => { msg.innerHTML = `<div class="note note-err" role="alert">${L.icon('alertc', 15)}<p>${esc(t)}</p></div>`; return false; };
+      if (st.src === 'nuevo' && !st.file) { L.fieldError(fileIn, 'Elegí el DXF que trae los tableros.'); return false; }
+      if (!st.zones.length) return fail('Marcá al menos una zona: cada zona se vuelve un plano.');
+      const names = st.zones.map(z => z.name.trim()); const taken = new Set(plans().map(p => p.name.toLowerCase()));
+      const bad = names.findIndex(n => !n); if (bad >= 0) { L.fieldError(zl.querySelector(`[data-zname="${bad}"]`), 'Poné un nombre.'); return fail('La zona ' + (bad + 1) + ' no tiene nombre.'); }
+      const dupIn = names.findIndex((n, i) => names.findIndex(m => m.toLowerCase() === n.toLowerCase()) !== i); if (dupIn >= 0) return fail('Hay dos zonas llamadas «' + names[dupIn] + '». Cada plano necesita su nombre.');
+      const clash = names.find(n => taken.has(n.toLowerCase())); if (clash) return fail('Ya hay un plano llamado «' + clash + '» en la obra. Cambiale el nombre a la zona.');
+      const src = srcName(); const base = src.replace(/\.(dxf|pdf)$/i, '');
+      const made = L.store.update(s => { const out = st.zones.map(z => { const p = { id: L.uid('pl'), projectId: pid, name: z.name.trim(), title: 'Recortado de ' + src, file: base + '_' + z.name.trim().replace(/[^\w.-]+/g, '-') + '.dxf', format: 'DXF', status: 'PENDING', multiplier: 1, reviewed: false, uploadedAt: L.now(), cropOf: { source: src, planId: st.src === 'nuevo' ? null : st.src, bounds: { x: z.x, y: z.y, w: z.w, h: z.h } } }; s.plans.push(p); return p; });
+        L._log(s, pid, s.session.userId, 'Recortó ' + plural(out.length, 'tablero', 'tableros') + ' de ' + src + '.'); return out; });
+      L.toast(plural(made.length, 'plano creado', 'planos creados') + ' desde el recorte', { detail: made.map(p => p.name).join(', ') + ' · quedaron Pendientes.' });
+    } }] });
+    drawBg(); drawZones();
+    return d;
+  }
+
+  /* ── Delegación de eventos ── */
+  const page = document.getElementById('page');
+  page.addEventListener('click', e => {
+    const t = e.target.closest('button, [data-pick]'); if (!t) return;
+    const ds = t.dataset;
+    if ('pick' in ds) document.getElementById('file-plans').click();
+    else if ('crop' in ds) cropDialog();
+    else if ('msgx' in ds) { ui.msg = null; render(); }
+    else if (ds.proc) processIds([ds.proc]);
+    else if ('procall' in ds) processIds(plans().filter(p => PROCESSABLE.includes(p.status)).map(p => p.id));
+    else if ('procsel' in ds) processIds([...ui.selected]);
+    else if (ds.cancel) cancel(ds.cancel);
+    else if (ds.mult) multDialog(ds.mult);
+    else if (ds.ren) renameDialog(ds.ren);
+    else if (ds.del) deletePlan(ds.del);
+    else if (ds.cmt) commentsDialog(ds.cmt);
+    else if ('refUp' in ds) document.getElementById('file-ref').click();
+    else if ('refDel' in ds) refDelete();
+  });
+  page.addEventListener('change', e => {
+    const t = e.target;
+    if (t.id === 'file-plans') { upload(t.files); t.value = ''; }
+    else if (t.id === 'file-ref') { refUpload(t.files[0]); t.value = ''; }
+    else if ('fail' in t.dataset) { L.pref('obras:falla', t.checked); render(); L.toast(t.checked ? 'Falla de detección simulada activada' : 'Falla de detección simulada desactivada', { kind: t.checked ? 'warn' : 'info', detail: t.checked ? 'La próxima tanda termina en error 504.' : 'Las próximas tandas terminan bien.' }); }
+    else if (t.dataset.sel) { t.checked ? ui.selected.add(t.dataset.sel) : ui.selected.delete(t.dataset.sel); render(); }
+    else if ('selall' in t.dataset) { plans().filter(p => PROCESSABLE.includes(p.status)).forEach(p => t.checked ? ui.selected.add(p.id) : ui.selected.delete(p.id)); render(); }
+  });
+  /* Arrastrar y soltar sobre toda la pantalla de la obra, con la zona resaltada. */
+  let depth = 0;
+  const dzs = () => document.querySelectorAll('[data-dz]');
+  page.addEventListener('dragenter', e => { if (!e.dataTransfer || ![...e.dataTransfer.types].includes('Files')) return; e.preventDefault(); depth++; dzs().forEach(z => z.classList.add('over')); });
+  page.addEventListener('dragover', e => { if (e.dataTransfer && [...e.dataTransfer.types].includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } });
+  page.addEventListener('dragleave', () => { depth = Math.max(0, depth - 1); if (!depth) dzs().forEach(z => z.classList.remove('over')); });
+  page.addEventListener('drop', e => { if (!e.dataTransfer || !e.dataTransfer.files.length) return; e.preventDefault(); depth = 0; dzs().forEach(z => z.classList.remove('over')); upload(e.dataTransfer.files); });
+
+  L.ready(() => {
+    const variants = [{ id: 'guiado', label: 'Guiado', desc: 'Paso a paso: qué falta y qué bloquea en cada etapa.' }, { id: 'experto', label: 'Experto', desc: 'Tabla densa de planos con la cola de procesamiento al costado.' }];
+    L.variants(document.getElementById('var-host'), variants, v => { ui.variant = v; ui.varDesc = variants.find(x => x.id === v).desc; render(); }, 'obra');
+    L.store.subscribe(() => { if (L.project(pid)) render(); });
+    setInterval(liveTick, 1000);
+    const dlg = L.param('dialogo'), planP = L.param('plan');
+    if (dlg === 'recortar') cropDialog();
+    else if (dlg === 'repeticiones') multDialog(planP || (plans()[0] || {}).id);
+    else if (dlg === 'comentarios') commentsDialog(planP || (plans()[0] || {}).id);
+    else if (dlg === 'renombrar') renameDialog(planP || (plans()[0] || {}).id);
+  });
+})();
+</script></body></html>

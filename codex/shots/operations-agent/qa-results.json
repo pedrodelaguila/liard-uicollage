@@ -1,0 +1,119 @@
+{
+  "errors": [],
+  "outcomes": [
+    {
+      "route": "d-operations.html",
+      "variant": "guided",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-collaboration.html",
+      "variant": "guided",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-network.html",
+      "variant": "guided",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "m-field.html",
+      "variant": "guided",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-operations.html",
+      "variant": "expert",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-collaboration.html",
+      "variant": "expert",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-network.html",
+      "variant": "expert",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "m-field.html",
+      "variant": "expert",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-operations.html",
+      "variant": "assisted",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-collaboration.html",
+      "variant": "assisted",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-network.html",
+      "variant": "assisted",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "m-field.html",
+      "variant": "assisted",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-operations.html",
+      "variant": "visual",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-collaboration.html",
+      "variant": "visual",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "d-network.html",
+      "variant": "visual",
+      "horizontalOverflow": false
+    },
+    {
+      "route": "m-field.html",
+      "variant": "visual",
+      "horizontalOverflow": false
+    },
+    {
+      "state": "empty",
+      "recovered": true
+    },
+    {
+      "state": "loading",
+      "recovered": true
+    },
+    {
+      "state": "error",
+      "recovered": true
+    },
+    {
+      "state": "limit",
+      "recovered": true
+    },
+    {
+      "marginPreview": "Vista previa sin guardar: US$ 5.632,88 costo · US$ 1.367,12 contribución · 19.5 % margen",
+      "costCents": 563288,
+      "marginPercent": 19.530285714285714
+    },
+    {
+      "download": "presupuesto-demo.json",
+      "validJSON": true,
+      "totalCents": 651063
+    },
+    {
+      "interruptedReservation": "released",
+      "spentCents": 420
+    },
+    {
+      "resetDuringAssistant": "clean",
+      "spentCents": 420
+    }
+  ]
+}

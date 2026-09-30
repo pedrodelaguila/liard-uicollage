@@ -1,0 +1,69 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Inicio</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .m-hi { margin: 4px 0 14px; } .m-hi h2 { font-size: 24px; } .m-hi p { margin: 2px 0 0; color: var(--ink-3); font-size: var(--fs-sm); }
+  .m-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .m-strip .card { padding: 10px 12px; } .m-strip b { display: block; font: 600 22px/1.1 var(--font-display); } .m-strip small { color: var(--ink-3); font-size: 11.5px; line-height: 1.25; display: block; }
+  .m-strip .hot b { color: var(--err); }
+  .m-sec { display: flex; align-items: center; gap: 8px; margin: 18px 0 8px; } .m-sec h3 { font-size: var(--fs-md); } .m-sec .spacer { flex: 1; }
+  .todo-i { display: grid; grid-template-columns: 36px minmax(0, 1fr) 16px; gap: 10px; align-items: center; padding: 12px; min-height: 64px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--line); }
+  .todo-i:last-child { border-bottom: 0; }
+  .todo-i .n-ic { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; }
+  .n-err { background: var(--err-soft); color: var(--err); } .n-warn { background: var(--warn-soft); color: var(--warn); } .n-info { background: var(--info-soft); color: var(--info); } .n-ok { background: var(--ok-soft); color: var(--ok); } .n-muted { background: var(--muted-soft); color: var(--ink-2); }
+  .todo-i small { display: block; color: var(--ink-3); font-size: 12px; } .todo-i strong { display: block; font-size: 14.5px; line-height: 1.3; }
+  .todo-i .obra { font: 600 10.5px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ob-i { display: block; padding: 12px; text-decoration: none; color: inherit; border-bottom: 1px solid var(--line); }
+  .ob-i:last-child { border-bottom: 0; }
+  .ob-i .row { flex-wrap: nowrap; } .ob-i strong { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
+  .ob-i small { color: var(--ink-3); display: block; margin-top: 2px; }
+  .bar { display: flex; gap: 2px; height: 8px; margin-top: 8px; padding: 2px; border-radius: 4px; background: var(--stage); }
+  .bar i { flex: 1; border-radius: 2px; background: var(--stage-3); } .bar .s-COMPLETED { background: var(--ok); } .bar .s-PROCESSING { background: var(--cyan); } .bar .s-ERROR { background: var(--err); } .bar .s-STALE { background: var(--warn); }
+</style>
+</head>
+<body class="m" data-role="ENGINEER" data-active="inicio" data-title="Inicio" data-sub="Tableros Andes SRL">
+<div id="page"><div id="root"></div></div>
+<script>
+(function () {
+  const esc = L.esc; const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+  function nextAction(pid) {
+    const s = L.store.get(); const ps = L.plansOf(pid); const lk = (h, x) => L.link(h, Object.assign({ p: pid }, x || {}));
+    const err = ps.filter(p => p.status === 'ERROR').length, run = ps.filter(p => p.status === 'PROCESSING').length, todo = ps.filter(p => p.status === 'PENDING' || p.status === 'STALE').length;
+    const un = L.unidentifiedOf(pid).length; const blk = L.linesOf(pid).filter(l => L.lineIssues(l).some(i => i.blocks)).length;
+    const req = L.requestsOf(pid).find(r => r.status === 'ABIERTA'); const ords = L.ordersOf(pid);
+    if (!ps.length) return { t: 'Subí los planos', d: 'Desde la computadora: la obra no tiene planos.', href: lk('m-obra.html'), ic: 'upload', tone: 'muted', w: 5 };
+    if (err) return { t: 'Reintentá ' + plural(err, 'plano con error', 'planos con error'), d: 'La detección no terminó a tiempo.', href: lk('m-obra.html'), ic: 'refresh', tone: 'err', w: 0 };
+    if (run) return { t: plural(run, 'plano procesándose', 'planos procesándose'), d: 'Te avisamos cuando terminen.', href: lk('m-obra.html'), ic: 'activity', tone: 'info', w: 6 };
+    if (todo) return { t: 'Procesá ' + plural(todo, 'plano', 'planos'), d: 'Lo podés mandar desde acá.', href: lk('m-obra.html'), ic: 'play', tone: 'warn', w: 2 };
+    if (un) return { t: 'Resolvé ' + plural(un, 'símbolo', 'símbolos'), d: 'Sin identificar: mejor en la computadora.', href: lk('d-plano.html'), ic: 'scan', tone: 'warn', w: 1 };
+    if (blk) return { t: 'Decidí marca en ' + plural(blk, 'línea', 'líneas'), d: 'Bloquean la cotización.', href: lk('d-bom.html'), ic: 'tag', tone: 'warn', w: 1 };
+    if (req) {
+      const ap = s.approvals.find(a => a.requestId === req.id && a.status === 'PENDIENTE');
+      if (ap) return { t: 'Aprobación pendiente', d: req.code + ' · ' + L.arsShort(ap.total), href: L.link('m-aprobar.html'), ic: 'shield', tone: 'warn', w: 1 };
+      const sent = L.offersOf(req.id).filter(o => o.status === 'ENVIADA');
+      const alts = sent.reduce((a, o) => a + o.lines.filter(l => l.mode === 'ALTERNATIVA' && l.alt && l.alt.equivalence === 'SUGERIDA').length, 0);
+      if (alts) return { t: 'Revisá ' + plural(alts, 'alternativa', 'alternativas'), d: req.code + ': equivalencia sin aprobar.', href: lk('d-comparar.html', { r: req.id }), ic: 'compare', tone: 'warn', w: 1 };
+      if (sent.length) return { t: 'Compará ' + plural(sent.length, 'oferta', 'ofertas'), d: req.code, href: lk('d-comparar.html', { r: req.id }), ic: 'compare', tone: 'info', w: 3 };
+      return { t: 'Esperando ofertas', d: req.code, href: lk('m-obra.html'), ic: 'clock', tone: 'muted', w: 7 };
+    }
+    if (ords.length) return { t: 'Pedidos ' + (ords.every(o => o.status === 'CONFIRMED') ? 'confirmados' : 'emitidos'), d: plural(ords.length, 'pedido', 'pedidos'), href: lk('m-obra.html'), ic: 'truck', tone: 'ok', w: 9 };
+    return { t: 'Pedí cotización', d: 'No queda nada bloqueando.', href: lk('d-cotizacion.html'), ic: 'send', tone: 'ok', w: 2 };
+  }
+  let sig = '';
+  const sigOf = () => { const s = L.store.get(); return JSON.stringify([s.projects.map(p => p.id + p.deleted), s.plans.map(p => p.status + (p.deleted ? 1 : 0)), s.unidentified.map(u => u.status), s.bomLines.map(l => l.brand), s.offers.map(o => o.status), s.approvals.map(a => a.status), s.notifications.filter(n => !n.read).length]); };
+  function render() {
+    const s = L.store.get(); const me = L.member(s.session.userId); const projects = s.projects.filter(p => !p.deleted);
+    const items = projects.map(p => ({ p, nx: nextAction(p.id) })).filter(x => x.nx.w < 7).sort((a, b) => a.nx.w - b.nx.w);
+    const run = s.plans.filter(p => !p.deleted && p.status === 'PROCESSING').length;
+    const un = projects.reduce((a, p) => a + L.unidentifiedOf(p.id).length, 0);
+    const unread = L.myNotifications().filter(n => !n.read).length;
+    document.getElementById('root').innerHTML = `<div class="m-hi"><h2>Hola, ${esc(me.name.split(' ')[0])}.</h2><p>${items.length ? plural(items.length, 'cosa espera', 'cosas esperan') + ' por vos.' : 'No hay nada esperando por vos.'} ${L.cap('propuesto')}</p></div>
+      <div class="m-strip"><div class="card"><b>${projects.length}</b><small>obras activas</small></div><div class="card"><b>${run}</b><small>planos procesándose</small></div><div class="card${un ? ' hot' : ''}"><b>${un}</b><small>símbolos sin identificar</small></div></div>
+      <div class="m-sec"><h3>Lo que te toca</h3><span class="spacer"></span>${unread ? `<a class="badge b-brand" href="${L.link('m-avisos.html')}" style="text-decoration:none">${plural(unread, 'aviso', 'avisos')}</a>` : ''}</div>
+      <div class="card">${items.length ? items.map(({ p, nx }) => `<a class="todo-i" href="${nx.href}"><span class="n-ic n-${nx.tone}">${L.icon(nx.ic, 17)}</span><span><span class="obra">${esc(p.name)}</span><strong>${esc(nx.t)}</strong><small>${esc(nx.d)}</small></span>${L.icon('chevr', 16)}</a>`).join('') : L.empty({ icon: 'check', title: 'Todo al día', text: 'Cuando una obra necesite algo de vos, aparece acá.' })}</div>
+      <div class="m-sec"><h3>Obras</h3>${L.cap('existe')}</div>
+      <div class="card">${projects.length ? projects.map(p => { const st = L.projectStage(p.id); const ps = L.plansOf(p.id); return `<a class="ob-i" href="${L.link('m-obra.html', { p: p.id })}"><div class="row"><strong>${esc(p.name)}</strong>${L.badge(st.label, st.tone)}</div><small>${esc(p.client || 'Sin cliente')} · ${ps.filter(x => x.status === 'COMPLETED').length}/${ps.length} planos listos</small>${ps.length ? `<div class="bar" aria-hidden="true">${ps.map(x => `<i class="s-${x.status}"></i>`).join('')}</div>` : ''}</a>`; }).join('') : L.empty({ icon: 'folder', title: 'No hay obras todavía', text: 'Creá la primera desde la computadora.' })}</div>`;
+    sig = sigOf();
+  }
+  L.ready(() => { render(); L.store.subscribe(render); setInterval(() => { if (sigOf() !== sig) render(); }, 1000); });
+})();
+</script></body></html>

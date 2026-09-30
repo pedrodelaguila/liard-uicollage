@@ -1,0 +1,399 @@
+PAGE 1
+ 
+Investigación  Parte  II:  Detección  de  Símbolos  y  
+especificaciones
+ 
+por
+ 
+LLMS
+  LLM  a  investigar:  Claude  (Anthropic)   Eficacia  =  (cantidad  correcta  /  cantidad  real)*100   Models:   ➔  Claude  Sonnet  4.6  (  Input  tokens  $3  /  1000000  -  Output  Tokens  $15/1000000)  ➔  Claude  Opus  4.7  (  Input  tokens  $5  /  1000000  -  Output  Tokens  $25/1000000)    
+Proyecto  Dorrego:                         
+ 
+ 
+
+
+PAGE 2
+ 
+Tabla  de  referencias:   
+ (se  tomaron  solo  estos  símbolos  de  la  tabla  de  referencias,  hay  40  aproximadamente).   Primera  idea  que  surge  de  la  investigación:  es  cómo  cada  plano  tiene  su  propia  tabla  
+de
+ 
+referencias
+ 
+si
+ 
+siguen
+ 
+el
+ 
+estándar
+ 
+de
+ 
+la
+ 
+AEA,
+ 
+como
+ 
+después
+ 
+los
+ 
+símbolos
+ 
+cada
+ 
+ingeniero
+ 
+eléctrico
+ 
+los
+ 
+puede
+ 
+modificar
+ 
+y
+ 
+cada
+ 
+rúbrica
+ 
+puede
+ 
+tener
+ 
+diferencias,
+ 
+la
+ 
+idea
+ 
+es
+ 
+tomar
+ 
+los
+ 
+símbolos
+ 
+de
+ 
+la
+ 
+tabla
+ 
+de
+ 
+referencias.
+ 
+Por
+ 
+ahora
+ 
+en
+ 
+esta
+ 
+investigación
+ 
+eso
+ 
+se
+ 
+hizo
+ 
+manual
+ 
+habría
+ 
+que
+ 
+ver
+ 
+que
+ 
+tan
+ 
+viable
+ 
+es
+ 
+automatizar
+ 
+eso
+ 
+y
+ 
+cuanto
+ 
+costo
+ 
+agrega.
+ 
+   
+Input  structure:  
+The  total  input  tokens  are  composed  of:  
+➔  Plan  system  prompt  ➔  Plan  user  prompt  ➔  Electrical  plan  image(s)  
+
+
+PAGE 3
+ 
+➔  Symbol  catalog  JSON  entries  ➔  Symbol  images  associated  to  components  ➔  Plan  image  
+Estructura  del  input  
+El  total  de  tokens  de  entrada  está  compuesto  por:  
+●  Prompt  de  sistema  del  plan  ●  Prompt  de  usuario  del  plan  ●  Imagen(es)  del  plano  eléctrico  ●  Entradas  JSON  del  catálogo  de  símbolos  ●  Imágenes  de  símbolos  asociadas  a  los  componentes  ●  Imagen  del  plano  
+Análisis  de  tokens  de  entrada  —  Claude  Sonnet  4.6  
+Contribución  del  catálogo  de  símbolos  
+Cada  símbolo  agregado  al  catálogo  aporta:  
+1.  Entrada  JSON/texto  del  catálogo  
+Incluye:  
+●  Nombre  del  componente  ●  Nombre  del  archivo  (filename)  
+Sobrecarga  estimada:  
+●  ~49–60  tokens  de  texto  por  símbolo  
+2.  Imagen  del  símbolo  asociada  al  componente  
+Es  la  imagen  PNG/JPG  de  referencia  utilizada  para  hacer  el  matching  visual.  
+Sobrecarga  estimada:  
+●  ~558–568  tokens  de  imagen  por  símbolo  
+ 
+ 
+
+PAGE 4
+ 
+ 
+Symbols  Added  Estimated  Added  Input  Tokens  
+Estimated  Added  Cost  per  Run  (Claude  Sonnet  4.6)  
+1  ~618  USD  0.001854  
+10  ~6,175  USD  0.018525  
+50  ~30,875  USD  0.092625  
+100  ~61,750  USD  0.185250  
+ 
+Resultado:  
+➔  ~617.5  added  input  tokens  per  symbol  ➔  Estimated  recurring  added  input  cost  per  run:  ◆  Claude  Sonnet  4.6  →  USD  0.001854  per  symbol  
+ 
+Entonces,  la  imagen  del  plano  por  sí  sola  tiene  aproximadamente  el  siguiente  costo:  
+●  Tokens  de  imagen:  ~1.243  ●  Costo  de  entrada  de  la  imagen  del  plano:  USD  0.003729  
+Análisis  de  tokens  de  entrada  —  Claude  Opus  
+4.7
+ 
+Contribución  del  catálogo  de  símbolos  
+Cada  símbolo  agregado  al  catálogo  aporta:  
+1.  Entrada  JSON/texto  del  catálogo  
+Incluye:  
+
+PAGE 5
+ 
+●  Nombre  del  componente  ●  Nombre  del  archivo  (filename)  
+Sobrecarga  estimada:  
+●  ~50  tokens  de  texto  por  símbolo  
+2.  Imagen  del  símbolo  asociada  al  componente  
+Es  la  imagen  PNG/JPG  de  referencia  utilizada  para  realizar  el  matching  visual.  
+Sobrecarga  estimada:  
+●  ~600  tokens  de  imagen  por  símbolo  
+Costo  promedio  por  símbolo  agregado  
+Impacto  combinado  promedio  de:  
+➔  1  entrada  JSON  del  símbolo  ➔  1  imagen  del  símbolo  
+Resultado:  
+➔  ~650  tokens  de  entrada  adicionales  por  símbolo  
+Costo  recurrente  estimado  de  entrada  por  ejecución:  
+➔  Claude  Opus  4.7:  ◆  USD  0.003250  por  símbolo  agregado  
+ 
+Opus  scaling  projection  
+Symbols  Added  
+Estimated  Added  Input  Tokens  
+Estimated  Added  Cost  per  Run  (Claude  Opus  4.7)  
+1  ~650  USD  0.003250  
+10  ~6,500  USD  0.032500  
+50  ~32,500  USD  0.162500  
+100  ~65,000  USD  0.325000   
+Costo  base  fijo  de  entrada  
+
+PAGE 6
+ 
+Antes  de  agregar  símbolos  del  catálogo,  el  contexto  recurrente  fijo  ya  incluye:  
+●  plan_system.md  ●  plan_user.md  ●  Imagen  real  del  plano  eléctrico  
+Este  contexto  representa  el  costo  base  mínimo  de  cada  ejecución,  incluso  si  no  se  agrega  
+ningún
+ 
+símbolo
+ 
+al
+ 
+catálogo.
+ 
+ Component  Tokens  Opus  input  cost  
+plan_system.md  ~4,152  USD  0.020760  
+plan_user.md  ~764  USD  0.003820  
+  Real  plan  image  tablero-electrico-entrepiso.png  
+  ~1,243  
+  USD  0.006215  
+Fixed  base  before  catalog  symbols  ~6,159  USD  0.030795   
+Plan  image  input  cost  
+The  real  electrical  plan  image  itself  also  contributes  recurring  image  input  tokens  
+independently
+ 
+of
+ 
+the
+ 
+symbol
+ 
+catalog.
+ 
+Estimated  plan  image  impact:  
+Claude  Opus  4.7  
+~1,243  USD  5  /  1M  USD  0.006215  
+ 
+
+PAGE 7
+ 
+ 
+Claude  Opus  runs    
+Run  Prompt/Test  Input  tok.  
+Output  tok.  
+Tiempo  
+Costo  
+Opus  /  first  photos  /  v1  
+visual-catalog-matching  12,427  1,082  17.85  s  
+USD  0.089185  
+Opus  /  first  photos  /  v2  
+visual-pipeline-catalog-matching  
+13,637  903  16.18  s  
+USD  0.090760  
+   Secondary  photos  /  Second  photos    Run  Prompt/Test  Input  tok.  
+Output  tok.  
+Tiempo  
+Costo  
+Opus  /  second  photos  /  v1  
+v1  12,930  1,304  16.52  s  
+USD  0.097250  
+Opus  /  second  photos  /  v2  
+v2  20,546  552  9.37  s  USD  0.116530   
+Total  Claude  Opus:  5  runs  —  USD  0.480285   
+ 
+
+PAGE 8
+ 
+Claude  Sonnet  runs   Run  Prompt/Test  Input  tok.  Output  tok.  
+Tiempo  Costo  
+Sonnet  /  first  photos  /  v1  
+v1  9,255  2,084  41.10  s  USD  0.059025  
+Sonnet  /  first  photos  /  v2  
+symbol-catalog-recognition  
+9,665  1,698  32.24  s  USD  0.054465  
+Sonnet  /  first  photos  /  v3  
+image-to-component-recognition  
+9,697  1,815  33.97  s  USD  0.056316  
+Sonnet  /  first  photos  /  v4  
+visual-catalog-matching  9,812  1,564  31.09  s  USD  0.052896  
+Sonnet  /  first  photos  /  v5  
+visual-pipeline-catalog-matching  
+10,540  2,539  43.69  s  USD  0.069705  
+Sonnet  /  first  photos  /  v6  
+two-photo-visual-pipeline  
+12,055  2,321  43.45  s  USD  0.070980  
+Costo
+ 
+total
+ 
+investigación:
+ 
+USD
+ 
+0.988161
+ 
+Problemas  y  cosas  a  atacar  la  próxima  semana  
+1.  Diferenciación  de  símbolos  visualmente  similares  
+Muchos  símbolos  son  muy  parecidos  entre  sí.  El  modelo  logra  detectarlos,  pero  en  algunos  
+casos
+ 
+se
+ 
+equivoca
+ 
+al
+ 
+asociarlos
+ 
+con
+ 
+el
+ 
+componente
+ 
+correcto.
+ 
+La  idea  para  mejorar  esto  es  generar  primero  una  descripción  visual  detallada  de  cada  
+símbolo,
+ 
+incluyendo:
+ 
+●  características  específicas;  ●  diferencias  contra  símbolos  similares;  ●  reglas  negativas  (“qué  no  tiene  el  símbolo”).  
+Luego,  esa  descripción  se  usaría  como  nuevo  input  para  ayudar  al  modelo  a  tomar  mejores  
+decisiones
+ 
+al
+ 
+asociar
+ 
+símbolos
+ 
+con
+ 
+componentes.
+ 
+
+PAGE 9
+ 
+                                
+Interruptor  Termomagnético                      Seccionador  Bajo  Carga  
+ 
+ 
+2.  Calidad  de  las  imágenes  de  símbolos  del  catálogo  
+Se  detectó  que  la  calidad  del  recorte  de  los  símbolos  impacta  directamente  en  la  precisión  
+del
+ 
+modelo.
+ 
+En  las  primeras  pruebas,  las  imágenes  extraídas  desde  la  tabla  de  referencias  tenían  
+mucho
+ 
+ruido
+ 
+visual:
+ 
+➔  Texto;  ➔  Líneas  externas;  ➔  Bordes;  ➔  Elementos  cercanos.  
+Esto  generaba  confusiones  en  Claude  Opus  al  asociar  símbolos  con  componentes.  
+Con  una  segunda  versión  de  imágenes  más  limpias  y  precisas,  los  resultados  mejoraron  
+considerablemente,
+ 
+aunque
+ 
+todavía
+ 
+existen
+ 
+pequeños
+ 
+errores.
+ 
+La  próxima  semana  se  debería  trabajar  en:  
+➔  Recortes  más  precisos;  ➔  Eliminar  ruido  visual;  ➔  Usar  una  imagen  limpia  por  símbolo;  ➔  Mantener  formatos  consistentes.  
+Ejemplo:  
+
+
+PAGE 10
+ 
+         —--------------------->       
+ 
+ 
+ 
+3.  Planos  demasiado  grandes  
+Algunos  planos  son  demasiado  grandes  para  enviarlos  como  una  única  imagen  completa.  
+Esto  puede  generar:  
+●  pérdida  de  detalle;  ●  símbolos  demasiado  pequeños;  ●  menor  precisión;  ●  mayor  consumo  de  tokens.  
+La  idea  sería  investigar  un  sistema  de  particionado  del  plano:  
+●  dividir  el  plano  en  zonas;  ●  procesar  cada  sección  por  separado;  ●  consolidar  luego  el  BOM  final.  
+Ejemplo:   
+ 

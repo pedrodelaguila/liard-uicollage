@@ -1,0 +1,199 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Cotización</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .blk-list { margin: 6px 0 0; padding-left: 18px; } .blk-list li { margin: 2px 0; }
+  .sup-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-3); }
+  .sup { border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px; display: flex; flex-direction: column; gap: 8px; background: var(--surface); position: relative; }
+  .sup.pick { cursor: pointer; } .sup.pick:hover { border-color: var(--line-strong); }
+  .sup.on { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); background: color-mix(in srgb, var(--brand-soft) 35%, var(--surface)); }
+  .sup-h { display: flex; align-items: center; gap: 10px; } .sup-h strong { font-size: var(--fs-md); } .sup-h small { display: block; color: var(--ink-3); }
+  .sup-sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .sup-k { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .sup-k div { background: var(--surface-2); border-radius: var(--r-sm); padding: 6px 8px; } .sup-k b { display: block; font: 600 var(--fs-sm) var(--font-mono); white-space: nowrap; } .sup-k small { color: var(--ink-3); }
+  .brands { display: flex; gap: 4px; flex-wrap: wrap; }
+  .refnote { display: inline-flex; gap: 6px; align-items: center; font: 600 11px/1.4 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--src-ref); background: var(--muted-soft); padding: 3px 8px; border-radius: 4px; }
+  .stale { font: 700 10px/1.5 var(--font-mono); letter-spacing: .05em; color: var(--warn); border: 1px solid var(--warn); border-radius: 3px; padding: 0 4px; white-space: nowrap; }
+  .nf td { background: color-mix(in srgb, var(--err-soft) 40%, transparent); }
+  .reason { color: var(--err); font-size: var(--fs-xs); font-weight: 500; }
+  .form-grid { display: grid; grid-template-columns: 220px 1fr; gap: var(--sp-4); align-items: start; }
+  .req-list .list-i { gap: 14px; }
+  .review dl { display: grid; grid-template-columns: 180px 1fr; gap: 8px 16px; margin: 0; } .review dt { color: var(--ink-3); font-size: var(--fs-sm); } .review dd { margin: 0; font-size: var(--fs-sm); }
+  .sticky-send { position: sticky; bottom: 0; z-index: 5; }
+  @media (max-width: 1100px) { .sup-grid { grid-template-columns: 1fr; } .form-grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="cotizacion" data-title="Cotización" data-sub="Precio de referencia de los catálogos y pedido de cotización a distribuidores">
+<div id="act"><a class="btn btn-secondary" id="to-cmp" href="#">Comparar ofertas</a></div>
+<div id="page">
+  <div id="root"></div>
+</div>
+<script>
+L.ready(() => {
+  const pid = L.currentProjectId();
+  const estado = L.param('estado');
+  const TOMORROW = L.addDays(B.TODAY, 1);
+  let draft = null, errors = {};
+
+  function initDraft() {
+    const rq = L.referenceQuote(pid);
+    const pre = L.param('sup');
+    draft = {
+      sup: new Set(pre ? pre.split(',').filter(id => L.supplier(id)) : rq.bySupplier.filter(s => s.covered > 0).map(s => s.supplierId)),
+      lines: new Set(rq.perLine.filter(r => r.best).map(r => r.lineId)),
+      deadline: L.addDays(B.TODAY, 3), alts: true, note: '',
+    };
+  }
+  /* Conserva el foco del control activo cuando se vuelve a dibujar por un cambio del store. */
+  function keepFocus(fn) {
+    const a = document.activeElement; const id = a && a.id; const sel = a && typeof a.selectionStart === 'number' ? [a.selectionStart, a.selectionEnd] : null;
+    fn();
+    if (id) { const b = document.getElementById(id); if (b) { b.focus(); if (sel && b.setSelectionRange) try { b.setSelectionRange(sel[0], sel[1]); } catch (e) { /* type=date no admite selección */ } } }
+  }
+
+  const sw = s => `<span class="sup-sw" style="background:${s.color}" aria-hidden="true"></span>`;
+  const staleTag = n => n ? `<span class="stale" title="La vigencia del precio en el catálogo ya pasó">PRECIO DESACT.${n > 1 ? ' ×' + n : ''}</span>` : '';
+
+  function blockersCard(bl) {
+    if (!bl.length) return `<div class="note note-ok">${L.icon('check', 16)}<p><strong>La obra está lista para pedir cotización.</strong> No hay símbolos sin identificar ni líneas sin decisión de marca o cantidad.</p></div>`;
+    return `<div class="note note-err" id="blockers" role="alert">${L.icon('lock', 16)}<div><p><strong>Todavía no podés pedir cotización.</strong> Los distribuidores necesitan el BOM completo y con marca decidida para cotizar. Resolvé esto primero:</p>
+      <ul class="blk-list">${bl.map(b => `<li>${L.esc(b.text)} <a href="${L.link(b.href, { p: pid })}">${b.code === 'SIMBOLOS' ? 'Identificarlos en el plano' : b.code === 'LINEAS' ? 'Decidir en el BOM' : 'Ir a resolverlo'}</a></li>`).join('')}</ul></div></div>`;
+  }
+
+  function supCoverage(rq, sid, lineSet) {
+    const s = rq.bySupplier.find(x => x.supplierId === sid);
+    const rows = s.rows.filter(r => !lineSet || lineSet.has(r.lineId));
+    const cov = rows.filter(r => r.item);
+    return { covered: cov.length, count: rows.length, total: cov.reduce((a, r) => a + r.item.price * L.qty(L.line(r.lineId)), 0), lead: cov.reduce((a, r) => Math.max(a, r.item.leadDays), 0), stale: cov.filter(r => L.isStale(r.item)).length };
+  }
+
+  function supCard(rq, s, selectable) {
+    const c = supCoverage(rq, s.id, selectable ? draft.lines : null);
+    const pct = c.count ? c.covered / c.count * 100 : 0; const on = selectable && draft.sup.has(s.id);
+    return `<div class="sup${selectable ? ' pick' : ''}${on ? ' on' : ''}" ${selectable ? `data-sup="${s.id}"` : ''}>
+      <div class="sup-h">${selectable ? `<input type="checkbox" id="sup-${s.id}" ${on ? 'checked' : ''} aria-label="Pedir cotización a ${L.esc(s.name)}">` : sw(s)}
+        <div><strong>${L.esc(s.short)}</strong><small>${L.esc(s.city)} · responde en ~${s.responseH} h</small></div><span class="spacer"></span>${staleTag(c.stale)}</div>
+      <div class="brands">${s.brands.map(b => L.badge(b, 'muted')).join('')}</div>
+      <div><div class="row" style="justify-content:space-between"><small class="muted">Cobertura ${selectable ? 'de lo que pedís' : 'de este BOM'}</small><small class="mono">${c.covered}/${c.count} · ${L.pct(pct)}</small></div>
+        <div class="meter ${pct >= 90 ? 'ok' : pct >= 60 ? 'warn' : 'err'}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}" aria-label="Cobertura de ${L.esc(s.short)}"><i style="width:${pct}%"></i></div></div>
+      <div class="sup-k"><div><small>Total ref.</small><b>${L.arsShort(c.total)}</b></div><div><small>Plazo máx.</small><b>${c.lead ? c.lead + ' d' : '—'}</b></div><div><small>Faltan</small><b>${c.count - c.covered}</b></div></div>
+    </div>`;
+  }
+
+  function refSection(rq, withChecks) {
+    const lines = L.linesOf(pid);
+    const rows = rq.perLine.map(r => {
+      const l = L.line(r.lineId); const q = L.qty(l); const b = r.best; const sup = b && L.supplier(b.supplierId);
+      const blocks = L.lineIssues(l).filter(i => i.blocks);
+      const chk = withChecks ? `<td class="tight"><input type="checkbox" id="ln-${l.id}" data-line="${l.id}" ${draft.lines.has(l.id) ? 'checked' : ''} aria-label="Incluir ${L.esc(L.lineLabel(l))}"></td>` : '';
+      if (!b) return `<tr class="nf">${chk}<td><strong>${L.esc(L.lineLabel(l))}</strong><div class="reason">${L.icon('alertc', 12)} ${L.esc(r.reason)}</div></td><td class="num">${L.num(q)}</td><td>${L.esc(L.brandLabel(l.brand))}</td>
+        <td colspan="4"><span class="badge b-err">Sin precio de catálogo</span> ${withChecks ? '<small class="muted">Podés pedirla igual como «fuera de catálogo».</small>' : ''}</td><td class="tight"><a class="btn btn-sm btn-ghost" href="${L.link('d-bom.html', { p: pid, linea: l.id })}">Corregir en BOM</a></td></tr>`;
+      return `<tr${blocks.length ? ' class="blocked"' : ''}>${chk}<td><strong>${L.esc(L.lineLabel(l))}</strong>${blocks.map(i => `<div class="reason">${L.icon('lock', 12)} ${L.esc(i.text)}</div>`).join('')}</td><td class="num">${L.num(q)}</td><td>${L.esc(L.brandLabel(l.brand))}</td>
+        <td>${sw(sup)} ${L.esc(sup.short)}<br><small class="muted mono">${L.esc(b.brand)} ${L.esc(b.gama)} · ${L.esc(b.code)}</small> ${L.isStale(b) ? staleTag(1) : ''}</td>
+        <td class="num">${L.ars(b.price)}</td><td class="num">${L.ars(b.price * q)}</td><td class="num">${r.count}</td>${rq.notFound ? '<td></td>' : ''}</tr>`;
+    }).join('');
+    return `<div class="card"><div class="card-h"><h3>Cotización de referencia</h3>${L.cap('existe')}<span class="refnote">${L.icon('info', 12)}precio de referencia, no confirmado</span><span class="spacer"></span>
+        <span class="muted" style="font-size:var(--fs-sm)">Mejor total de referencia <strong class="mono">${L.ars(rq.bestTotal)}</strong> · ${lines.length - rq.notFound}/${lines.length} con precio</span></div>
+      <div class="card-b"><p class="muted" style="font-size:var(--fs-sm)">Sale de los catálogos publicados por cada distribuidor, por igualdad de componente base y atributos esenciales. No es una oferta: el precio final, el stock y el plazo los confirma cada distribuidor cuando responde.</p>
+        <div class="sup-grid">${L.store.get().suppliers.map(s => supCard(rq, s, false)).join('')}</div></div>
+      <div class="tbl-wrap" style="border-radius:0 0 var(--r-lg) var(--r-lg)"><table class="tbl"><thead><tr>${withChecks ? '<th><span class="sr-only">Incluir</span></th>' : ''}<th>Material</th><th class="num">Cant.</th><th>Marca pedida</th><th>Mejor referencia</th><th class="num">Unit. ref.</th><th class="num">Subtotal ref.</th><th class="num">Catálogos</th>${rq.notFound ? '<th></th>' : ''}</tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  function requestsCard() {
+    const reqs = L.requestsOf(pid);
+    const st = { ABIERTA: ['Abierta · esperando ofertas', 'info'], ADJUDICADA: ['Adjudicada', 'ok'], CERRADA: ['Cerrada', 'muted'] };
+    return `<div class="card"><div class="card-h"><h3>Solicitudes de esta obra</h3>${L.cap('propuesto')}<span class="spacer"></span><small class="muted">${reqs.length}</small></div>
+      ${reqs.length ? `<div class="list req-list">${reqs.map(r => { const offs = L.offersOf(r.id); const sent = offs.filter(o => o.status === 'ENVIADA').length; const s = st[r.status] || [r.status, 'muted'];
+        return `<a class="list-i" href="${L.link('d-comparar.html', { r: r.id, p: pid })}">${L.icon('send', 18)}<div class="grow"><strong class="mono">${L.esc(r.code)}</strong><small>${r.lineIds.length} materiales · ${r.supplierIds.length} distribuidores · vence ${L.date(r.deadline)}</small></div>
+          <span class="muted mono" style="font-size:var(--fs-xs)">${sent}/${offs.length} ofertas</span>${L.badge(s[0], s[1])}${L.icon('chevr', 16)}</a>`; }).join('')}</div>`
+        : `<div class="card-b">${L.empty({ icon: 'send', title: 'Todavía no pediste cotización', text: 'Cuando envíes la primera solicitud, acá vas a ver su estado y cuántos distribuidores respondieron.' })}</div>`}</div>`;
+  }
+
+  /* Bloques del formulario de solicitud, compartidos por las dos variantes. */
+  function supPicker(rq) { return `<div class="sup-grid" role="group" aria-label="Distribuidores">${L.store.get().suppliers.map(s => supCard(rq, s, true)).join('')}</div>`; }
+  function termsFields() {
+    return `<div class="grid g2">
+      <div class="field"><label for="dl">Fecha límite para responder</label><input class="input" type="date" id="dl" min="${TOMORROW}" value="${draft.deadline}"${errors.deadline ? ' aria-invalid="true" aria-describedby="dl-err"' : ''}>
+        ${errors.deadline ? `<div class="field-err" id="dl-err">${L.icon('alertc', 12)}${L.esc(errors.deadline)}</div>` : `<span class="hint">Desde mañana (${L.date(TOMORROW)}). Los distribuidores responden en 3 a 20 h.</span>`}</div>
+      <div class="field"><span class="lbl">Alternativas</span><label class="switch"><input type="checkbox" id="alts" ${draft.alts ? 'checked' : ''}><span>Aceptar alternativas equivalentes de otra marca o gama</span></label>
+        <span class="hint">Llegan como «alternativa sugerida»: no se pueden adjudicar hasta que Ingeniería apruebe la equivalencia técnica.</span></div>
+      <div class="field" style="grid-column:1/-1"><label for="note">Nota para los distribuidores</label><textarea class="textarea" id="note" maxlength="500" placeholder="Ej.: entrega en obra, condición de pago, horario de descarga">${L.esc(draft.note)}</textarea><span class="hint">La ven todos los distribuidores elegidos. ${draft.note.length}/500</span></div>
+    </div>`;
+  }
+  function confidentiality() {
+    return `<div class="note">${L.icon('shield', 16)}<p><strong>Confidencialidad.</strong> Cada distribuidor ve solo tu pedido y su propia oferta: nunca los precios ni los nombres de los otros. Tu contacto se comparte con un distribuidor recién cuando le confirmás un pedido. Los avisos salen por liard y por correo, el canal formal.</p></div>`;
+  }
+  function sendBar(bl) {
+    const oos = [...draft.lines].filter(id => { const r = L.referenceQuote(pid).perLine.find(x => x.lineId === id); return r && !r.best; }).length;
+    const gen = errors.general ? `<div class="field-err" role="alert" id="send-err">${L.icon('alertc', 12)}${L.esc(errors.general)}</div>` : '';
+    return `<div class="card sticky-send"><div class="card-f" style="border-radius:var(--r-lg)">
+      <div class="col" style="gap:2px"><strong>${draft.sup.size} ${draft.sup.size === 1 ? 'distribuidor' : 'distribuidores'} · ${draft.lines.size} materiales${oos ? ` · ${oos} fuera de catálogo` : ''}</strong>
+        <small class="muted">${bl.length ? 'Envío bloqueado: resolvé los pendientes de arriba.' : 'Vence el ' + L.date(draft.deadline) + (draft.alts ? ' · acepta alternativas' : ' · sin alternativas')}</small>${gen}</div>
+      <span class="spacer"></span><button class="btn btn-primary btn-lg" id="send" ${bl.length ? 'disabled aria-disabled="true" title="Resolvé los bloqueos antes de enviar"' : ''}>${L.icon('send', 16)}Enviar solicitud</button></div></div>`;
+  }
+
+  function renderPage(rq, bl) {
+    return `<div class="stack">${blockersCard(bl)}${refSection(rq, false)}
+      <div class="section-t"><h2>Pedir cotización a distribuidores</h2>${L.cap('propuesto')}<span class="muted" style="font-size:var(--fs-sm)">Hoy la app confirma el pedido directo sobre la referencia; esto agrega una ronda de ofertas editables.</span></div>
+      <div class="card"><div class="card-h"><h3>1 · Distribuidores</h3><span class="spacer"></span><small class="muted">Marcas que trabaja cada uno y cuánto de lo que pedís tiene en su catálogo</small></div><div class="card-b">${supPicker(rq)}</div></div>
+      <div class="card"><div class="card-h"><h3>2 · Materiales</h3><span class="spacer"></span><button class="btn btn-sm btn-ghost" id="all-lines">Todos</button><button class="btn btn-sm btn-ghost" id="quotable-lines">Solo con precio de referencia</button></div>
+        <div class="tbl-wrap" style="border-radius:0 0 var(--r-lg) var(--r-lg)">${linesTable(rq)}</div></div>
+      <div class="card"><div class="card-h"><h3>3 · Plazo y condiciones</h3></div><div class="card-b stack">${termsFields()}${confidentiality()}</div></div>
+      ${sendBar(bl)}${requestsCard()}</div>`;
+  }
+  function linesTable(rq) {
+    return `<table class="tbl"><thead><tr><th><span class="sr-only">Incluir</span></th><th>Material</th><th class="num">Cant.</th><th>Marca pedida</th><th>Referencia</th><th class="num">Unit. ref.</th></tr></thead><tbody>${rq.perLine.map(r => {
+      const l = L.line(r.lineId); const b = r.best;
+      return `<tr${b ? '' : ' class="nf"'}><td class="tight"><input type="checkbox" id="ln-${l.id}" data-line="${l.id}" ${draft.lines.has(l.id) ? 'checked' : ''} aria-label="Incluir ${L.esc(L.lineLabel(l))}"></td>
+        <td><strong>${L.esc(L.lineLabel(l))}</strong>${b ? '' : `<div class="reason">${L.icon('alertc', 12)} ${L.esc(r.reason)}</div>`}</td><td class="num">${L.num(L.qty(l))}</td><td>${L.esc(L.brandLabel(l.brand))}</td>
+        <td>${b ? `${L.priceTag('referencia')} ${L.esc(L.supplier(b.supplierId).short)} ${L.isStale(b) ? staleTag(1) : ''}` : `<span class="badge b-warn">fuera de catálogo</span>`}</td><td class="num">${b ? L.ars(b.price) : '—'}</td></tr>`; }).join('')}</tbody></table>`;
+  }
+
+  function render() {
+    const root = document.getElementById('root');
+    document.getElementById('to-cmp').href = L.link('d-comparar.html', { p: pid });
+    if (estado === 'cargando') { root.innerHTML = `<div class="stack"><div class="skel" style="height:64px"></div><div class="grid g3">${'<div class="skel" style="height:150px"></div>'.repeat(3)}</div><div class="skel" style="height:320px"></div></div><p class="sr-only" role="status">Calculando la cotización de referencia…</p>`; return; }
+    if (estado === 'error') { root.innerHTML = `<div class="card"><div class="card-b">${L.empty({ icon: 'alertc', title: 'No se pudo calcular la cotización', text: 'El servicio de cotización no respondió (502). Tu BOM no cambió; probá de nuevo en un momento.', action: `<a class="btn btn-primary" href="${L.link('d-cotizacion.html', { p: pid })}">Reintentar</a>` })}</div></div>`; return; }
+    if (!L.linesOf(pid).length || estado === 'vacio') { root.innerHTML = `<div class="stack">${blockersCard(L.blockers(pid))}<div class="card"><div class="card-b">${L.empty({ icon: 'list', title: 'No hay BOM para cotizar', text: 'Procesá al menos un plano y revisá el BOM: la cotización de referencia sale de ahí.', action: `<a class="btn btn-primary" href="${L.link('d-obra.html', { p: pid })}">Ir a los planos</a>` })}</div></div></div>`; return; }
+    const rq = L.referenceQuote(pid); const bl = L.blockers(pid);
+    const ids = new Set(L.linesOf(pid).map(l => l.id)); [...draft.lines].forEach(id => { if (!ids.has(id)) draft.lines.delete(id); });
+    keepFocus(() => { root.innerHTML = renderPage(rq, bl); bind(); });
+  }
+
+  function bind() {
+    const root = document.getElementById('root');
+    root.querySelectorAll('[data-sup]').forEach(c => { const id = c.dataset.sup; const cb = c.querySelector('input');
+      c.onclick = e => { if (e.target !== cb) cb.checked = !cb.checked; toggleSup(id, cb.checked); }; });
+    root.querySelectorAll('[data-line]').forEach(cb => cb.onchange = () => { cb.checked ? draft.lines.add(cb.dataset.line) : draft.lines.delete(cb.dataset.line); errors.general = null; render(); });
+    const all = document.getElementById('all-lines'); if (all) all.onclick = () => { L.linesOf(pid).forEach(l => draft.lines.add(l.id)); render(); };
+    const qt = document.getElementById('quotable-lines'); if (qt) qt.onclick = () => { draft.lines = new Set(L.referenceQuote(pid).perLine.filter(r => r.best).map(r => r.lineId)); render(); };
+    const dl = document.getElementById('dl'); if (dl) dl.onchange = () => { draft.deadline = dl.value; validateDeadline(); render(); };
+    const al = document.getElementById('alts'); if (al) al.onchange = () => { draft.alts = al.checked; render(); };
+    const nt = document.getElementById('note'); if (nt) nt.oninput = () => { draft.note = nt.value; const h = nt.parentElement.querySelector('.hint'); if (h) h.textContent = 'La ven todos los distribuidores elegidos. ' + nt.value.length + '/500'; };
+    const send = document.getElementById('send'); if (send) send.onclick = submit;
+  }
+  function toggleSup(id, on) { on ? draft.sup.add(id) : draft.sup.delete(id); errors.general = null; render(); }
+  function validateDeadline() {
+    if (!draft.deadline) errors.deadline = 'Indicá hasta cuándo pueden responder.';
+    else if (draft.deadline < TOMORROW) errors.deadline = 'La fecha límite tiene que ser desde mañana (' + L.date(TOMORROW) + ').';
+    else errors.deadline = null;
+    return !errors.deadline;
+  }
+  function submit() {
+    if (L.blockers(pid).length) return;
+    errors.general = null;
+    const okD = validateDeadline();
+    if (!draft.sup.size) errors.general = 'Elegí al menos un distribuidor.';
+    else if (!draft.lines.size) errors.general = 'Elegí al menos un material.';
+    if (!okD || errors.general) { render(); const f = document.getElementById(okD ? 'send' : 'dl'); if (f) f.focus(); return; }
+    const lineOrder = L.linesOf(pid).map(l => l.id).filter(id => draft.lines.has(id));
+    const r = L.createRequest({ projectId: pid, supplierIds: [...draft.sup], lineIds: lineOrder, deadline: draft.deadline, note: draft.note.trim(), alternativesAllowed: draft.alts });
+    L.toast('Solicitud ' + r.code + ' enviada', { detail: 'A ' + r.supplierIds.length + ' distribuidores. Te avisamos cuando respondan.' });
+    setTimeout(() => { location.href = L.link('d-comparar.html', { r: r.id, p: pid }); }, 350);
+  }
+
+  initDraft();
+  render();
+  L.store.subscribe(render);
+});
+</script>
+</body></html>

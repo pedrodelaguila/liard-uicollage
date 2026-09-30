@@ -1,0 +1,208 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Obras</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .tb { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: var(--sp-4); }
+  .srch { position: relative; flex: 1; min-width: 240px; max-width: 420px; }
+  .srch .ic { position: absolute; left: 10px; top: 10px; color: var(--ink-3); }
+  .srch .input { padding-left: 34px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip .n { font: 600 10.5px var(--font-mono); opacity: .7; }
+  .ogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: var(--sp-4); }
+  .oc { display: flex; flex-direction: column; min-width: 0; transition: box-shadow var(--t-fast), transform var(--t-fast); }
+  .oc:hover { box-shadow: var(--shadow-2); }
+  .oc-top { padding: 16px 16px 10px; display: flex; flex-direction: column; gap: 6px; }
+  .oc-top h3 { font-size: var(--fs-lg); }
+  .oc-top h3 a { color: inherit; text-decoration: none; } .oc-top h3 a:hover { text-decoration: underline; }
+  .oc-top h3 a::after { content: ''; position: absolute; inset: 0; }
+  .oc { position: relative; }
+  .oc-sub { color: var(--ink-3); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oc-strip { display: flex; height: 26px; margin: 4px 16px 0; border-radius: 6px; overflow: hidden; background: var(--stage); gap: 2px; padding: 3px; }
+  .oc-strip i { flex: 1; border-radius: 3px; min-width: 6px; position: relative; }
+  .oc-strip .s-COMPLETED { background: var(--ok); } .oc-strip .s-PENDING { background: var(--stage-3); } .oc-strip .s-PROCESSING { background: repeating-linear-gradient(135deg, var(--brand) 0 5px, var(--cyan) 5px 10px); background-size: 28px 28px; animation: mv 1.2s linear infinite; }
+  .oc-strip .s-ERROR { background: var(--err); } .oc-strip .s-STALE { background: var(--warn); }
+  .oc-strip .empty-s { flex: 1; display: grid; place-items: center; color: var(--stage-ink-2); font: 500 10.5px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+  @keyframes mv { to { background-position: 28px 0; } }
+  .oc-legend { margin: 6px 16px 0; font-size: var(--fs-xs); color: var(--ink-3); display: flex; gap: 10px; flex-wrap: wrap; }
+  .oc-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 12px 16px; border: 1px solid var(--line); border-radius: var(--r-md); }
+  .oc-facts div { padding: 8px 10px; } .oc-facts div + div { border-left: 1px solid var(--line); }
+  .oc-facts b { display: block; font: 600 var(--fs-lg)/1.1 var(--font-display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oc-facts small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oc-facts small { color: var(--ink-3); }
+  .oc-next { margin-top: auto; display: flex; gap: 10px; align-items: center; padding: 12px 16px; border-top: 1px solid var(--line); background: var(--surface-2); border-radius: 0 0 var(--r-lg) var(--r-lg); position: relative; z-index: 1; }
+  .oc-next .nx { flex: 1; min-width: 0; font-size: var(--fs-sm); }
+  .oc-next .nx small { display: block; color: var(--ink-3); }
+  .oc-next .nx strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .oc-menu { position: absolute; right: 8px; top: 10px; z-index: 2; }
+  .new-card { display: grid; place-items: center; text-align: center; border: 1.5px dashed var(--line-strong); background: transparent; box-shadow: none; min-height: 250px; cursor: pointer; color: var(--ink-2); font: inherit; border-radius: var(--r-lg); }
+  .new-card:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+  .new-card .ic-w { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 14px; background: var(--stage); color: var(--volt); margin-bottom: 10px; }
+  .tbl td a.nm { font-weight: 600; color: var(--ink); text-decoration: none; } .tbl td a.nm:hover { text-decoration: underline; }
+  .res { font-size: var(--fs-sm); color: var(--ink-3); margin: 0 0 10px; }
+  @media (prefers-reduced-motion: reduce) { .oc-strip .s-PROCESSING { animation: none; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="obras" data-title="Obras" data-sub="Tus obras y sus tableros, con el estado de cada plano a la vista.">
+<div id="act"><button class="btn btn-primary" data-new id="btn-new">Nueva obra</button></div>
+<div id="page">
+  <div class="tb" role="search">
+    <div class="srch"><svg class="ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input class="input" id="q" type="search" placeholder="Buscar obra, cliente o ciudad" aria-label="Buscar obras"></div>
+    <div class="chips" id="chips" role="group" aria-label="Filtrar por etapa"></div>
+    <span class="spacer" style="flex:1"></span>
+    <label class="row" style="gap:6px;font-size:var(--fs-xs);color:var(--ink-3);font-weight:600" for="sort">Ordenar por <select class="select" id="sort" style="width:auto;height:32px"><option value="fecha">Más recientes</option><option value="nombre">Nombre (A–Z)</option><option value="etapa">Etapa (lo urgente primero)</option><option value="total">Total de referencia (mayor)</option></select></label>
+    <div class="seg" role="group" aria-label="Vista"><button data-view="grid" aria-pressed="true">Tarjetas</button><button data-view="list" aria-pressed="false">Lista</button></div>
+  </div>
+  <p class="res" id="res" aria-live="polite"></p>
+  <div id="out"></div>
+</div>
+<script>
+(function () {
+  const esc = L.esc;
+  const plural = (n, a, b) => n + ' ' + (n === 1 ? a : b);
+  const SING = { COMPLETED: 'listo', PROCESSING: 'en proceso', PENDING: 'pendiente', STALE: 'por revisar', ERROR: 'con error' };
+  const PLUR = { COMPLETED: 'listos', PROCESSING: 'en proceso', PENDING: 'pendientes', STALE: 'por revisar', ERROR: 'con error' };
+  const STAGE_ORDER = ['atencion', 'proceso', 'revision', 'lista', 'comparacion', 'nuevo', 'pedido'];
+  const STAGES = [['nuevo', 'Sin planos'], ['proceso', 'En proceso'], ['atencion', 'Requiere atención'], ['revision', 'En revisión'], ['lista', 'Lista para cotizar'], ['comparacion', 'Esperando ofertas'], ['pedido', 'Pedidos']];
+  const ui = { q: L.pref('obras:q') || '', stage: L.pref('obras:stage') || 'todas', view: L.pref('obras:view') || 'grid', sort: L.pref('obras:sort') || 'fecha', sig: '' };
+
+  /* Próxima acción concreta de la obra: sale del estado, en el orden en que la app real bloquea. */
+  function nextAction(pid) {
+    const s = L.store.get(); const ps = L.plansOf(pid); const lk = (h, x) => L.link(h, Object.assign({ p: pid }, x || {}));
+    const err = ps.filter(p => p.status === 'ERROR').length, run = ps.filter(p => p.status === 'PROCESSING').length, todo = ps.filter(p => p.status === 'PENDING' || p.status === 'STALE').length;
+    const un = L.unidentifiedOf(pid).length; const blk = L.linesOf(pid).filter(l => L.lineIssues(l).some(i => i.blocks)).length;
+    const req = L.requestsOf(pid).find(r => r.status === 'ABIERTA');
+    const ords = L.ordersOf(pid);
+    if (!ps.length) return { t: 'Subí los planos', d: 'La obra no tiene planos todavía.', href: lk('d-obra.html'), ic: 'upload', tone: 'muted' };
+    if (err) return { t: 'Reintentá ' + plural(err, 'plano con error', 'planos con error'), d: 'La detección no terminó a tiempo.', href: lk('d-obra.html'), ic: 'refresh', tone: 'err' };
+    if (run) return { t: plural(run, 'plano procesándose', 'planos procesándose'), d: 'Te avisamos cuando terminen.', href: lk('d-obra.html'), ic: 'activity', tone: 'info' };
+    if (todo) return { t: 'Procesá ' + plural(todo, 'plano', 'planos'), d: 'Pendientes o por revisar.', href: lk('d-obra.html'), ic: 'play', tone: 'warn' };
+    if (un) return { t: 'Resolvé ' + plural(un, 'símbolo', 'símbolos'), d: 'Sin identificar en los planos.', href: lk('d-plano.html'), ic: 'scan', tone: 'warn' };
+    if (blk) return { t: 'Decidí marca en ' + plural(blk, 'línea', 'líneas'), d: 'Bloquean la cotización.', href: lk('d-bom.html'), ic: 'tag', tone: 'warn' };
+    if (req) {
+      const ap = s.approvals.find(a => a.requestId === req.id && a.status === 'PENDIENTE');
+      if (ap) return { t: 'Aprobación pendiente', d: req.code + ' · ' + L.ars(ap.total) + ' espera a Dirección.', href: lk('d-comparar.html', { r: req.id }), ic: 'shield', tone: 'warn' };
+      const sent = L.offersOf(req.id).filter(o => o.status === 'ENVIADA');
+      const alts = sent.reduce((a, o) => a + o.lines.filter(l => l.mode === 'ALTERNATIVA' && l.alt && l.alt.equivalence === 'SUGERIDA').length, 0);
+      if (alts) return { t: 'Revisá ' + plural(alts, 'alternativa', 'alternativas'), d: req.code + ': equivalencia técnica sin aprobar.', href: lk('d-comparar.html', { r: req.id }), ic: 'compare', tone: 'warn' };
+      if (sent.length) return { t: 'Compará ' + plural(sent.length, 'oferta', 'ofertas'), d: req.code + ' · ' + sent.length + ' de ' + req.supplierIds.length + ' respondieron.', href: lk('d-comparar.html', { r: req.id }), ic: 'compare', tone: 'info' };
+      return { t: 'Esperando ofertas', d: req.code + ' · nadie respondió todavía.', href: lk('d-comparar.html', { r: req.id }), ic: 'clock', tone: 'muted' };
+    }
+    if (ords.length) { const w = ords.filter(o => o.status === 'SENT').length; return w ? { t: plural(w, 'pedido espera', 'pedidos esperan') + ' respuesta', d: 'El distribuidor confirma o rechaza.', href: L.link('d-pedidos.html'), ic: 'truck', tone: 'info' } : { t: 'Pedidos confirmados', d: plural(ords.length, 'pedido', 'pedidos') + ' · coordiná la entrega.', href: L.link('d-pedidos.html'), ic: 'check', tone: 'ok' }; }
+    return { t: 'Pedí cotización', d: 'No queda nada bloqueando.', href: lk('d-cotizacion.html'), ic: 'send', tone: 'ok' };
+  }
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  function list() {
+    const s = L.store.get(); const q = norm(ui.q);
+    return s.projects.filter(p => !p.deleted).filter(p => !q || norm(p.name + ' ' + p.client + ' ' + p.city).includes(q))
+      .filter(p => ui.stage === 'todas' || L.projectStage(p.id).id === ui.stage)
+      .map(p => ({ p, total: L.referenceQuote(p.id).bestTotal, st: STAGE_ORDER.indexOf(L.projectStage(p.id).id) }))
+      .sort((a, b) => ui.sort === 'nombre' ? a.p.name.localeCompare(b.p.name, 'es') : ui.sort === 'etapa' ? a.st - b.st || (b.p.createdAt > a.p.createdAt ? 1 : -1) : ui.sort === 'total' ? b.total - a.total : (b.p.createdAt > a.p.createdAt ? 1 : b.p.createdAt < a.p.createdAt ? -1 : 0))
+      .map(x => x.p);
+  }
+  function chips() {
+    const all = L.store.get().projects.filter(p => !p.deleted); const cnt = {}; all.forEach(p => { const id = L.projectStage(p.id).id; cnt[id] = (cnt[id] || 0) + 1; });
+    const c = (id, label, n) => `<button class="chip" data-stage="${id}" aria-pressed="${ui.stage === id}">${esc(label)} <span class="n">${n}</span></button>`;
+    return c('todas', 'Todas', all.length) + STAGES.filter(([id]) => cnt[id] || ui.stage === id).map(([id, l]) => c(id, l, cnt[id] || 0)).join('');
+  }
+  function strip(pid) {
+    const ps = L.plansOf(pid);
+    if (!ps.length) return `<div class="oc-strip" aria-hidden="true"><span class="empty-s">sin planos</span></div>`;
+    return `<div class="oc-strip" aria-hidden="true">${ps.map(p => `<i class="s-${p.status}" title="${esc(p.name)} · ${L.planStatusLabel[p.status]}" style="flex:${Math.min(4, p.multiplier || 1)}"></i>`).join('')}</div>`;
+  }
+  function legend(pid) {
+    const ps = L.plansOf(pid); if (!ps.length) return '<div class="oc-legend">Subí planos para empezar.</div>';
+    const c = {}; ps.forEach(p => c[p.status] = (c[p.status] || 0) + 1);
+    return `<div class="oc-legend">${['COMPLETED', 'PROCESSING', 'PENDING', 'STALE', 'ERROR'].filter(k => c[k]).map(k => `<span>${c[k]} ${(c[k] === 1 ? SING : PLUR)[k]}</span>`).join('<span aria-hidden="true">·</span>')}</div>`;
+  }
+  function card(p) {
+    const st = L.projectStage(p.id); const nx = nextAction(p.id); const lines = L.linesOf(p.id); const rq = L.referenceQuote(p.id);
+    return `<article class="card oc" data-proj="${p.id}">
+      <div class="oc-top"><div class="row">${L.badge(st.label, st.tone)}</div>
+        <h3><a href="${L.link('d-obra.html', { p: p.id })}">${esc(p.name)}</a></h3><div class="oc-sub">${esc(p.client || 'Sin cliente')} · ${esc(p.city || 'Sin ciudad')} · ${L.dateShort(p.createdAt)}</div></div>
+      <button class="icon-btn oc-menu" data-delp="${p.id}" aria-label="Eliminar la obra ${esc(p.name)}" title="Eliminar obra">${L.icon('trash', 15)}</button>
+      ${strip(p.id)}${legend(p.id)}
+      <div class="oc-facts"><div><b>${L.boardsOf(p.id)}</b><small>tableros listos</small></div><div><b>${lines.length}</b><small>líneas del BOM</small></div><div><b title="${rq.bestTotal ? L.ars(rq.bestTotal) : ''}">${rq.bestTotal ? L.arsShort(rq.bestTotal) : '—'}</b><small>${rq.bestTotal ? 'precio de referencia' : 'sin precio aún'}</small></div></div>
+      <div class="oc-next"><span class="badge b-${nx.tone}" aria-hidden="true" style="width:28px;padding:0;justify-content:center">${L.icon(nx.ic, 13)}</span><div class="nx"><small>Próximo paso</small><strong>${esc(nx.t)}</strong><small>${esc(nx.d)}</small></div><a class="btn btn-secondary btn-sm" href="${nx.href}" aria-label="${esc(nx.t)} en ${esc(p.name)}">Ir${L.icon('arrowr', 13)}</a></div>
+    </article>`;
+  }
+  function table(ps) {
+    return `<div class="card tbl-wrap"><table class="tbl"><thead><tr><th>Obra</th><th>Cliente</th><th>Etapa</th><th class="num">Planos</th><th class="num">Tableros</th><th class="num">Líneas</th><th>Próximo paso</th><th></th></tr></thead><tbody>
+      ${ps.map(p => { const st = L.projectStage(p.id); const nx = nextAction(p.id); const pl = L.plansOf(p.id); return `<tr data-proj="${p.id}"><td><a class="nm" href="${L.link('d-obra.html', { p: p.id })}">${esc(p.name)}</a><small class="muted" style="display:block">${esc(p.city || '')} · ${L.dateShort(p.createdAt)}</small></td><td>${esc(p.client || '—')}</td><td>${L.badge(st.label, st.tone)}</td>
+        <td class="num mono">${pl.filter(x => x.status === 'COMPLETED').length}/${pl.length}</td><td class="num mono">${L.boardsOf(p.id)}</td><td class="num mono">${L.linesOf(p.id).length}</td>
+        <td><a href="${nx.href}">${esc(nx.t)}</a></td><td class="tight"><button class="icon-btn" data-delp="${p.id}" aria-label="Eliminar la obra ${esc(p.name)}">${L.icon('trash', 15)}</button></td></tr>`; }).join('')}</tbody></table></div>`;
+  }
+  function render() {
+    const all = L.store.get().projects.filter(p => !p.deleted);
+    document.getElementById('chips').innerHTML = chips();
+    document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === ui.view));
+    const out = document.getElementById('out'); const res = document.getElementById('res');
+    const est = L.param('estado');
+    if (est === 'cargando') { res.textContent = 'Cargando obras…'; out.innerHTML = `<div class="ogrid">${'<div class="card pad"><div class="skel" style="width:40%"></div><div class="skel" style="height:22px;margin-top:10px"></div><div class="skel" style="height:26px;margin-top:14px"></div><div class="skel" style="height:50px;margin-top:14px"></div></div>'.repeat(4)}</div>`; return; }
+    if (est === 'error') { res.textContent = ''; out.innerHTML = `<div class="note note-err" role="alert">${L.icon('alertc', 16)}<div><p><strong>No pudimos cargar tus obras.</strong> Revisá la conexión y volvé a intentar; no se perdió nada.</p><a class="btn btn-secondary btn-sm" href="${L.link('d-obras.html')}">Volver a intentar</a></div></div>`; return; }
+    if (!all.length || est === 'vacio') { res.textContent = ''; out.innerHTML = `<div class="card">${L.empty({ icon: 'folder', title: 'No hay obras todavía', text: 'Creá tu primera obra y subí sus planos: liard los cuenta y arma el BOM.', action: `<button class="btn btn-primary" data-new>${L.icon('plus', 15)}Nueva obra</button>` })}</div>`; return; }
+    const ps = list();
+    res.textContent = ps.length === all.length ? plural(all.length, 'obra', 'obras') : plural(ps.length, 'obra', 'obras') + ' de ' + all.length;
+    if (!ps.length) { out.innerHTML = `<div class="card">${L.empty({ icon: 'search', title: 'Sin resultados', text: 'Ninguna obra coincide con la búsqueda o la etapa elegida.', action: `<button class="btn btn-secondary" data-clear>Limpiar filtros</button>` })}</div>`; return; }
+    out.innerHTML = ui.view === 'list' ? table(ps) : `<div class="ogrid">${ps.map(card).join('')}<button class="new-card" data-new><span><span class="ic-w">${L.icon('plus', 22)}</span><strong style="display:block">Nueva obra</strong><small class="muted">Nombre, cliente y ciudad. Después subís los planos.</small></span></button></div>`;
+    ui.sig = sig();
+  }
+  const sig = () => JSON.stringify(L.store.get().projects.map(p => [p.id, p.name, p.deleted, L.projectStage(p.id).id])) + L.store.get().plans.map(p => p.status + (p.deleted ? 'x' : '')).join('');
+
+  function newDialog() {
+    const box = document.createElement('div');
+    box.innerHTML = `<div class="col" style="gap:14px"><div class="field"><label for="np-name">Nombre de la obra</label><input class="input" id="np-name" maxlength="120" autocomplete="off" placeholder="Por ejemplo: Edificio Alvear 1200 · Tableros"><span class="hint">Entre 3 y 80 caracteres. Es como la vas a encontrar en liard.</span></div>
+      <div class="grid g2"><div class="field"><label for="np-client">Cliente <span class="muted" style="text-transform:none;font-weight:500">(opcional)</span></label><input class="input" id="np-client" maxlength="120" autocomplete="off"></div>
+      <div class="field"><label for="np-city">Ciudad <span class="muted" style="text-transform:none;font-weight:500">(opcional)</span></label><input class="input" id="np-city" maxlength="80" autocomplete="off"></div></div>
+      <div class="field"><label for="np-desc">Descripción <span class="muted" style="text-transform:none;font-weight:500">(opcional)</span></label><textarea class="textarea" id="np-desc" maxlength="600"></textarea><span class="hint">Hasta 500 caracteres.</span></div></div>`;
+    const [nm, cl, ci, de] = ['np-name', 'np-client', 'np-city', 'np-desc'].map(id => box.querySelector('#' + id));
+    [nm, cl, ci, de].forEach(i => i.addEventListener('input', () => L.fieldError(i, null)));
+    const d = L.dialog({ title: 'Nueva obra', body: box, actions: [{ label: 'Cancelar' }, { label: 'Crear obra', kind: 'primary', onClick: () => {
+      const v = nm.value.trim(); let bad = null;
+      if (!v) bad = [nm, 'Escribí el nombre de la obra.'];
+      else if (v.length < 3) bad = [nm, 'El nombre tiene que tener al menos 3 caracteres.'];
+      else if (v.length > 80) bad = [nm, 'Usá como máximo 80 caracteres (tiene ' + v.length + ').'];
+      else if (L.store.get().projects.some(p => !p.deleted && p.name.trim().toLowerCase() === v.toLowerCase())) bad = [nm, 'Ya tenés una obra con ese nombre.'];
+      else if (cl.value.trim().length > 100) bad = [cl, 'Usá como máximo 100 caracteres.'];
+      else if (ci.value.trim().length > 60) bad = [ci, 'Usá como máximo 60 caracteres.'];
+      else if (de.value.trim().length > 500) bad = [de, 'Usá como máximo 500 caracteres (tiene ' + de.value.trim().length + ').'];
+      if (bad) { L.fieldError(bad[0], bad[1]); bad[0].focus(); return false; }
+      const p = L.store.update(s => {
+        const id = L.uid('p'); const pr = { id, name: v, client: cl.value.trim(), city: ci.value.trim(), description: de.value.trim(), createdAt: B.TODAY, stage: 'nuevo', referenceTable: null, owner: s.session.userId, brandRules: { preferred: [], blocked: [] } };
+        s.projects.unshift(pr); s.budgets[id] = Object.assign({}, s.budgets.p4 || s.budgets.p1, { scenario: 'base' }); s.session.lastProjectId = id;
+        L._log(s, id, s.session.userId, 'Creó la obra ' + v + '.'); return pr;
+      });
+      L.toast('Obra creada', { kind: 'ok', detail: p.name + ' · ahora subí los planos.', action: { label: 'Subir planos', onClick: () => { location.href = L.link('d-obra.html', { p: p.id }); } } });
+      if (ui.stage !== 'todas' && ui.stage !== 'nuevo') { ui.stage = 'todas'; L.pref('obras:stage', 'todas'); }
+      render();
+      setTimeout(() => { const el = document.querySelector(`[data-proj="${p.id}"] a`); if (el) el.focus(); }, 60);
+    } }] });
+    nm.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); d.querySelector('footer .btn-primary').click(); } });
+    setTimeout(() => nm.focus(), 30);
+  }
+  async function delProject(id) {
+    const p = L.project(id); const hasReq = L.requestsOf(id).length || L.ordersOf(id).length;
+    if (hasReq) { L.toast('No se puede eliminar esta obra', { kind: 'warn', detail: 'Tiene solicitudes o pedidos a distribuidores. Quedan como registro.' }); return; }
+    if (!await L.confirm('Eliminar obra', 'La obra «' + p.name + '» deja de aparecer en tu lista. Esta acción no se puede deshacer desde liard.', 'Eliminar obra', 'danger')) return;
+    L.store.update(s => { const x = s.projects.find(y => y.id === id); x.deleted = true; x.deletedAt = L.now(); if (s.session.lastProjectId === id) s.session.lastProjectId = s.projects.find(y => !y.deleted).id; L._log(s, id, s.session.userId, 'Eliminó la obra ' + x.name + '.'); });
+    L.toast('Obra eliminada', { detail: p.name });
+  }
+
+  const page = document.getElementById('page');
+  const q = document.getElementById('q'); q.value = ui.q;
+  const so = document.getElementById('sort'); so.value = ui.sort; so.addEventListener('change', () => { ui.sort = so.value; L.pref('obras:sort', ui.sort); render(); });
+  q.addEventListener('input', () => { ui.q = q.value; L.pref('obras:q', ui.q); render(); });
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-new],[data-stage],[data-view],[data-delp],[data-clear]'); if (!b) return;
+    if ('new' in b.dataset) newDialog();
+    else if (b.dataset.stage) { ui.stage = b.dataset.stage; L.pref('obras:stage', ui.stage); render(); const f = document.querySelector(`[data-stage="${ui.stage}"]`); if (f) f.focus(); }
+    else if (b.dataset.view) { ui.view = b.dataset.view; L.pref('obras:view', ui.view); render(); }
+    else if (b.dataset.delp) { e.preventDefault(); delProject(b.dataset.delp); }
+    else if ('clear' in b.dataset) { ui.q = ''; ui.stage = 'todas'; q.value = ''; q.focus(); L.pref('obras:q', ''); L.pref('obras:stage', 'todas'); render(); }
+  });
+  L.ready(() => {
+    document.getElementById('btn-new').insertAdjacentHTML('afterbegin', L.icon('plus', 15));
+    render(); L.store.subscribe(render);
+    setInterval(() => { if (sig() !== ui.sig) render(); }, 1000);
+    if (L.param('dialogo') === 'nueva') newDialog();
+  });
+})();
+</script></body></html>

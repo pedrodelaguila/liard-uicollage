@@ -1,0 +1,74 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Inicio distribuidor</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .now .list-i { display: flex; gap: 12px; align-items: center; padding: 12px 16px; }
+  .now .list-i small { display: block; color: var(--ink-3); }
+  .kpi small { display: block; } .kpi .sub { color: var(--ink-3); font-size: var(--fs-xs); }
+  .health dl { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; margin: 0; font-size: var(--fs-sm); } .health dd { margin: 0; text-align: right; font-family: var(--font-mono); }
+</style></head>
+<body data-role="SUPPLIER" data-active="prov-inicio" data-title="Inicio" data-sub="Lo que te pide atención hoy">
+<div id="act"></div>
+<div id="page"></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get(); const SID = S().session.supplierId;
+  const page = document.getElementById('page'), act = document.getElementById('act');
+  const hours = (a, b) => (new Date(b) - new Date(a)) / 36e5;
+  const fmtH = h => h < 1 ? Math.round(h * 60) + ' min' : h < 48 ? L.pct(h, 1).replace(' %', ' h') : Math.round(h / 24) + ' días';
+
+  function render() {
+    const s = S(); const sup = L.supplier(SID); const estado = L.param('estado');
+    const reqs = s.requests.filter(r => r.supplierIds.includes(SID));
+    const offer = r => L.offer(r.id, SID);
+    const open = reqs.filter(r => r.status === 'ABIERTA' && r.deadline >= B.TODAY);
+    const toAnswer = open.filter(r => ['PENDIENTE', 'BORRADOR'].includes(offer(r).status)).sort((a, b) => a.deadline < b.deadline ? -1 : 1);
+    const drafts = toAnswer.filter(r => offer(r).status === 'BORRADOR');
+    const orders = s.orders.filter(o => o.supplierId === SID); const toConfirm = orders.filter(o => o.status === 'SENT');
+    /* Tiempo de respuesta: desde que llegó la solicitud hasta que enviaste la oferta o dijiste que no cotizás. */
+    const answered = reqs.map(r => ({ r, o: offer(r) })).filter(x => x.o.submittedAt && ['ENVIADA', 'DECLINADA'].includes(x.o.status));
+    const times = answered.map(x => hours(x.r.createdAt, x.o.submittedAt)).sort((a, b) => a - b);
+    const median = times.length ? times[Math.floor((times.length - 1) / 2)] : null;
+    /* Tasa de adjudicación: solicitudes decididas donde enviaste oferta y te tocó al menos un material. */
+    const decided = reqs.filter(r => r.status === 'ADJUDICADA' && offer(r).status === 'ENVIADA');
+    const won = decided.filter(r => orders.some(o => o.requestId === r.id));
+    const bill = s.billing.supplier; const extra = Math.max(0, bill.leadsThisMonth - bill.leadsFree);
+    const cat = s.catalog.filter(c => c.supplierId === SID);
+    const pend = cat.filter(c => c.readingStatus === 'PENDING').length, failed = cat.filter(c => c.readingStatus === 'FAILED').length, unlinked = cat.filter(c => c.linkStatus === 'UNLINKED').length, stale = cat.filter(c => L.isStale(c)).length;
+    const days = r => L.daysBetween(B.TODAY, r.deadline);
+    act.innerHTML = `<a class="btn btn-primary btn-sm" href="${L.link('d-prov-solicitudes.html')}">${L.icon('inbox', 14)}Solicitudes</a>`;
+    if (estado === 'cargando') { page.innerHTML = `<div class="grid g4">${'<div class="card kpi"><div class="skel" style="height:54px"></div></div>'.repeat(4)}</div><div class="card mt card-b col">${'<div class="skel" style="height:40px"></div>'.repeat(3)}</div>`; return; }
+    const items = [
+      ...toConfirm.map(o => ({ t: 'Confirmar el pedido ' + o.code, sub: L.project(o.projectId).name + ' · ' + o.lines.length + ' materiales · ' + L.ars(L.orderTotal(o)), badge: L.badge('Pedido', 'warn', 'truck'), href: L.link('d-prov-pedidos.html', { o: o.id }), cta: 'Responder' })),
+      ...toAnswer.map(r => ({ t: (offer(r).status === 'BORRADOR' ? 'Terminar la oferta de ' : 'Cotizar ') + r.code, sub: s.company.name + ' · ' + L.project(r.projectId).name + ' · ' + r.lineIds.length + ' materiales', badge: L.badge(days(r) === 0 ? 'Vence hoy' : days(r) === 1 ? 'Vence mañana' : 'Vence en ' + days(r) + ' días', days(r) <= 2 ? 'warn' : 'muted', 'clock') + ' ' + L.badge(L.offerStatusLabel[offer(r).status], L.offerStatusTone[offer(r).status]), href: L.link('d-prov-oferta.html', { r: r.id }), cta: offer(r).status === 'BORRADOR' ? 'Seguir' : 'Armar oferta' })),
+    ];
+    page.innerHTML = `
+      <div class="grid g4">
+        <div class="card kpi"><span class="eyebrow">Para responder</span><strong>${toAnswer.length}</strong><small>${drafts.length} en preparación · ${toConfirm.length} ${toConfirm.length === 1 ? 'pedido' : 'pedidos'} por confirmar</small></div>
+        <div class="card kpi"><span class="eyebrow">Tiempo de respuesta</span><strong>${median == null ? '—' : fmtH(median)}</strong><small>${times.length ? 'Mediana de ' + times.length + (times.length === 1 ? ' respuesta' : ' respuestas') + ' en liard' : 'Todavía no respondiste en liard'}</small><span class="sub">Tu ficha declara ~${sup.responseH} h</span></div>
+        <div class="card kpi"><span class="eyebrow">Adjudicación</span><strong>${decided.length ? L.pct(won.length / decided.length * 100) : '—'}</strong><small>${decided.length ? won.length + ' de ' + decided.length + ' solicitudes decididas donde ofertaste' : 'Sin solicitudes decididas con tu oferta'}</small></div>
+        <div class="card kpi kpi-copper"><span class="eyebrow">Leads del mes ${L.cap('planificado')}</span><strong>${bill.leadsThisMonth}</strong><small>${bill.leadsFree} incluidos · ${extra} con comisión por lead (USD ${bill.leadFeeUSD} c/u)</small><span class="sub">Estimado: ${L.usd(extra * bill.leadFeeUSD)} · cierra ${L.dateShort(bill.cycleEnds)}</span></div>
+      </div>
+      <div class="split mt">
+        <section class="card now" aria-labelledby="n-t"><div class="card-h"><h3 id="n-t">Lo que necesita tu respuesta</h3>${L.cap('propuesto')}<span class="spacer"></span><small class="muted">Ordenado por urgencia</small></div>
+          ${items.length ? `<div class="list">${items.map(i => `<a class="list-i" href="${i.href}"><span class="grow"><strong>${L.esc(i.t)}</strong><small>${L.esc(i.sub)}</small></span>${i.badge}<span class="btn btn-sm btn-secondary">${i.cta}</span></a>`).join('')}</div>`
+            : L.empty({ icon: 'check', title: 'Nada pendiente', text: 'Respondiste todas las solicitudes abiertas y no hay pedidos por confirmar.' })}
+          <div class="card-f"><small class="muted">Las solicitudes vienen con la lista de materiales ya contada y especificada: no hace falta leer el plano.</small></div></section>
+        <div class="col" style="gap:var(--sp-4)">
+          <section class="card health" aria-labelledby="h-t"><div class="card-h"><h3 id="h-t">Salud de tu catálogo</h3>${L.cap('existe')}</div><div class="card-b"><dl>
+            <dt>Artículos publicados</dt><dd>${cat.filter(c => c.published).length}</dd>
+            <dt>${L.ai('IA')} Por leer</dt><dd>${pend}</dd><dt>No se pudieron leer</dt><dd>${failed}</dd>
+            <dt>Sin componente base</dt><dd>${unlinked}</dd><dt>Precio vencido</dt><dd>${stale}</dd></dl>
+            ${unlinked || stale ? `<p class="muted" style="margin:12px 0 0;font-size:var(--fs-xs)">Un artículo sin componente base o con precio vencido no entra en el precio de referencia que ven los ingenieros.</p>` : ''}</div>
+            <div class="card-f"><a class="btn btn-sm btn-secondary" href="d-prov-vinculacion.html">${L.icon('link', 14)}Vincular ${unlinked}</a><a class="btn btn-sm btn-ghost" href="d-prov-catalogo.html">${L.icon('box', 14)}Actualizar precios</a></div></section>
+          <section class="card" aria-labelledby="c-t"><div class="card-h"><h3 id="c-t">Cómo funciona</h3></div><div class="card-b"><ul class="tl">
+            <li>Te llega una solicitud con materiales en tu catálogo<small>Correo y aviso en la campana</small></li>
+            <li>Armás la oferta desde tu catálogo<small>Precio, stock, plazo, alternativas</small></li>
+            <li>Si te adjudican, confirmás el pedido<small>Ahí se comparten los contactos</small></li>
+            <li>Pago y flete, fuera de liard<small>Entre vos y el comprador</small></li></ul></div></section>
+        </div>
+      </div>`;
+  }
+  L.store.subscribe(render); render();
+});
+</script></body></html>

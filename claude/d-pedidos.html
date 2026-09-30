@@ -1,0 +1,141 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Pedidos</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .kpi-btn { all: unset; box-sizing: border-box; cursor: pointer; display: block; } .kpi-btn:focus-visible .card { box-shadow: var(--focus); }
+  .kpi-btn[aria-pressed='true'] .card { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+  .filters { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .filters .field { min-width: 180px; } .filters .grow { flex: 1; min-width: 220px; }
+  .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+  .ord-layout { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--sp-4); align-items: start; }
+  .tbl tbody tr { cursor: pointer; } .tbl tbody tr:focus-visible { outline: none; box-shadow: inset 0 0 0 2px var(--brand); }
+  .detail { position: sticky; top: 76px; }
+  .detail dl { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; margin: 0; font-size: var(--fs-sm); } .detail dt { color: var(--ink-3); } .detail dd { margin: 0; }
+  .contact { border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; background: var(--surface-2); font-size: var(--fs-sm); }
+  .contact.locked { color: var(--ink-3); border-style: dashed; }
+  .tl-s { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: var(--fs-sm); }
+  .tl-s li { display: grid; grid-template-columns: 18px 1fr; gap: 8px; } .tl-s .ic { margin-top: 2px; }
+  .tl-s .done { color: var(--ok); } .tl-s .no { color: var(--err); } .tl-s .wait { color: var(--ink-3); }
+  @media (max-width: 1100px) { .ord-layout { grid-template-columns: 1fr; } .kpis { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="pedidos" data-title="Pedidos" data-sub="Pedidos emitidos a distribuidores, su respuesta y los documentos para compras">
+<div id="act"><button class="btn btn-secondary" id="xlsx">Descargar listado (XLSX)</button></div>
+<div id="page"><div id="root"></div></div>
+<script>
+L.ready(() => {
+  const estado = L.param('estado');
+  const S = () => L.store.get();
+  const saved = L.pref('pedidos:filtros') || {};
+  const f = { status: L.param('estado_pedido') || saved.status || '', project: L.param('p') || saved.project || '', supplier: saved.supplier || '', q: '' };
+  if (L.param('p')) f.project = L.param('p');
+  let sel = L.param('o') || null; let sortK = 'createdAt', sortD = -1;
+  const sw = sid => `<span class="sw" style="background:${L.supplier(sid).color}" aria-hidden="true"></span>`;
+  const statusOf = o => o.status;
+
+  function filtered() {
+    const q = f.q.trim().toLowerCase();
+    return S().orders.filter(o => (!f.status || o.status === f.status) && (!f.project || o.projectId === f.project) && (!f.supplier || o.supplierId === f.supplier)
+      && (!q || (o.code + ' ' + L.project(o.projectId).name + ' ' + L.supplier(o.supplierId).name + ' ' + ((L.request(o.requestId) || {}).code || '')).toLowerCase().includes(q)))
+      .map(o => ({ o, total: L.orderTotal(o), project: L.project(o.projectId).name, supplier: L.supplier(o.supplierId).short, createdAt: o.createdAt, code: o.code, status: o.status }))
+      .sort((a, b) => (a[sortK] > b[sortK] ? 1 : a[sortK] < b[sortK] ? -1 : 0) * sortD);
+  }
+  function savePref() { L.pref('pedidos:filtros', { status: f.status, project: f.project, supplier: f.supplier }); }
+
+  function orderPdf(o) {
+    const s = S(); const sup = L.supplier(o.supplierId); const pr = L.project(o.projectId); const r = L.request(o.requestId); const offer = r && L.offer(r.id, o.supplierId);
+    const W = [210, 60, 90, 139];
+    const blocks = [
+      { h1: 'Orden de compra ' + o.code },
+      { small: s.company.name + ' · CUIT ' + s.company.cuit + ' · ' + s.company.city },
+      { hr: true },
+      { row: ['Distribuidor', sup.name], widths: [120, 379] }, { row: ['Obra', pr.name + ' · ' + pr.client], widths: [120, 379] },
+      { row: ['Solicitud', r ? r.code : '—'], widths: [120, 379] }, { row: ['Emitida', L.date(o.createdAt.slice(0, 10)) + ' ' + L.time(o.createdAt)], widths: [120, 379] },
+      { row: ['Estado', L.orderStatusLabel[o.status] + (o.respondedAt ? ' · ' + L.date(o.respondedAt.slice(0, 10)) : '')], widths: [120, 379] },
+      { row: ['Condición de pago', (offer && offer.paymentTerms) || 'A convenir'], widths: [120, 379] },
+      { gap: 8 }, { h2: 'Materiales' },
+      { row: ['Material', 'Cantidad', 'Precio unitario', 'Subtotal'], widths: W, bold: true, align: ['l', 'r', 'r', 'r'] },
+      ...o.lines.map(l => { const ln = L.line(l.lineId); return { row: [L.lineLabel(ln) + ' · ' + (l.isAlt ? 'alt. ' + l.altCode : (l.brand || '')), L.num(l.qty) + ' u', L.ars(l.unitPrice), L.ars(l.qty * l.unitPrice)], widths: W, align: ['l', 'r', 'r', 'r'] }; }),
+      { hr: true }, { row: ['Total', '', '', L.ars(L.orderTotal(o))], widths: W, bold: true, align: ['l', 'r', 'r', 'r'] },
+      { gap: 10 },
+      { small: 'Precios en pesos argentinos, confirmados por el distribuidor en su oferta.' }, { p: 'El pago de los materiales se acuerda entre las partes; liard no lo procesa.' },
+      ...(o.status === 'CONFIRMED' ? [{ small: 'Contacto del distribuidor: ' + sup.contact + ' · ' + sup.email + ' · ' + sup.phone }] : [{ small: 'El distribuidor todavía no confirmó este pedido.' }]),
+    ];
+    L.download(o.code + '.pdf', L.pdf(blocks, { title: 'Orden de compra ' + o.code, footer: 'liard · ' + o.code + ' · documento de demostración con datos ficticios' }));
+  }
+  function listXlsx() {
+    const rows = filtered();
+    const a = [['Pedido', 'Obra', 'Distribuidor', 'Solicitud', 'Emitido', 'Estado', 'Materiales', 'Total (ARS)']].concat(rows.map(x => [x.o.code, x.project, L.supplier(x.o.supplierId).name, (L.request(x.o.requestId) || {}).code || '', x.o.createdAt.replace('T', ' '), L.orderStatusLabel[x.o.status], x.o.lines.length, x.total]));
+    const b = [['Pedido', 'Material', 'Marca', 'Cantidad', 'Precio unitario (ARS)', 'Subtotal (ARS)']].concat(rows.flatMap(x => x.o.lines.map(l => [x.o.code, L.lineLabel(L.line(l.lineId)), l.isAlt ? 'Alternativa ' + l.altCode : l.brand || '', l.qty, l.unitPrice, l.qty * l.unitPrice])));
+    L.download('pedidos.xlsx', L.xlsx([{ name: 'Pedidos', rows: a }, { name: 'Líneas', rows: b }]));
+  }
+
+  function detailHTML(o) {
+    if (!o) return `<div class="card detail"><div class="card-b">${L.empty({ icon: 'truck', title: 'Elegí un pedido', text: 'Vas a ver sus materiales, la respuesta del distribuidor y los documentos.' })}</div></div>`;
+    const sup = L.supplier(o.supplierId); const pr = L.project(o.projectId); const r = L.request(o.requestId); const offer = r && L.offer(r.id, o.supplierId);
+    const conf = o.status === 'CONFIRMED';
+    const steps = [
+      ['done', 'check', 'Emitido el ' + L.dateShort(o.createdAt) + ' ' + L.time(o.createdAt) + ' desde ' + (r ? r.code : 'la cotización')],
+      o.status === 'SENT' ? ['wait', 'clock', 'Esperando que ' + sup.short + ' confirme o rechace (suele responder en ~' + sup.responseH + ' h)'] : o.status === 'CONFIRMED' ? ['done', 'check', 'Confirmado por ' + sup.short + ' el ' + L.dateShort(o.respondedAt) + ' ' + L.time(o.respondedAt)] : ['no', 'x', 'Rechazado por ' + sup.short + (o.respondedAt ? ' el ' + L.dateShort(o.respondedAt) : '') + (o.reason ? ': «' + o.reason + '»' : '')],
+      conf ? ['wait', 'truck', 'Entrega y pago: se coordinan con el distribuidor, fuera de liard'] : null,
+    ].filter(Boolean);
+    return `<div class="card detail" id="detail"><div class="card-h">${sw(o.supplierId)}<h3 class="mono">${o.code}</h3>${L.badge(L.orderStatusLabel[o.status], L.orderStatusTone[o.status])}<span class="spacer"></span><button class="icon-btn" id="close-d" aria-label="Cerrar detalle">${L.icon('x', 16)}</button></div>
+      <div class="card-b stack">
+        <dl><dt>Distribuidor</dt><dd>${L.esc(sup.name)}</dd><dt>Obra</dt><dd><a href="${L.link('d-obra.html', { p: o.projectId })}">${L.esc(pr.name)}</a></dd><dt>Solicitud</dt><dd>${r ? `<a href="${L.link('d-comparar.html', { r: r.id, p: o.projectId })}">${r.code}</a>` : '—'}</dd><dt>Pago</dt><dd>${L.esc((offer && offer.paymentTerms) || 'A convenir')}</dd></dl>
+        <ul class="tl-s">${steps.map(([k, ic, t]) => `<li class="${k}">${L.icon(ic, 14)}<span style="color:var(--ink)">${L.esc(t)}</span></li>`).join('')}</ul>
+        ${conf ? `<div class="contact"><strong>${L.icon('user', 14)} ${L.esc(sup.contact)}</strong><br>${L.icon('mail', 13)} <a href="mailto:${L.esc(sup.email)}">${L.esc(sup.email)}</a><br>${L.icon('phone', 13)} ${L.esc(sup.phone)}<br><small class="muted">El distribuidor también ve tu contacto desde que confirmó.</small></div>`
+          : `<div class="contact locked">${L.icon('lock', 14)} Los datos de contacto para coordinar la entrega se comparten ${o.status === 'REJECTED' ? 'solo en pedidos confirmados' : 'cuando el distribuidor confirma'}.</div>`}
+        ${o.status === 'REJECTED' ? `<div class="note note-err">${L.icon('refresh', 16)}<div><p><strong>${o.lines.length} ${o.lines.length === 1 ? 'material quedó' : 'materiales quedaron'} sin proveedor.</strong> Volvieron a la comparación de ${r ? r.code : 'la solicitud'} para adjudicarlos a otro distribuidor.</p>${r ? `<a class="btn btn-sm btn-primary" id="reaward" href="${L.link('d-comparar.html', { r: r.id, p: o.projectId, v: 'matriz' })}">Readjudicar en la comparación</a>` : ''}</div></div>` : ''}
+      </div>
+      <div class="tbl-wrap" style="border-top:1px solid var(--line);border-radius:0"><table class="tbl" style="font-size:var(--fs-xs)"><thead><tr><th>Material</th><th class="num">Cant.</th><th class="num">Unit.</th><th class="num">Subtotal</th></tr></thead>
+        <tbody>${o.lines.map(l => `<tr><td style="min-width:150px">${L.esc(L.lineLabel(L.line(l.lineId)))}<br><small class="muted">${l.isAlt ? 'Alternativa ' + L.esc(l.altCode) + ' · equivalencia aprobada' : L.esc(l.brand || '')}</small></td><td class="num">${L.num(l.qty)}</td><td class="num">${L.ars(l.unitPrice)}</td><td class="num">${L.ars(l.qty * l.unitPrice)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td colspan="3">Total ${L.priceTag('oferta')}</td><td class="num">${L.ars(L.orderTotal(o))}</td></tr></tfoot></table></div>
+      <div class="card-f"><button class="btn btn-secondary" id="pdf">${L.icon('download', 14)}Orden de compra (PDF)</button><span class="spacer"></span><small class="muted">Sin compresión, lista para imprimir</small></div></div>`;
+  }
+
+  function render() {
+    const root = document.getElementById('root');
+    if (estado === 'cargando') { root.innerHTML = `<div class="kpis">${'<div class="skel" style="height:92px"></div>'.repeat(4)}</div><div class="skel" style="height:420px"></div><p class="sr-only" role="status">Cargando pedidos…</p>`; return; }
+    if (estado === 'error') { root.innerHTML = `<div class="card"><div class="card-b">${L.empty({ icon: 'alertc', title: 'No se pudieron cargar los pedidos', text: 'El servidor no respondió. Los pedidos emitidos no se perdieron.', action: `<a class="btn btn-primary" href="${L.link('d-pedidos.html')}">Reintentar</a>` })}</div></div>`; return; }
+    const all = S().orders; const scope = all.filter(o => !f.project || o.projectId === f.project);
+    const cnt = st => scope.filter(o => !st || o.status === st).length;
+    const kp = [['', 'Todos', cnt(''), 'pedidos' + (f.project ? ' de esta obra' : '')], ['SENT', 'Esperando respuesta', cnt('SENT'), 'sin confirmar'], ['CONFIRMED', 'Confirmados', cnt('CONFIRMED'), L.arsShort(scope.filter(o => o.status === 'CONFIRMED').reduce((a, o) => a + L.orderTotal(o), 0))], ['REJECTED', 'Rechazados', cnt('REJECTED'), 'a readjudicar']];
+    const rows = estado === 'vacio' ? [] : filtered();
+    if (sel && !all.find(o => o.id === sel)) sel = null;
+    const cur = sel && all.find(o => o.id === sel);
+    const empty = estado === 'vacio' || !all.length;
+    root.innerHTML = `<div class="kpis" role="group" aria-label="Filtrar por estado">${kp.map(([st, t, n, s]) => `<button class="kpi-btn" data-kst="${st}" aria-pressed="${f.status === st}"><div class="card kpi"><span class="eyebrow">${t}</span><strong>${n}</strong><small>${L.esc(s)}</small></div></button>`).join('')}</div>
+      <div class="ord-layout"><div class="card"><div class="card-h"><h3>Pedidos</h3>${L.cap('existe')}<span class="spacer"></span><small class="muted">${rows.length} de ${all.length}</small></div>
+        <div class="filters">
+          <div class="field grow"><label for="q">Buscar</label><input class="input" type="search" id="q" placeholder="Código, obra o distribuidor" value="${L.esc(f.q)}"></div>
+          <div class="field"><label for="fst">Estado</label><select class="select" id="fst"><option value="">Todos</option>${Object.entries(L.orderStatusLabel).filter(([k]) => k !== 'EXPIRED').map(([k, v]) => `<option value="${k}" ${f.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select></div>
+          <div class="field"><label for="fpr">Obra</label><select class="select" id="fpr"><option value="">Todas las obras</option>${S().projects.map(p => `<option value="${p.id}" ${f.project === p.id ? 'selected' : ''}>${L.esc(p.name)}</option>`).join('')}</select></div>
+          <div class="field"><label for="fsu">Distribuidor</label><select class="select" id="fsu"><option value="">Todos</option>${S().suppliers.map(s => `<option value="${s.id}" ${f.supplier === s.id ? 'selected' : ''}>${L.esc(s.short)}</option>`).join('')}</select></div>
+          ${f.status || f.project || f.supplier || f.q ? '<button class="btn btn-ghost btn-sm" id="clr">Limpiar filtros</button>' : ''}
+        </div>
+        ${empty ? L.empty({ icon: 'truck', title: 'Todavía no emitiste pedidos', text: 'Los pedidos se crean al adjudicar una solicitud de cotización: uno por distribuidor.', action: `<a class="btn btn-primary" href="${L.link('d-comparar.html')}">Ir a comparar ofertas</a>` })
+          : !rows.length ? L.empty({ icon: 'filter', title: 'Ningún pedido con esos filtros', text: 'Probá con otro estado, obra o distribuidor.', action: '<button class="btn btn-secondary" id="clr2">Limpiar filtros</button>' })
+          : `<div class="tbl-wrap" style="border-radius:0 0 var(--r-lg) var(--r-lg)"><table class="tbl" id="tbl"><thead><tr><th data-sort="code">Pedido</th><th data-sort="project">Obra</th><th data-sort="supplier">Distribuidor</th><th data-sort="createdAt">Emitido</th><th data-sort="status">Estado</th><th data-sort="total" class="num">Total</th><th><span class="sr-only">Acciones</span></th></tr></thead>
+            <tbody>${rows.map(x => `<tr tabindex="0" data-o="${x.o.id}" ${x.o.id === sel ? 'aria-selected="true"' : ''}><td class="mono" style="white-space:nowrap"><strong>${x.o.code}</strong><br><small class="muted">${(L.request(x.o.requestId) || {}).code || ''}</small></td><td style="font-size:var(--fs-xs);min-width:120px">${L.esc(x.project)}</td><td style="white-space:nowrap">${sw(x.o.supplierId)} ${L.esc(x.supplier)}</td><td style="white-space:nowrap">${L.dateShort(x.o.createdAt)}</td>
+              <td>${L.badge(L.orderStatusLabel[x.o.status], L.orderStatusTone[x.o.status])}</td><td class="num">${L.ars(x.total)}<br><small class="muted">${x.o.lines.length} ${x.o.lines.length === 1 ? 'material' : 'materiales'}</small></td><td class="tight">${x.o.status === 'REJECTED' ? `<a class="btn btn-sm btn-secondary" href="${L.link('d-comparar.html', { r: x.o.requestId, p: x.o.projectId, v: 'matriz' })}">Readjudicar</a>` : ''}</td></tr>`).join('')}</tbody></table></div>`}
+      </div>${detailHTML(cur)}</div>`;
+    bind();
+  }
+  function bind() {
+    const root = document.getElementById('root');
+    root.querySelectorAll('[data-kst]').forEach(b => b.onclick = () => { f.status = b.dataset.kst; savePref(); render(); });
+    const q = document.getElementById('q'); q.oninput = () => { f.q = q.value; const pos = q.selectionStart; render(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(pos, pos); };
+    [['fst', 'status'], ['fpr', 'project'], ['fsu', 'supplier']].forEach(([id, k]) => { const s = document.getElementById(id); s.onchange = () => { f[k] = s.value; if (k === 'project') L.setParam('p', s.value || null); savePref(); render(); document.getElementById(id).focus(); }; });
+    ['clr', 'clr2'].forEach(id => { const b = document.getElementById(id); if (b) b.onclick = () => { f.status = f.project = f.supplier = f.q = ''; L.setParam('p', null); savePref(); render(); }; });
+    root.querySelectorAll('tr[data-o]').forEach(tr => { const go = () => { sel = tr.dataset.o; L.setParam('o', sel); render(); const d = document.getElementById('detail'); if (d && window.innerWidth <= 1100) d.scrollIntoView({ block: 'start' }); };
+      tr.onclick = e => { if (e.target.closest('a')) return; go(); }; tr.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
+    const t = document.getElementById('tbl'); if (t) { L.sortable(t, (k, d) => { sortK = k; sortD = d; render(); }); const th = t.querySelector(`th[data-sort="${sortK}"]`); if (th) th.setAttribute('aria-sort', sortD === 1 ? 'ascending' : 'descending'); }
+    const c = document.getElementById('close-d'); if (c) c.onclick = () => { sel = null; L.setParam('o', null); render(); };
+    const p = document.getElementById('pdf'); if (p) p.onclick = () => orderPdf(S().orders.find(o => o.id === sel));
+  }
+  document.getElementById('xlsx').onclick = listXlsx;
+  render();
+  L.store.subscribe(render);
+});
+</script>
+</body></html>

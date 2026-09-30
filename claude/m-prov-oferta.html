@@ -1,0 +1,92 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Ofertar</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .rq { padding: 14px; } .rq h2 { font-size: var(--fs-xl); } .rq p { margin: 4px 0 0; color: var(--ink-2); font-size: var(--fs-sm); }
+  .ml { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .ml.err { border-color: var(--err); }
+  .ml h3 { font-size: var(--fs-md); } .ml small { color: var(--ink-3); }
+  .ml .input { height: 48px; font-size: 17px; }
+  .stk { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .stk button { all: unset; box-sizing: border-box; min-height: 48px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--surface); font-size: var(--fs-sm); font-weight: 600; text-align: center; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .stk button[aria-pressed='true'] { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .stk button.no[aria-pressed='true'] { background: var(--err); border-color: var(--err); }
+  .stk button:focus-visible { box-shadow: var(--focus); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .mfoot { position: sticky; bottom: 78px; z-index: 10; margin-top: 14px; padding: 12px; border-radius: var(--r-lg); background: var(--stage); color: var(--stage-ink); display: flex; align-items: center; gap: 10px; box-shadow: var(--shadow-3); }
+  .mfoot small { display: block; color: var(--stage-ink-2); font-size: 11px; } .mfoot strong { font: 600 18px/1.2 var(--font-mono); color: var(--volt); }
+  .mfoot .btn { margin-left: auto; height: 48px; }
+</style></head>
+<body class="m" data-role="SUPPLIER" data-active="prov-oferta" data-title="Ofertar" data-sub="Respuesta rápida desde el teléfono">
+<div id="page"></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get(); const SID = S().session.supplierId; const page = document.getElementById('page');
+  const mine = () => S().requests.filter(r => r.supplierIds.includes(SID));
+  const openReq = r => r.status === 'ABIERTA' && r.deadline >= B.TODAY;
+  const rid = L.param('r') || ((mine().filter(openReq).sort((a, b) => a.deadline < b.deadline ? -1 : 1)[0] || mine()[0] || {}).id);
+  const parseNum = v => { const s = String(v).trim().replace(/\s|\./g, '').replace(',', '.'); return s === '' ? null : Number(s); };
+  let draft = null, showErrs = false, dirty = false;
+  const req = () => L.request(rid), offer = () => L.offer(rid, SID);
+  const disc = () => (+(draft && draft.discountPct) || 0) / 100;
+  const load = () => { const o = offer(); draft = o ? JSON.parse(JSON.stringify(o)) : null; if (draft) draft.lines.forEach(ol => { if (ol.basePrice == null && ol.unitPrice != null) ol.basePrice = ol.unitPrice; if (ol.alt && ol.alt.basePrice == null) ol.alt.basePrice = ol.alt.unitPrice; }); dirty = false; };
+  const base = ol => ol.mode === 'ALTERNATIVA' ? ol.alt.basePrice : ol.basePrice;
+  /* Mismo formato que la oferta de escritorio: precio base sin descuento, precio neto con el descuento global. */
+  const stored = () => draft.lines.map(ol => { const x = JSON.parse(JSON.stringify(ol)); if (x.mode === 'ALTERNATIVA') x.alt.unitPrice = Math.round(x.alt.basePrice * (1 - disc())); else if (x.mode !== 'SIN_OFERTA') x.unitPrice = Math.round(x.basePrice * (1 - disc())); if (x.stock !== 'PARCIAL') delete x.stockQty; return x; });
+  const errors = () => { const e = L.validateOffer(Object.assign({}, draft, { lines: stored() })); draft.lines.forEach(ol => { if (ol.mode === 'SIN_OFERTA' && !(ol.note || '').trim()) e.push({ lineId: ol.lineId, text: 'Elegí por qué no cotizás.' }); }); return e; };
+  const total = () => draft.lines.reduce((a, ol) => { const b = base(ol); return a + (ol.mode === 'SIN_OFERTA' || !(b > 0) ? 0 : Math.round(b * (1 - disc())) * L.reqQty(req(), L.line(ol.lineId))); }, 0);
+  const persist = () => { L.saveOffer(draft.id, { lines: stored(), validUntil: draft.validUntil, paymentTerms: draft.paymentTerms, discountPct: +draft.discountPct || 0 }); dirty = false; };
+
+  function render() {
+    const r = req();
+    if (!r || !r.supplierIds.includes(SID)) { page.innerHTML = `<div class="card">${L.empty({ icon: 'inbox', title: 'No tenés solicitudes para ofertar', text: 'Cuando te pidan cotización te avisamos por correo y en Avisos.' })}</div>`; return; }
+    const o = offer(); const pr = L.project(r.projectId); const d = L.daysBetween(B.TODAY, r.deadline);
+    const head = `<section class="card rq"><div class="row"><span class="eyebrow">Solicitud</span>${L.cap('propuesto')}<span class="spacer"></span>${openReq(r) ? L.badge(d === 0 ? 'Vence hoy' : 'Vence en ' + d + (d === 1 ? ' día' : ' días'), d <= 2 ? 'warn' : 'muted', 'clock') : L.badge('Cerrada', 'muted')}</div>
+      <h2 class="mono" style="margin-top:4px">${L.esc(r.code)}</h2><p>${L.esc(S().company.name)} · ${L.esc(pr.name)}</p><p>${r.lineIds.length} materiales · ${L.badge(L.offerStatusLabel[o.status], L.offerStatusTone[o.status])}</p></section>
+      <p class="muted mt" style="font-size:var(--fs-xs)">${L.icon('lock', 12)} No ves precios ni nombres de otros distribuidores. El contacto del comprador aparece al confirmar un pedido.</p>`;
+    if (o.status === 'ENVIADA' || o.status === 'DECLINADA' || !openReq(r)) {
+      page.innerHTML = head + `<div class="note ${o.status === 'ENVIADA' ? 'note-ok' : 'note-warn'} mt">${L.icon(o.status === 'ENVIADA' ? 'check' : 'info', 16)}<p>${o.status === 'ENVIADA' ? '<b>Oferta enviada</b> por ' + L.ars(L.offerTotal(o)) + '. Para editarla abrila en la computadora.' : o.status === 'DECLINADA' ? 'Respondiste que no cotizás.' : 'La solicitud ya no recibe ofertas.'}</p></div>
+        <a class="btn btn-secondary btn-block btn-lg mt" href="d-prov-oferta.html?r=${encodeURIComponent(r.id)}">Ver en versión completa</a>`; return;
+    }
+    if (o.status === 'PENDIENTE') { page.innerHTML = head + `<button class="btn btn-primary btn-lg btn-block mt" data-start>${L.icon('wand', 16)}Armar oferta desde mi catálogo</button><p class="muted mt" style="font-size:var(--fs-xs)">Parte de tus precios de catálogo (referencia) con disponibilidad sin confirmar. Confirmás precio y stock línea por línea.</p>`; return; }
+    const errs = showErrs ? errors() : [];
+    const cards = draft.lines.map((ol, i) => { const l = L.line(ol.lineId); const q = L.reqQty(r, l); const le = errs.filter(e => e.lineId === ol.lineId); const no = ol.mode === 'SIN_OFERTA'; const alt = ol.mode === 'ALTERNATIVA';
+      return `<article class="card ml mt${le.length ? ' err' : ''}" data-line="${ol.lineId}"><div><h3>${i + 1}. ${L.esc(L.lineLabel(l))} × ${L.num(q)}</h3>
+          <small>${alt ? 'Alternativa sugerida ' + L.esc(ol.alt.code || '') + ' · la aprueba ingeniería' : no ? 'No cotizás' : L.esc((ol.brand || '') + ' ' + (ol.code || ''))}${ol.refPrice && !no && !alt ? ' · catálogo ' + L.ars(ol.refPrice) : ''}</small></div>
+        ${no ? `<div class="field"><label for="nq-${ol.lineId}">Motivo</label><select class="select input" id="nq-${ol.lineId}" data-f="note"><option value="">Elegí un motivo</option>${['Sin stock ni reposición en plazo', 'No trabajo esa marca', 'No trabajo ese material', 'No llego con el plazo pedido'].map(x => `<option${ol.note === x ? ' selected' : ''}>${x}</option>`).join('')}</select></div>`
+          : `<div class="two"><div class="field"><label for="p-${ol.lineId}">Precio unit. ARS</label><input class="input num" id="p-${ol.lineId}" data-f="price" inputmode="numeric" value="${base(ol) == null ? '' : base(ol)}"></div>
+             <div class="field"><label for="d-${ol.lineId}">Plazo (días)</label><input class="input num" id="d-${ol.lineId}" data-f="lead" inputmode="numeric" value="${ol.leadDays == null ? '' : ol.leadDays}"></div></div>`}
+        <div class="stk" role="group" aria-label="Disponibilidad de la línea ${i + 1}">${[['CONFIRMADO', 'Tengo stock'], ['PARCIAL', 'Stock parcial'], ['A_PEDIDO', 'A pedido']].map(([k, t]) => `<button data-stock="${k}" aria-pressed="${!no && ol.stock === k}">${t}</button>`).join('')}<button class="no" data-stock="NO" aria-pressed="${no}">No cotizo</button></div>
+        ${!no && ol.stock === 'PARCIAL' ? `<div class="field"><label for="q-${ol.lineId}">Unidades en stock</label><input class="input num" id="q-${ol.lineId}" data-f="qty" inputmode="numeric" value="${ol.stockQty || ''}"></div>` : ''}
+        ${!no && ol.stock === 'DESCONOCIDO' ? '<small>' + L.icon('info', 12) + ' Disponibilidad sin confirmar</small>' : ''}
+        ${le.map(e => `<span class="field-err">${L.icon('alertc', 12)}${L.esc(e.text)}</span>`).join('')}</article>`; }).join('');
+    const gen = errs.filter(e => !e.lineId);
+    page.innerHTML = head + (errs.length ? `<div class="note note-err mt" role="alert" id="errsum" tabindex="-1">${L.icon('alertc', 16)}<p><b>Revisá ${errs.length === 1 ? '1 cosa' : errs.length + ' cosas'}</b> marcadas en rojo antes de enviar.${gen.map(e => '<br>' + L.esc(e.text)).join('')}</p></div>` : '')
+      + `<button class="btn btn-secondary btn-lg btn-block mt" data-all>${L.icon('check', 16)}Confirmar stock de todo</button>${cards}
+      <section class="card ml mt"><div class="two"><div class="field"><label for="vu">Válida hasta</label><input type="date" class="input" id="vu" data-o="validUntil" min="${B.TODAY}" value="${draft.validUntil || ''}"></div>
+        <div class="field"><label for="pt">Pago</label><select class="select input" id="pt" data-o="paymentTerms">${['Contado', '30 días', '60 días', '90 días'].map(x => `<option${draft.paymentTerms === x ? ' selected' : ''}>${x}</option>`).join('')}</select></div></div>
+        ${draft.discountPct ? `<small>Incluye tu descuento global de ${L.pct(draft.discountPct, 1)}.</small>` : ''}</section>
+      <div class="mfoot"><div><small>Total oferta</small><strong id="tot">${L.ars(total())}</strong></div><button class="btn btn-volt" data-send>${L.icon('send', 16)}Enviar oferta</button></div>
+      <button class="btn btn-ghost btn-block mt" data-save>Guardar borrador</button>`;
+  }
+  page.addEventListener('input', e => { const t = e.target; const host = t.closest('[data-line]'); if (t.dataset.o) { draft[t.dataset.o] = t.value; dirty = true; return; } if (!host) return;
+    const ol = draft.lines.find(x => x.lineId === host.dataset.line); const v = parseNum(t.value); dirty = true;
+    if (t.dataset.f === 'price') { if (ol.mode === 'ALTERNATIVA') ol.alt.basePrice = v; else ol.basePrice = v; document.getElementById('tot').textContent = L.ars(total()); }
+    if (t.dataset.f === 'lead') ol.leadDays = v; if (t.dataset.f === 'qty') ol.stockQty = v; if (t.dataset.f === 'note') ol.note = t.value; });
+  page.addEventListener('change', e => { if (e.target.tagName === 'SELECT' || e.target.type === 'date') { e.target.dispatchEvent(new Event('input', { bubbles: true })); if (showErrs) render(); } });
+  page.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.dataset.start != null) { L.prefillOffer(rid, SID); load(); render(); L.toast('Oferta armada desde tu catálogo', { detail: 'Confirmá precio y stock.' }); }
+    else if (b.dataset.stock) { const ol = draft.lines.find(x => x.lineId === b.closest('[data-line]').dataset.line); const k = b.dataset.stock;
+      if (k === 'NO') { ol.prevMode = ol.mode === 'SIN_OFERTA' ? ol.prevMode : ol.mode; ol.mode = 'SIN_OFERTA'; ol.note = ol.note || ''; }
+      else { if (ol.mode === 'SIN_OFERTA') { ol.mode = ol.prevMode || (ol.code ? 'CATALOGO' : 'CATALOGO'); } ol.stock = k; if (ol.leadDays == null) ol.leadDays = L.supplier(SID).lead; }
+      dirty = true; render(); const n = document.querySelector(`[data-line="${ol.lineId}"] [data-stock="${k}"]`); if (n) n.focus(); }
+    else if (b.dataset.all != null) { draft.lines.forEach(ol => { if (ol.mode !== 'SIN_OFERTA') ol.stock = 'CONFIRMADO'; }); dirty = true; render(); L.toast('Stock confirmado en todas las líneas que cotizás'); }
+    else if (b.dataset.save != null) { persist(); L.toast('Borrador guardado'); render(); }
+    else if (b.dataset.send != null) { showErrs = true; const es = errors(); if (es.length) { render(); document.getElementById('errsum').focus(); return; }
+      persist(); const res = L.submitOffer(draft.id); if (!res.ok) { L.toast('No se pudo enviar', { kind: 'err' }); return; } showErrs = false; load(); render(); L.toast('Oferta enviada', { detail: S().company.name + ' ya puede compararla.' }); }
+  });
+  L.store.subscribe(() => { if (!dirty) { load(); render(); } });
+  load(); render();
+});
+</script></body></html>

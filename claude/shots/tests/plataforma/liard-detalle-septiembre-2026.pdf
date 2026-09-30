@@ -1,0 +1,68 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 1980 >>
+stream
+BT /F2 18 Tf 48.0 774.0 Td (Factura Estimado septiembre 2026) Tj ET
+BT /F1 8.5 Tf 48.0 753.5 Td (Documento de demostración: no es un comprobante fiscal ni se cobró nada. liard horizon · datos ficticios.) Tj ET
+0.5 w 0.7 G 48 741.5 m 547 741.5 l S 0 G
+BT /F2 12 Tf 48.0 715.5 Td (Emisor) Tj ET
+BT /F1 10 Tf 48.0 695.5 Td (liard · plataforma de materiales eléctricos \(ficticio\)) Tj ET
+BT /F2 12 Tf 48.0 669.5 Td (Cliente) Tj ET
+BT /F1 10 Tf 48.0 649.5 Td (Tableros Andes SRL · CUIT 30-00000000-0 \(ficticio\) · Rosario) Tj ET
+BT /F2 12 Tf 48.0 623.5 Td (Período: Septiembre 2026) Tj ET
+BT /F2 8.5 Tf 48.0 599.5 Td (Concepto) Tj ET
+BT /F2 8.5 Tf 337.2 599.5 Td (Cantidad) Tj ET
+BT /F2 8.5 Tf 395.0 599.5 Td (Precio unitario) Tj ET
+BT /F2 8.5 Tf 510.8 599.5 Td (Importe) Tj ET
+0.6 w 48 596.5 m 547 596.5 l S
+BT /F1 8.5 Tf 48.0 584.5 Td (Abono plan Distribuidor) Tj ET
+BT /F1 8.5 Tf 369.4 584.5 Td (1) Tj ET
+BT /F1 8.5 Tf 418.0 584.5 Td (USD 120,00) Tj ET
+BT /F1 8.5 Tf 497.0 584.5 Td (USD 120,00) Tj ET
+BT /F1 8.5 Tf 48.0 569.5 Td (Leads por encima de los 5 gratis) Tj ET
+BT /F1 8.5 Tf 369.4 569.5 Td (4) Tj ET
+BT /F1 8.5 Tf 427.2 569.5 Td (USD 4,00) Tj ET
+BT /F1 8.5 Tf 501.6 569.5 Td (USD 16,00) Tj ET
+0.5 w 0.7 G 48 560.5 m 547 560.5 l S 0 G
+BT /F2 8.5 Tf 48.0 542.5 Td (Total) Tj ET
+BT /F2 8.5 Tf 374.0 542.5 Td () Tj ET
+BT /F2 8.5 Tf 464.0 542.5 Td () Tj ET
+BT /F2 8.5 Tf 497.0 542.5 Td (USD 136,00) Tj ET
+0.6 w 48 539.5 m 547 539.5 l S
+BT /F1 10 Tf 48.0 527.5 Td (Equivale a ARS 169.320 al tipo de cambio de la demo \(USD 1 = ARS 1.245, cotización simulada para la) Tj ET
+BT /F1 10 Tf 48.0 512.5 Td (demo\).) Tj ET
+BT /F1 10 Tf 48.0 494.5 Td (Estado: Estimada, sin emitir.) Tj ET
+BT /F1 8.5 Tf 48.0 470.0 Td (Esta factura cubre solo el uso de liard. El pago de los materiales se acuerda entre comprador y distribuidor, fuera) Tj ET
+BT /F1 8.5 Tf 48.0 456.5 Td (de liard.) Tj ET
+BT /F1 7.5 Tf 48 24 Td (liard · factura de demostración con datos ficticios · página 1 de 1) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000212 00000 n 
+0000000314 00000 n 
+0000002346 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R /Info << /Title (Factura Estimado septiembre 2026) /Producer (liard horizon demo) >> >>
+startxref
+2482
+%%EOF

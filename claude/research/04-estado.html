@@ -1,0 +1,428 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="../estrategia/01-estrategia.html" class="">01 · Estrategia de liard</a><a href="../estrategia/02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="../estrategia/03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="../estrategia/04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="04-estado.html" class="on">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</h1>
+<p>Fuente: repo <code>lab3-liard</code>, rama <code>dev</code>, commit <code>04fc8139</code> (30/09/2026), más GitHub (<code>gh issue list/view</code>, <code>gh pr list/view</code>) leído el 30/09/2026. Solo lectura: no se corrió ningún test, ni docker, ni el detector. &quot;Verificado en código&quot; = grep/lectura de archivos en <code>dev</code>, no ejecución.</p>
+<p><strong>Ojo con el estado de los issues.</strong> El repo por defecto de GitHub es <code>main</code>, y los PRs van a <code>dev</code>, así que <code>Closes #N</code> <strong>no cierra el issue al mergear</strong>. Hay issues abiertos cuyo código ya está en <code>dev</code> (#832, #930, #931, #970, #987, y la épica #988). Por eso el estado se decidió mirando el código, no el issue.</p>
+<p>No hay milestones en el repo (<code>gh api .../milestones?state=all</code> devuelve una lista vacía). 300 issues (273 cerrados, 27 abiertos), 150 PRs mergeados a <code>dev</code> en la ventana consultada, 0 PRs abiertos.</p>
+<hr>
+<h2>1. Sprint 4: ítem por ítem (roadmap <code>documentacion/Roadmap.md</code> §Sprint 4)</h2>
+<p>El roadmap redacta el Sprint 4 como <strong>&quot;Desarrollo realizado&quot;</strong>, pero hay dos ítems que no están hechos (11 y 12), aunque el texto del 11 dice lo contrario.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Ítem del roadmap</th>
+<th>Estado</th>
+<th>Evidencia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Catálogo base de componentes</td>
+<td><strong>Hecho</strong></td>
+<td>Módulo <code>back/src/modules/canonical-catalog/</code>; 33 tipos base con una clase por archivo en <code>seed/components/</code> (33 archivos). Épicas #850 (cerrada 21/9) y #936/#934/#960 (cerradas 26–27/9); PRs #852, #854, #858, #862, #935, #944, #964.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Clasificación de productos del proveedor con IA</td>
+<td><strong>Hecho</strong></td>
+<td><code>back/src/modules/provider/service/catalog-reading.service.ts</code>; modelo <code>CatalogReadingRun</code> con <code>costUsd</code> (<code>schema.prisma:977</code>). Issues #961–#963, #968, #975–#979 y #984 (costo y tiempo restante en vivo), todos cerrados; PRs #865, #876, #893, #969, #978.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Lectura del BOM con IA</td>
+<td><strong>Hecho</strong></td>
+<td><code>back/src/modules/electrical-bom/service/bom-line-reading.service.ts</code>, caché <code>BomLineReading</code> (<code>schema.prisma:~717</code>, con <code>costUsd</code>). #938 y #986 cerrados; PRs #991 (lectura con Haiku) y #992 (completar el componente base y los atributos en Editar BOM), mergeados el 29/9.</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Matching por componente base y atributos</td>
+<td><strong>Hecho en el backend; el front no muestra el motivo del no-match; issue todavía abierto</strong></td>
+<td>PR #995 (&quot;matchear cada línea del BOM por componente base y atributos esenciales iguales&quot;, <code>Refs #987</code>), mergeado a <code>dev</code> el 29/9. <code>quotation/matching/</code> tiene solo <code>quote-matcher.service.ts</code> y <code>component-type-essentials.reader.ts</code>; <code>ProviderCandidateFinder</code> y la similitud de Dice ya no existen (grep vacío). <code>BomQuoteLine.unmatchedReason</code> existe (<code>schema.prisma:1052</code>), pero en el front solo aparece en <code>front/src/types/quotation.types.ts</code>: <strong>ningún componente lo muestra</strong>. #987 y la épica #988 siguen abiertas aunque sus dos tickets (#986 y #987) están en código. El set de prueba (67 materiales, series de Schneider, ABB y Siemens) está en <code>evaluation/matching/</code> (PRs #929, #947).</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Marcas y preferencias</td>
+<td><strong>Hecho</strong></td>
+<td>Módulo <code>back/src/modules/brand-preference/</code> (PUT <code>brand-preferences</code> de cuenta y de proyecto), <code>model BrandPreference</code> (<code>schema.prisma:253</code>). Issues #764, #394, #807, y la épica de submarca #837 con #838–#845, todos cerrados; PRs #767, #769, #796, #804, #815, #866, #897.</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Mejoras en la detección (YOLO+Claude en 2 etapas, tabla opcional, filtrado rápido, PDF)</td>
+<td><strong>Hecho</strong></td>
+<td>PR #733 (pipeline YOLO+Claude), #898 (unificar servicios), #900 (tabla opcional), #994 (filtrado: lu_un_01 <strong>622 s → 26 s</strong>, nyw_un_01 755 s → 24 s), #795 (recorte más rápido), #996 (rondas de filtros 1–3). PDF: <code>component-detector/pdf_plan/</code>, PRs #955/#956/#957, mergeados el 29/9 (<strong>el issue #832 sigue abierto</strong>). YOLO26 (#849) y Gemini (#811), cerrados.</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Ver y corregir componentes sobre el plano</td>
+<td><strong>Hecho</strong></td>
+<td>#797, #888 cerrados; PRs #801, #808, #959.</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Multiplicador de planos</td>
+<td><strong>Hecho</strong></td>
+<td><code>multiplier Int @default(1)</code> (<code>schema.prisma:365</code>), con un CHECK ≥ 1; PRs #869 y #871; #833 cerrado.</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Rediseño y cuenta de usuario</td>
+<td><strong>Mayormente hecho</strong></td>
+<td><code>front/src/pages/account/AccountPage.tsx</code>, con secciones por rol (el SUPPLIER tiene perfil, empresa, preferencias y seguridad), PATCH <code>users/me</code>, <code>auth/password</code> y <code>auth/email</code>; toasts #791; landing #875/#885. Exportación: redondeo a 2 decimales (PR #989) y encabezados <code>Cantidad a comprar</code> / <code>Cantidad en el plano</code> / <code>Cantidad_en_planos</code> (PR #990); <strong>#930 y #931 siguen abiertos aunque están resueltos</strong>. Lo que falta, de los tickets #824–#826: avatar (no aparece en ningún lado) y renombrar proyecto o pedido (no hay <code>@Patch</code> en <code>project</code> ni en <code>purchase-order</code>).</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Calidad y CI (Cypress, 142 tests)</td>
+<td><strong>Hecho, y ya son más</strong></td>
+<td>PR #765 (142 tests); hoy <code>front/cypress/e2e/</code> tiene 28 specs y unos 258 bloques <code>it(</code>. <code>.github/workflows/ci.yml</code>.</td>
+</tr>
+<tr>
+<td>11</td>
+<td><strong>Deploy de la versión demo &quot;para sus primeros 5 usuarios&quot;</strong></td>
+<td><strong>NO hecho</strong>: el roadmap dice que se desplegó, pero no hay nada desplegado</td>
+<td>Issue <strong>#985</strong> &quot;Deploy de prueba para el cliente&quot; (abierto, 28/9), con <strong>todas</strong> las casillas sin marcar. En ninguna rama local hay <code>docker-compose.prod.yml</code>, <code>Caddyfile</code>, <code>.github/workflows/deploy.yml</code> ni IaC (solo están <code>ci.yml</code> y <code>claude-pr-review.yml</code>). Lo que sí hay es el diseño: <code>docs/aws-deployment/deploy-vm-prueba.md</code> y <code>arquitectura-{aws,gcp,azure}.md</code>, <code>comparacion-nubes.md</code> (spikes #823 y #899, cerrados). <code>Arquitectura Liard.md:75</code> dice &quot;Preparada, no desplegada&quot;. #985 depende de COLA-01 y COLA-02 (en <strong>#1000</strong>, abierto). Según #987/#988, la fecha del deploy era el domingo <strong>04/10</strong>.</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Video demo y primeros clientes</td>
+<td><strong>Parcial</strong></td>
+<td>La demo en vivo en Liard está hecha (#814, cerrado 19/9). Los videos <strong>#787</strong> (usuario) y <strong>#788</strong> (proveedor) siguen abiertos, y los dos dependen de <strong>#834</strong> (nombre comercial, abierto). No hay evidencia en el repo del contacto con Eaton.</td>
+</tr>
+</tbody></table>
+<p><strong>Lo que queda del Sprint 4, en concreto:</strong></p>
+<ol>
+<li><strong>El deploy (#985)</strong>, más COLA-01/02 de #1000, que son su prerrequisito. Esto es lo grande, y el roadmap lo da por hecho.</li>
+<li><strong>Los videos demo (#787, #788)</strong>, bloqueados por el naming (#834).</li>
+<li>Mostrar <code>unmatchedReason</code> en la UI de cotización, un hueco chico del ítem 4.</li>
+<li>Avatar y renombrar proyecto o pedido (#824–#826), si se cuentan dentro del ítem 9.</li>
+<li>Higiene: cerrar #832, #930, #931, #970, #987 y #988, que ya están en <code>dev</code> (PRs #957, #989, #990, #971, #995).</li>
+</ol>
+<hr>
+<h2>2. Sprint 5: lo planificado, los issues que le corresponden y las dependencias</h2>
+<table>
+<thead>
+<tr>
+<th>Ítem del roadmap Sprint 5</th>
+<th>Issues</th>
+<th>Estado en código</th>
+<th>Depende de</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Extender el deploy serverless a más usuarios</td>
+<td>#985 (VM de prueba, paso previo); la Alternativa 2 serverless está en <code>docs/aws-deployment/arquitectura-aws.md</code>, sin issue propio</td>
+<td>Nada desplegado</td>
+<td>#985 → #1000 (COLA-01/02; fases 2–4: protocolo asíncrono, latido, cancelación)</td>
+</tr>
+<tr>
+<td>Matching para todos los componentes</td>
+<td>#945 (15 materiales del unifilar: datos mergeados en PR #947, issue abierto a la espera de revisión); #856 (&quot;seed: los 88 componentes&quot;, <strong>cuerpo vacío</strong>)</td>
+<td>Hay 33 tipos base sembrados, contra 67 materiales en <code>evaluation/matching/variantes-descripcion.json</code> (52 + 15). Ninguno de los nuevos (UPS, ACB, capacitor…) está en <code>seed/components/</code></td>
+<td>#987/#995 (hecho); una clase por componente en <code>seed/components/</code></td>
+</tr>
+<tr>
+<td>BOM alternativo</td>
+<td>Épica #828 → #829 (editor), #830 (cotización de backup), #831 (órdenes de compra)</td>
+<td>No empezado: no hay campo alternativo en <code>schema.prisma</code></td>
+<td>#829 → #830 → #831, en ese orden</td>
+</tr>
+<tr>
+<td>Pagos (suscripción + comisión por lead)</td>
+<td><strong>Sin issue</strong></td>
+<td>Nada (grep de stripe, mercadopago y subscription vacío)</td>
+<td>Definir el modelo de negocio</td>
+</tr>
+<tr>
+<td>Control del gasto de IA por usuario</td>
+<td>Parte de #836 y de #985 §3 (workspaces y tope de gasto por workspace)</td>
+<td>Parcial: el backend registra <code>costUsd</code> de las lecturas de catálogo y de BOM. El costo de la detección queda solo en <code>runs/.../components.json</code> (<code>cost.retries</code>), sin persistir en la base. No hay límites por usuario</td>
+<td>#836</td>
+</tr>
+<tr>
+<td>Notificaciones por email de pedidos</td>
+<td><strong>Sin issue</strong></td>
+<td>Parcial: <code>back/src/common/mail/</code> (IMailer, SmtpMailer, LogMailer) existe, pero solo lo usan <code>auth</code> (reset de contraseña, credenciales)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Observabilidad</td>
+<td>#836 (APM y trazabilidad de IA); #985 §8 (New Relic en la VM, evento <code>ClaudeCall</code>)</td>
+<td>Nada: grep de newrelic, sentry y opentelemetry vacío</td>
+<td>#985</td>
+</tr>
+<tr>
+<td>Procesamiento de DWG</td>
+<td><strong>Sin issue</strong></td>
+<td>Nada (grep de &quot;dwg&quot; en el código vacío)</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Mejoras de la herramienta y del dataset</td>
+<td>#1002 (marcas numeradas con la tabla de referencias), #901 (familias ↔ tabla del cliente), #946 (segundo YOLO), #813 (spike del tile residual)</td>
+<td>Abiertos</td>
+<td>#901 y #1002 se tocan (los dos usan la tabla de referencia, que hoy se descarta: <code>component-detector/api.py:263-271</code>)</td>
+</tr>
+</tbody></table>
+<p>Hay issues abiertos que no están en ninguno de los dos sprints del roadmap: #827 (plazos de entrega en la matriz: ya hay <code>leadTimeLabel</code> en <code>ComponentOfferMatrix.tsx</code>, así que es parcial), #835 (importación incremental del catálogo), #824/#825/#826 (perfil), #834 (branding) y #970 (bug, ya resuelto por #971).</p>
+<hr>
+<h2>3. Issues abiertos (27), en una línea cada uno</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Título corto</th>
+<th>Nota</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>#1002</td>
+<td>Tabla de referencias para resolver marcas numeradas (⑦ en vez de <code>2x14A</code>)</td>
+<td>Detector; primero hay que medir el problema</td>
+</tr>
+<tr>
+<td>#1000</td>
+<td>Cola de planos: lo que falta (un YOLO por proceso, soltar jobs en SIGTERM, protocolo asíncrono con latido)</td>
+<td>Bloquea #985</td>
+</tr>
+<tr>
+<td>#988</td>
+<td>Épica Matching del lado usuario + match por igualdad</td>
+<td>Sus dos tickets están en código: se puede cerrar</td>
+</tr>
+<tr>
+<td>#987</td>
+<td>Matching por componente base y atributos iguales</td>
+<td>Hecho por PR #995: se puede cerrar</td>
+</tr>
+<tr>
+<td>#985</td>
+<td>Deploy de prueba en VM + New Relic</td>
+<td>0 casillas marcadas; es lo que falta del Sprint 4</td>
+</tr>
+<tr>
+<td>#970</td>
+<td>Bug: cancelar un diálogo abierto desde un menú deja la página sin clicks</td>
+<td>Resuelto por PR #971 (<code>PlanRowMenu.tsx:55</code> <code>modal={false}</code>)</td>
+</tr>
+<tr>
+<td>#946</td>
+<td>Segundo YOLO opcional</td>
+<td>README: R+U juntos no suman ni un aparato y tardan un 63% más, así que probablemente es obsoleto</td>
+</tr>
+<tr>
+<td>#945</td>
+<td>15 materiales del unifilar que faltan (potencia, MT)</td>
+<td>Datos mergeados (PR #947); falta la revisión y el seed</td>
+</tr>
+<tr>
+<td>#931</td>
+<td>Nombrar la cantidad de cada exportación</td>
+<td>Resuelto por PR #990</td>
+</tr>
+<tr>
+<td>#930</td>
+<td>Decimales binarios en la exportación</td>
+<td>Resuelto por PR #989</td>
+</tr>
+<tr>
+<td>#901</td>
+<td>Mapear las familias con la tabla de referencia del cliente, con validación humana</td>
+<td>Detector y producto</td>
+</tr>
+<tr>
+<td>#856</td>
+<td>Seed de los 88 componentes</td>
+<td>Cuerpo vacío</td>
+</tr>
+<tr>
+<td>#836</td>
+<td>Observabilidad: APM + trazabilidad de IA</td>
+<td>Sprint 5</td>
+</tr>
+<tr>
+<td>#835</td>
+<td>Actualización del catálogo: incremental o reemplazo total</td>
+<td>Hoy la importación reemplaza todo</td>
+</tr>
+<tr>
+<td>#834</td>
+<td>Nombre comercial del producto</td>
+<td>Bloquea #787 y #788</td>
+</tr>
+<tr>
+<td>#832</td>
+<td>Planos en PDF</td>
+<td>Hecho (PRs #955–#957): se puede cerrar</td>
+</tr>
+<tr>
+<td>#831</td>
+<td>BOM-01C: órdenes de compra con la alternativa</td>
+<td>Sprint 5</td>
+</tr>
+<tr>
+<td>#830</td>
+<td>BOM-01B: cotización de backup</td>
+<td>Sprint 5</td>
+</tr>
+<tr>
+<td>#829</td>
+<td>BOM-01A: especificación alternativa en el editor</td>
+<td>Sprint 5</td>
+</tr>
+<tr>
+<td>#828</td>
+<td>Épica del BOM alternativo</td>
+<td>Sprint 5</td>
+</tr>
+<tr>
+<td>#827</td>
+<td>Plazos de entrega en la matriz y en la confirmación</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>#826</td>
+<td>UI/UX de perfil y renombrado</td>
+<td>Parcial (la cuenta existe)</td>
+</tr>
+<tr>
+<td>#825</td>
+<td>Perfil del proveedor, datos comerciales</td>
+<td>Parcial</td>
+</tr>
+<tr>
+<td>#824</td>
+<td>Perfil del ingeniero, avatar, renombrar proyectos y pedidos</td>
+<td>Parcial (sin avatar ni renombrado)</td>
+</tr>
+<tr>
+<td>#813</td>
+<td>Spike: recuperar los símbolos que YOLO no recuadra</td>
+<td>Detector</td>
+</tr>
+<tr>
+<td>#788</td>
+<td>Video demo del proveedor</td>
+<td>Sprint 4, pendiente</td>
+</tr>
+<tr>
+<td>#787</td>
+<td>Video demo del usuario</td>
+<td>Sprint 4, pendiente</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. Números medidos (para usar en el business case)</h2>
+<p>Todos salen de corridas del equipo sobre los planos del repo. Salvo donde se aclara, son del cliente Liard y de un segundo cliente.</p>
+<h3>Detección: ubicar los aparatos (YOLO, etapa 1)</h3>
+<ul>
+<li><strong>v13_R sobre 15 planos (839 bloques de aparato): 816 encontrados = 97,3%</strong> (v3 anterior: 94,4%). 955 cajas, 33 sin bloque, 334 s en total para los 15 planos. — <code>component-detector/README.md</code> §Estado medido (líneas 726–746).</li>
+<li><strong>25 planos: 976 de 982 aparatos ubicados (99,4%), 23 planos al 100%, mediana de 14 s por plano</strong> (con el <code>detect()</code> real). — README, línea ~226.</li>
+<li>PR #996 (6 planos, contra la verdad v5): los aparatos perdidos bajaron de <strong>125 a 11</strong>; las cajas de más, de 430 a 353. De esas 353, unas 180 son aparatos reales que la verdad no marca.</li>
+<li>Línea base histórica (05/06/2026, <code>evaluation/ground-truth.json</code>, 5 planos de prueba y 129 componentes): Claude solo, P 0,944 / R 0,907 / F1 0,925; YOLO, P 1,0 / R 0,953 / F1 0,976.</li>
+</ul>
+<h3>Clasificación (Claude, etapa 2)</h3>
+<ul>
+<li><strong>51 y 52 aciertos de 56</strong> en dos corridas idénticas (~91–93%), y <strong>cero respuestas equivocadas con confianza alta</strong> en 212 respuestas puntuadas (Opus 5.5). Opus 5 hacía 38/56. — README, líneas ~445 y ~800.</li>
+<li>Contra el propio DXF, en un tablero real de 205 bloques: 202/205 ubicados con umbral 0,50 (medido con el modelo v3, antes del cambio de pesos). — README §El clasificador.</li>
+</ul>
+<h3>Costo de IA</h3>
+<ul>
+<li><strong>Detección: USD 1,02 por plano de 221 cajas</strong> (Opus 5.5, esquema de respuesta y esfuerzo bajo), medido sobre 100 recortes reales; techo del proyecto USD 1,22; antes costaba USD 2,95. TSSS completo: 229 cajas, <strong>USD 1,32</strong>. — README §Estado medido.</li>
+<li><code>docs/aws-deployment/arquitectura-aws.md:70,408</code>: un plano medio tiene <del>121 cajas (</del>121 llamadas, <strong>~80 s</strong>) y <strong>~USD 0,73 por plano</strong>; ~USD 0,006 por llamada (<code>deploy-vm-prueba.md</code>).</li>
+<li><strong>Lectura del catálogo (Haiku 4.5): USD 0,00146 por línea con caché</strong> (7,7× menos que sin caché); 1.000 líneas ≈ USD 1,47 en ~14 s; un catálogo real de 2.551 líneas ≈ USD 3,42 en ~32 s. — issue #932.</li>
+<li><strong>Lectura del BOM: USD 0,0023 por línea</strong>; un plano típico (10 líneas distintas) ≈ <strong>USD 0,041 en 8,3 s</strong>; un proyecto de 64 líneas ≈ USD 0,16. — issue #938.</li>
+<li>La VM de prueba: ~USD 15–16 al mes a pedido (2 h por día hábil), ~USD 31–34 con horario fijo de 6 h, ~USD 139–154 siempre prendida. — <code>docs/aws-deployment/deploy-vm-prueba.md</code>.</li>
+</ul>
+<h3>Precisión de la lectura con IA (matching)</h3>
+<ul>
+<li>Catálogo (#932): componente correcto en <strong>69/70 (98,6%)</strong>, atributos presentes bien leídos 201/202 (99,5%), <strong>0 atributos inventados</strong> (24/24 <code>null</code>). <strong>Aviso del propio issue: los casos son sintéticos, los escribió Claude y el modelo evaluado es de la misma familia.</strong></li>
+<li>BOM (#938): 39/40 casos exactos (97,5%); componente 40/40, atributos 135/135, marca 40/40, gama 39/40. También sintético.</li>
+<li><strong>No hay una medición de punta a punta del matching</strong> (línea del BOM → oferta correcta) sobre datos reales. #904 armó el set de casos reales etiquetados, pero no hay un número de acierto del match publicado.</li>
+</ul>
+<h3>Tiempos</h3>
+<ul>
+<li>Filtrado de los planos más grandes: <strong>622 s → 26 s</strong> (lu_un_01) y 755 s → 24 s (nyw_un_01), con la salida idéntica bit a bit (PR #994).</li>
+<li>Clasificación en paralelo en TSSS: 83 s con 8 consultas en paralelo, 43 s con 16 y 29 s con 24; el plano completo pasó de 124 s a 66 s (README, línea ~425).</li>
+<li>De punta a punta: <code>/bom/detectBom</code> sobre test1 respondió en 40 s, con 100 componentes y 24 líneas de BOM (PR #996).</li>
+<li>Techo de la API: ~8 planos por minuto con el tier Build (<code>arquitectura-aws.md:459</code>).</li>
+<li><strong>PDF contra DXF: −2,4% de aparatos encontrados</strong> (2.649 contra 2.713), lo que corre hoy (README, línea ~604). El roadmap dice &quot;2–3% menos&quot;: consistente.</li>
+<li>Referencia manual para comparar, <strong>dicha por el cliente y no medida por el equipo</strong>: un tablero chico ≈ 30 min, uno grande ≥ 1 día, ~40 tableros en un edificio sencillo, y cada tablero se revisa 2 veces (<code>Documento de Visión</code>, PR #1003).</li>
+</ul>
+<hr>
+<h2>5. El recorrido del proyecto (git log de <code>dev</code>, 699 commits)</h2>
+<p>Commits por mes: abril 1 · mayo 169 · junio 63 · julio 0 · agosto 102 · <strong>septiembre 364</strong>. Más de la mitad del trabajo es de septiembre.</p>
+<table>
+<thead>
+<tr>
+<th>Fecha</th>
+<th>Hito</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>28/04/2026</td>
+<td>Commit inicial</td>
+</tr>
+<tr>
+<td>04/05</td>
+<td>Spikes de detección con LLM (Sprint 1)</td>
+</tr>
+<tr>
+<td>17/05</td>
+<td>CRUD de proyectos, API NestJS</td>
+</tr>
+<tr>
+<td>26/05</td>
+<td>Microservicio de detección FastAPI + Docker (#84)</td>
+</tr>
+<tr>
+<td>05–07/06</td>
+<td>Línea base de detección (<code>ground-truth.json</code>), documentación</td>
+</tr>
+<tr>
+<td>18–24/06</td>
+<td>Exportación del BOM a Excel y CSV (#185), importación de componentes (#207), servicio de cotizaciones (#212), generación de planos individuales (#215)</td>
+</tr>
+<tr>
+<td>julio</td>
+<td>Sin commits</td>
+</tr>
+<tr>
+<td>24–31/08</td>
+<td>Símbolos ubicados, modo revisión (#290), corte en grilla (#304), módulo de proveedores (#357, #365), <strong>cola asíncrona de procesamiento</strong> (#374)</td>
+</tr>
+<tr>
+<td>02–07/09</td>
+<td>Catálogo y market-data para cotizar (#401), editor del BOM (#407), workspace de cotización (#463), <strong>autenticación real y roles</strong> (AUTH-01…25, #516–#559), mailer SMTP (#548)</td>
+</tr>
+<tr>
+<td>10–14/09</td>
+<td>Recorte de DXF por rectángulo (#643, #645, #708), catálogo propio del proveedor: importación en 3 pasos, ABM, resumen e historial (#716–#729), directorio de proveedores (#731)</td>
+</tr>
+<tr>
+<td>16–18/09</td>
+<td><strong>Pipeline único YOLO+Claude</strong> (#733), pantalla de cuenta, <strong>Cypress con 142 tests en CI</strong> (#765), el editor elige marcas y no proveedores (#769, #796)</td>
+</tr>
+<tr>
+<td>20–21/09</td>
+<td><strong>Catálogo base (canónico)</strong> (#852–#865), multimarca y submarca en la cotización (#804, #866), reglas de marca (#815), ver y corregir sobre el plano (#801, #808)</td>
+</tr>
+<tr>
+<td>23–27/09</td>
+<td>Tipos de componente y atributos (#935, #944, #964), multiplicador (#869, #871), corregir desde el visor (#959), código de producto, código de marca y gama (#969)</td>
+</tr>
+<tr>
+<td>28–30/09</td>
+<td>Estandarización del catálogo (#978), set de variantes (#929, #947), <strong>PDF de punta a punta</strong> (#955–#957), <strong>lectura del BOM con Haiku y matching por igualdad</strong> (#991, #992, #995), cola justa por usuario y detector en rondas (#996), actualización de docs (#1003)</td>
+</tr>
+</tbody></table>
+<p>La secuencia de capacidades: detección (mayo) → BOM y exportación (junio) → cola, proveedores y pedidos (agosto) → auth, catálogo y cotización (principios de septiembre) → YOLO+Claude y e2e (mediados de septiembre) → catálogo canónico, lectura con IA y matching por igualdad (fines de septiembre). Todavía no se desplegó nada.</p>
+</article></body></html>

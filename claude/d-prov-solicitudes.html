@@ -1,0 +1,104 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Solicitudes</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .filters { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; margin-bottom: var(--sp-4); }
+  .filters .input { width: 280px; }
+  .tbl td strong { display: block; } .tbl td small { display: block; color: var(--ink-3); }
+  .tbl tr[data-href] { cursor: pointer; }
+  .r { text-align: right; } .tbl td.mono small { white-space: nowrap; }
+  .hidden-contact { white-space: nowrap; display: inline-flex; gap: 4px; align-items: center; color: var(--ink-3); font-size: var(--fs-xs); }
+</style></head>
+<body data-role="SUPPLIER" data-active="prov-solicitudes" data-title="Solicitudes" data-sub="Pedidos de cotización que te llegaron">
+<div id="act"></div>
+<div id="page"></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get(); const SID = S().session.supplierId;
+  const page = document.getElementById('page'), act = document.getElementById('act');
+  const FILTERS = [['todas', 'Todas'], ['responder', 'Para responder'], ['enviadas', 'Oferta enviada'], ['mias', 'Adjudicadas a mí'], ['cerradas', 'Cerradas']];
+  let filter = L.param('f') || L.pref('prov-sol:f') || 'todas'; let q = L.param('q') || ''; let sortKey = 'deadline', sortDir = 1;
+
+  /* Estado de mi oferta y resultado de la solicitud, derivados del store. */
+  const myStatus = r => { const o = L.offer(r.id, SID); const st = o ? o.status : 'PENDIENTE'; return (st === 'PENDIENTE' || st === 'BORRADOR') && r.status === 'ABIERTA' && r.deadline < B.TODAY ? 'VENCIDA' : st; };
+  const outcome = r => {
+    if (S().orders.some(o => o.requestId === r.id && o.supplierId === SID)) return { k: 'mia', label: 'Adjudicada a mí', tone: 'ok', icon: 'check' };
+    if (r.status === 'ADJUDICADA') return { k: 'otro', label: 'Adjudicada a otro', tone: 'muted' };
+    if (r.deadline < B.TODAY) return { k: 'vencida', label: 'Vencida', tone: 'err', icon: 'clock' };
+    return { k: 'abierta', label: 'Abierta', tone: 'info' };
+  };
+  const urgency = r => { const d = L.daysBetween(B.TODAY, r.deadline); if (outcome(r).k !== 'abierta') return ''; return d === 0 ? L.badge('Vence hoy', 'err', 'clock') : d === 1 ? L.badge('Mañana', 'warn', 'clock') : d <= 3 ? L.badge('En ' + d + ' días', 'warn', 'clock') : L.badge('En ' + d + ' días', 'muted'); };
+  const matchF = r => { const oc = outcome(r).k, st = myStatus(r);
+    return filter === 'todas' || (filter === 'responder' && oc === 'abierta' && (st === 'PENDIENTE' || st === 'BORRADOR')) || (filter === 'enviadas' && st === 'ENVIADA' && oc === 'abierta') || (filter === 'mias' && oc === 'mia') || (filter === 'cerradas' && (oc === 'otro' || oc === 'vencida' || st === 'DECLINADA')); };
+  const nq = s => String(s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+  /* Demo: solicitudes de ejemplo creadas con las mismas funciones de dominio (solicitud → oferta → adjudicación). */
+  function seedExamples() {
+    if (S().requests.some(r => (r.note || '').startsWith('[Ejemplo]'))) return false;
+    const lock = +L.pref('prov:seedLock') || 0; if (Date.now() - lock < 5000) return false; L.pref('prov:seedLock', Date.now());
+    const mk = (lineIds, days, note, sups) => L.createRequest({ projectId: 'p3', supplierIds: sups || [SID, 'delta'], lineIds, deadline: L.addDays(B.TODAY, days), note: '[Ejemplo] ' + note, alternativesAllowed: true });
+    const sendAlt = rq => { const o = L.offer(rq.id, SID);
+      const lines = rq.lineIds.map(id => { const l = L.line(id); const it = L.matches(Object.assign({}, l, { brand: 'Schneider' }), SID)[0];
+        return { lineId: id, mode: 'ALTERNATIVA', unitPrice: 0, stock: 'CONFIRMADO', leadDays: it.leadDays, alt: { typeId: it.typeId, attrs: Object.assign({}, it.attrs), brand: it.brand, gama: it.gama, code: it.code, basePrice: it.price, unitPrice: it.price, equivalence: 'SUGERIDA', reason: 'Mismo componente base y atributos esenciales; Schneider ' + it.gama + ' en lugar de ABB.' } }; });
+      L.saveOffer(o.id, { lines, validUntil: L.addDays(B.TODAY, 10), paymentTerms: '30 días', discountPct: 0, note: 'Despacho desde Rosario.' }); L.submitOffer(o.id); return o.id; };
+    [[['r2', 'r3'], 'Reposición de maniobra para cámaras de frío.'], [['r1'], 'Interruptor general de repuesto.']].forEach(([ids, note]) => {
+      const rq = mk(ids, 1, note); const oid = sendAlt(rq); L.simulateOffer(rq.id, 'delta');
+      ids.forEach(id => L.setEquivalence(oid, id, 'APROBADA')); const alloc = {}; ids.forEach(id => { alloc[id] = SID; }); L.award(rq.id, alloc, { skipApproval: true });
+    });
+    const r3 = mk(['r3'], -2, 'Ampliación del seccional de cámaras.'); sendAlt(r3); L.simulateOffer(r3.id, 'delta'); L.award(r3.id, { r3: 'delta' }, { skipApproval: true });
+    mk(['r2'], -3, 'Contactores para mantenimiento.', [SID]);
+    /* Fechas coherentes para los ejemplos: llegaron 3 días antes del vencimiento y Sur respondió en unas horas. */
+    L.store.update(s => s.requests.filter(r => (r.note || '').startsWith('[Ejemplo]')).forEach((r, i) => {
+      r.createdAt = L.addDays(r.deadline, -3) + 'T09:' + String(10 + i * 7).padStart(2, '0') + ':00';
+      const o = s.offers.find(x => x.requestId === r.id && x.supplierId === SID);
+      if (o && o.submittedAt) o.submittedAt = r.createdAt.slice(0, 11) + String(11 + i).padStart(2, '0') + ':40:00';
+    }));
+    return true;
+  }
+  if (L.param('demo') === 'ejemplos') {
+    seedExamples(); const back = L.param('volver'); const ok = ['d-prov-pedidos.html', 'm-prov-pedidos.html', 'd-prov-inicio.html', 'm-prov-inicio.html'];
+    if (ok.includes(back)) { location.replace(back + (L.param('resto') ? '?' + L.param('resto') : '')); return; }
+    L.setParam('demo', null);
+  }
+
+  function render() {
+    const estado = L.param('estado');
+    const all = S().requests.filter(r => r.supplierIds.includes(SID));
+    const list = all.filter(matchF).filter(r => !q || nq(r.code + ' ' + L.project(r.projectId).name + ' ' + S().company.name).includes(nq(q)));
+    const val = (r, k) => k === 'code' ? r.code : k === 'obra' ? L.project(r.projectId).name : k === 'n' ? r.lineIds.length : k === 'deadline' ? r.deadline : k === 'total' ? (L.offer(r.id, SID).lines.length ? L.offerTotal(L.offer(r.id, SID)) : -1) : r.deadline;
+    list.sort((a, b) => (val(a, sortKey) > val(b, sortKey) ? 1 : val(a, sortKey) < val(b, sortKey) ? -1 : 0) * sortDir);
+    const count = k => { const f0 = filter; filter = k; const n = all.filter(matchF).length; filter = f0; return n; };
+    act.innerHTML = `<a class="btn btn-secondary btn-sm" href="${L.link('d-prov-pedidos.html')}">${L.icon('truck', 14)}Pedidos</a>`;
+    let body;
+    if (estado === 'cargando') body = `<div class="card card-b col" aria-busy="true">${'<div class="skel" style="height:40px"></div>'.repeat(5)}</div>`;
+    else if (estado === 'error') body = `<div class="note note-err" role="alert">${L.icon('alertc', 16)}<div><p><b>No pudimos traer tus solicitudes.</b> No se perdió nada: tus borradores siguen guardados.</p><a class="btn btn-secondary btn-sm" href="d-prov-solicitudes.html">${L.icon('refresh', 14)}Reintentar</a></div></div>`;
+    else if (!all.length || estado === 'vacio') body = `<div class="card">${L.empty({ icon: 'inbox', title: 'Todavía no te pidieron cotización', text: 'Las solicitudes llegan cuando un tablerista pide materiales que están en tu catálogo publicado. Te avisamos por correo y en la campana.', action: `<a class="btn btn-secondary" href="d-prov-catalogo.html">Revisar mi catálogo</a>` })}</div>`;
+    else if (!list.length) body = `<div class="card">${L.empty({ icon: 'filter', title: 'Ninguna solicitud con este filtro', text: q ? 'No hay coincidencias para «' + q + '».' : 'Probá con otro filtro.', action: `<button class="btn btn-secondary" data-clear>Ver todas</button>` })}</div>`;
+    else body = `<div class="card tbl-wrap"><table class="tbl" id="t"><caption class="sr-only">Solicitudes de cotización</caption><thead><tr>
+        <th data-sort="code">Solicitud</th><th>Comprador</th><th data-sort="obra">Obra</th><th data-sort="n" class="num">Materiales</th><th data-sort="deadline">Vence</th><th data-sort="total" class="r">Mi oferta</th><th>Resultado</th><th></th></tr></thead><tbody>
+      ${list.map(r => { const o = L.offer(r.id, SID); const st = myStatus(r); const oc = outcome(r); const pr = L.project(r.projectId); const tot = o.lines.length && st !== 'DECLINADA' ? L.offerTotal(o) : null;
+        const cta = oc.k !== 'abierta' || st === 'VENCIDA' ? ['Ver', 'btn-ghost'] : st === 'PENDIENTE' ? ['Armar oferta', 'btn-primary'] : st === 'BORRADOR' ? ['Seguir', 'btn-primary'] : st === 'ENVIADA' ? ['Ver o editar', 'btn-secondary'] : ['Ver', 'btn-ghost'];
+        const href = L.link('d-prov-oferta.html', { r: r.id });
+        return `<tr data-href="${href}"><td class="mono"><strong>${L.esc(r.code)}</strong><small>recibida ${L.dateShort(r.createdAt)}</small></td>
+          <td><strong>${L.esc(S().company.name)}</strong><span class="hidden-contact" title="El contacto de compras se muestra cuando confirmás un pedido">${L.icon('lock', 12)}contacto al confirmar</span></td>
+          <td>${L.esc(pr.name)}<small>${L.esc(pr.city)}${r.note && r.note.startsWith('[Ejemplo]') ? ' · ejemplo de la demo' : ''}</small></td>
+          <td class="num">${r.lineIds.length}</td><td>${L.dateShort(r.deadline)} ${urgency(r)}</td>
+          <td class="r">${L.badge(L.offerStatusLabel[st], L.offerStatusTone[st])}<small class="mono">${tot ? L.ars(tot) : '&nbsp;'}</small></td>
+          <td>${L.badge(oc.label, oc.tone, oc.icon)}</td><td class="tight"><a class="btn btn-sm ${cta[1]}" href="${href}">${cta[0]}</a></td></tr>`; }).join('')}
+      </tbody></table></div>`;
+    page.innerHTML = `<div class="row" style="margin-bottom:var(--sp-4)">${L.cap('existe')}<small class="muted">La bandeja existe hoy (aceptar o rechazar el pedido completo). Los estados de oferta y el resultado por solicitud son ${L.cap('propuesto')}.</small></div>
+      <div class="filters" role="group" aria-label="Filtrar solicitudes">${FILTERS.map(([k, t]) => `<button class="chip" aria-pressed="${filter === k}" data-f="${k}">${t} <b>${count(k)}</b></button>`).join('')}
+        <span class="spacer"></span><input class="input" type="search" id="q" placeholder="Buscar por código u obra" aria-label="Buscar solicitudes" value="${L.esc(q)}"></div>
+      ${body}
+      ${all.length <= 1 && !estado ? `<div class="note mt">${L.icon('sliders', 16)}<div><p><b>Demo:</b> la semilla trae una sola solicitud para Sur. Podés sumar ejemplos (dos adjudicadas a vos, una adjudicada a otro y una vencida) creados con el mismo flujo de la app.</p><button class="btn btn-secondary btn-sm" data-seed>Cargar solicitudes de ejemplo</button></div></div>` : ''}
+      <p class="muted mt" style="font-size:var(--fs-xs)">${L.icon('lock', 12)} Nunca ves precios ni nombres de otros distribuidores. Si una solicitud se adjudica a otro, solo sabés que no fue a vos.</p>`;
+    page.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; L.pref('prov-sol:f', filter); L.setParam('f', filter === 'todas' ? null : filter); render(); page.querySelector('[data-f="' + filter + '"]').focus(); });
+    const qi = page.querySelector('#q'); qi.oninput = () => { q = qi.value; L.setParam('q', q || null); render(); const n = page.querySelector('#q'); n.focus(); n.setSelectionRange(q.length, q.length); };
+    const cl = page.querySelector('[data-clear]'); if (cl) cl.onclick = () => { filter = 'todas'; q = ''; L.setParam('q', null); L.setParam('f', null); render(); };
+    const sd = page.querySelector('[data-seed]'); if (sd) sd.onclick = () => { seedExamples(); L.toast('Ejemplos cargados', { detail: 'Mirá también Pedidos: tenés dos para responder.' }); };
+    page.querySelectorAll('tr[data-href]').forEach(tr => tr.onclick = e => { if (!e.target.closest('a,button')) location.href = tr.dataset.href; });
+    const t = page.querySelector('#t'); if (t) { L.sortable(t, (k, d) => { sortKey = k; sortDir = d; render(); const h = page.querySelector(`th[data-sort="${k}"]`); if (h) h.focus(); }); const th = t.querySelector(`th[data-sort="${sortKey}"]`); if (th) th.setAttribute('aria-sort', sortDir === 1 ? 'ascending' : 'descending'); }
+  }
+  L.store.subscribe(render); render();
+});
+</script></body></html>

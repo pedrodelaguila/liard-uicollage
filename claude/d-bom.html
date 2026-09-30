@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · BOM</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<style>
+  /* Solo presentación de esta pantalla; todo con tokens. */
+  .bm-top { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .bm-top .bm-vdesc { color: var(--ink-3); font-size: var(--fs-sm); margin: 0; }
+  .bm-saved { margin-left: auto; font: 500 11px/1.4 var(--font-mono); color: var(--ink-3); display: inline-flex; gap: 6px; align-items: center; }
+  .bm-block { display: flex; gap: var(--sp-3); align-items: center; padding: 10px 14px; border-radius: var(--r-md); border: 1px solid var(--line); background: var(--surface); margin-bottom: var(--sp-3); flex-wrap: wrap; }
+  .bm-block.warn { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 25%, transparent); }
+  .bm-block.ok { background: var(--ok-soft); border-color: color-mix(in srgb, var(--ok) 25%, transparent); }
+  .bm-block > .ic { color: var(--warn); } .bm-block.ok > .ic { color: var(--ok); }
+  .bm-block ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px 16px; flex-wrap: wrap; flex: 1; font-size: var(--fs-sm); }
+  .bm-block li a, .bm-block li button.bm-lnk { color: var(--ink); font-weight: 500; }
+  .bm-lnk { all: unset; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+  .bm-lnk:focus-visible { box-shadow: var(--focus); }
+  .bm-rules { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 8px 14px; margin-bottom: var(--sp-3); border: 1px dashed var(--line-strong); border-radius: var(--r-md); font-size: var(--fs-sm); background: var(--surface-2); }
+  .bm-rules strong { font-weight: 600; }
+  .bm-stats { display: flex; gap: 6px 22px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--ink-2); margin: 0 0 var(--sp-3); }
+  .bm-stats b { font: 600 var(--fs-md)/1 var(--font-mono); color: var(--ink); margin-right: 4px; }
+  .bm-tools { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .bm-tools .input { width: 260px; height: 32px; }
+  .bm-tools .select { width: auto; height: 32px; }
+  .bm-hint { font: 500 11px/1.4 var(--font-mono); color: var(--ink-3); margin-left: auto; }
+  .bm-bulk { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 12px; background: var(--volt-soft); border-bottom: 1px solid var(--line); font-size: var(--fs-sm); }
+  .bm-wrap { max-height: 640px; border-radius: 0 0 var(--r-lg) var(--r-lg); }
+  body.bm-full .bm-wrap { max-height: none; }
+  .bm-grid { min-width: 1080px; font-size: var(--fs-sm); }
+  .bm-grid td { padding: 6px 8px; vertical-align: top; }
+  .bm-grid th { padding: 9px 8px; z-index: 3; }
+  .bm-grid td[data-c]:focus { outline: none; box-shadow: inset 0 0 0 2px var(--brand); border-radius: 0; }
+  .bm-grid td.stick, .bm-grid th.stick { position: sticky; left: 0; background: var(--surface); z-index: 2; }
+  .bm-grid th.stick { z-index: 4; background: var(--surface-2); }
+  .bm-grid td.stick2, .bm-grid th.stick2 { position: sticky; left: 36px; background: var(--surface); z-index: 2; box-shadow: 1px 0 0 var(--line); }
+  .bm-grid th.stick2 { z-index: 4; background: var(--surface-2); }
+  .bm-grid tbody tr:hover td.stick, .bm-grid tbody tr:hover td.stick2 { background: var(--surface-2); }
+  .bm-grid tr.focus td { background: var(--volt-soft) !important; }
+  .bm-grid tr.blocked td.stick { box-shadow: inset 3px 0 0 var(--err); }
+  .bm-mat strong { display: block; font-weight: 600; line-height: 1.3; }
+  .bm-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; align-items: center; }
+  .bm-sel { height: 28px; padding: 0 6px; border: 1px solid var(--line-strong); border-radius: var(--r-xs); background: var(--surface); color: var(--ink); font: inherit; font-size: var(--fs-xs); max-width: 100%; }
+  .bm-sel:focus { outline: none; border-color: var(--brand); box-shadow: var(--focus); }
+  .bm-sel[aria-invalid='true'] { border-color: var(--err); background: var(--err-soft); }
+  .bm-attrs { display: flex; flex-wrap: wrap; gap: 4px; }
+  .bm-grid td[data-c='spec'] { min-width: 250px; width: 290px; }
+  .bm-spec { display: flex; flex-wrap: wrap; gap: 4px; } .bm-spec > .bm-sel { font-weight: 600; width: 100%; }
+  .bm-grid td[data-c='marca'] .bm-sel { width: 124px; }
+  .bm-grid td[data-c='dib'], .bm-grid td[data-c='comprar'], .bm-grid td[data-c='det'], .bm-grid td[data-c='sel'] { width: 1%; }
+  .bm-grid td[data-c='cot'] { width: 150px; } .bm-grid td[data-c='estado'] { width: 120px; }
+  .bm-grid th { letter-spacing: .04em; }
+  .bm-grid td[data-c='mat'] { width: 190px; min-width: 170px; }
+  .bm-sel.bm-opt { border-style: dashed; color: var(--ink-2); }
+  .bm-attr { display: inline-flex; flex-direction: column; gap: 1px; }
+  .bm-attr > span { font: 500 9.5px/1.2 var(--font-mono); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+  .bm-attr > span i { color: var(--err); font-style: normal; }
+  .bm-q { font: 600 var(--fs-sm)/1.3 var(--font-mono); text-align: right; display: block; }
+  .bm-q small { display: block; font: 400 10.5px/1.3 var(--font-mono); color: var(--ink-3); white-space: nowrap; }
+  .bm-cot { font-size: var(--fs-xs); line-height: 1.4; }
+  .bm-cot b { font-family: var(--font-mono); }
+  .bm-reason { color: var(--warn); font-size: var(--fs-xs); display: block; }
+  .bm-iss { display: flex; flex-direction: column; gap: 3px; align-items: flex-start; }
+  .bm-iss small { color: var(--err); font-weight: 600; font-size: 10.5px; }
+  .bm-grid tr.bm-det > td { background: var(--surface-2); padding: 0; }
+  .bm-mini td a { white-space: nowrap; }
+  .bm-det-g { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 22px; padding: 14px 16px 16px 52px; max-width: 1180px; }
+  .bm-det-g h4 { font-size: var(--fs-sm); margin: 0 0 8px; display: flex; gap: 6px; align-items: center; }
+  .bm-det-g section { min-width: 0; }
+  .bm-mini { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); }
+  .bm-mini th, .bm-mini td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  .bm-mini th { font: 600 10px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+  .bm-mini .num { text-align: right; }
+  .bm-mini tfoot td { font-weight: 600; border-bottom: 0; }
+  .bm-inl { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 10px; align-items: flex-start; }
+  .bm-inl .field { width: 150px; } .bm-inl .input { height: 30px; }
+  .bm-ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-xs); }
+  .bm-ul li { display: flex; gap: 6px; align-items: baseline; }
+  .bm-cmt { border-left: 2px solid var(--line-strong); padding: 2px 0 2px 8px; margin-bottom: 6px; font-size: var(--fs-xs); }
+  .bm-cmt small { color: var(--ink-3); display: block; }
+  .bm-foot { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px; font-size: var(--fs-xs); color: var(--ink-3); }
+  .bm-alt { display: inline-flex; gap: 4px; align-items: center; }
+  .bm-radio { display: flex; gap: 12px; font-size: var(--fs-xs); margin-bottom: 8px; }
+  .bm-radio label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; }
+  .bm-boards { display: flex; flex-direction: column; gap: var(--sp-4); }
+  .bm-board .card-h { flex-wrap: wrap; }
+  .bm-board .card-h h3 { font-size: var(--fs-md); }
+  .bm-board .tbl td { padding: 7px 10px; }
+  .bm-qa { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; padding: 8px 16px; border-bottom: 1px solid var(--line); font-size: var(--fs-xs); background: var(--surface-2); }
+  .bm-sub { font: 500 var(--fs-xs)/1.3 var(--font-mono); color: var(--ink-2); }
+  .bm-prop { border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px 14px; background: var(--surface); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; }
+  .bm-prop h4 { font-size: var(--fs-sm); }
+  .bm-chg { font: 500 var(--fs-xs)/1.5 var(--font-mono); }
+  .bm-chg s { color: var(--ink-3); } .bm-chg b { color: var(--ok); }
+  .bm-src { list-style: none; margin: 6px 0 0; padding: 0; font-size: var(--fs-xs); color: var(--ink-2); display: flex; flex-direction: column; gap: 3px; }
+  .bm-src li { display: flex; gap: 6px; align-items: baseline; }
+  .bm-src .ic { color: var(--cyan); }
+  .bm-prop-a { display: flex; flex-direction: column; gap: 6px; align-items: stretch; justify-content: flex-start; min-width: 118px; }
+  .bm-props { display: flex; flex-direction: column; gap: 8px; }
+  .bm-grp { margin: var(--sp-4) 0 8px; display: flex; gap: 8px; align-items: baseline; }
+  .bm-grp h3 { font-size: var(--fs-md); }
+  .bm-dlg-attrs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .bm-rl { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .bm-rl li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--r-sm); font-size: var(--fs-sm); }
+  .bm-rl li b { font-family: var(--font-mono); color: var(--ink-3); width: 18px; }
+  .bm-rl li span { flex: 1; }
+  @media (max-width: 1180px) { .bm-det-g { grid-template-columns: 1fr; padding-left: 16px; } .bm-hint { display: none; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="bom" data-title="BOM" data-sub="">
+<div id="act"></div>
+<div id="page">
+  <div id="bm-state"></div>
+  <div id="bm-blockers"></div>
+  <div class="bm-top"><div id="bm-variants"></div><p class="bm-vdesc" id="bm-vdesc"></p><span class="bm-saved" id="bm-saved" aria-live="polite"></span></div>
+  <div id="bm-rules"></div>
+  <div id="bm-body"></div>
+</div>
+<script>
+(function () {
+  const S = () => L.store.get();
+  const pid = L.currentProjectId();
+  const estado = L.param('estado');
+  const COST = 0.02;
+  const pr0 = L.project(pid);
+  document.body.dataset.sub = pr0.name + ' · ' + pr0.client;
+  if (L.param('full') === '1') document.body.classList.add('bm-full');
+
+  /* Estado de la pantalla (solo interfaz; el dominio vive en L.store). */
+  const ui = {
+    variant: 'componente',
+    mode: estado === 'error' || estado === 'conflicto' ? estado : null,
+    pending: null, saveFailed: false, lastSaved: null,
+    focus: L.param('linea'), expanded: new Set(L.param('linea') ? [L.param('linea')] : []),
+    selected: new Set(), altDraft: {},
+    filters: L.pref('bom:filters') || { q: '', bloq: false, sinmarca: false, inferidas: false, faltantes: false, familia: '' },
+    sort: L.pref('bom:sort') || { key: null, dir: 1 },
+    refused: false,
+  };
+  const VARIANTS = [
+    { id: 'componente', label: 'Por componente', desc: 'Grilla experta: todas las líneas de la obra, edición en la celda.' },
+    { id: 'tablero', label: 'Por tablero', desc: 'Recorré tablero por tablero lo que cada uno aporta al BOM.' },
+    { id: 'asistida', label: 'Revisión asistida', desc: 'El asistente propone correcciones con sus fuentes; vos confirmás cada una.' },
+  ];
+  const VCAP = { componente: 'existe', tablero: 'existe', asistida: 'propuesto' };
+
+  /* ───── Lecturas derivadas ───── */
+  const rules = () => L.project(pid).brandRules || { preferred: [], blocked: [] };
+  const lines = () => estado === 'vacio' ? [] : L.linesOf(pid);
+  const allBrands = () => [...new Set(S().catalog.filter(c => c.typeId).map(c => c.brand))].sort();
+  const exactBrands = (typeId, attrs) => L.type(typeId) ? [...new Set(L.matches({ typeId, attrs, brand: 'ANY' }).map(c => c.brand))] : [];
+  const typeBrands = typeId => [...new Set(S().catalog.filter(c => c.published && c.typeId === typeId).map(c => c.brand))];
+  const orderBrands = list => { const pref = rules().preferred; return [...pref.filter(b => list.includes(b)), ...list.filter(b => !pref.includes(b)).sort()]; };
+  const short = { MARCA: 'Sin marca', CANTIDAD: 'Cantidad 0', SIN_BASE: 'Sin componente base', MARCA_EXCLUIDA: 'Marca excluida' };
+  const blocks = l => L.lineIssues(l).some(i => i.blocks);
+  const bestOf = l => L.matches(l).sort((a, b) => a.price - b.price);
+  const plansTxt = l => Object.entries(l.perPlan || {}).map(([id, q]) => { const p = L.plan(id); const m = p ? p.multiplier || 1 : 1; return (p ? p.name : id) + ' ' + q + (m > 1 ? '×' + m : ''); }).join(' + ') + (l.extraQty ? ' + extra ' + l.extraQty : '');
+  const srcWord = { DETECTOR: 'detectado', RULE: 'inferido', MANUAL: 'manual' };
+  const slug = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const E = L.esc;
+
+  /* ───── Guardado (con los estados de error y conflicto simulados) ───── */
+  function save(desc, fn) {
+    if (ui.mode === 'conflicto') { conflictDialog(); return false; }
+    if (ui.mode === 'error' && !ui.saveFailed) { ui.pending = { desc, fn }; ui.saveFailed = true; render(); return false; }
+    if (ui.mode === 'error') { ui.pending = { desc, fn }; render(); return false; }
+    fn(); ui.lastSaved = L.now(); render(); return true;
+  }
+  function conflictDialog() {
+    L.dialog({ title: 'Alguien más editó este BOM', body: '<p>Otra persona del equipo guardó cambios en líneas que estás editando (409). No guardamos tu cambio: el BOM queda como lo dejó esa persona. Recargá para ver la versión actual y volvé a hacer tu cambio.</p>',
+      actions: [{ label: 'Cerrar' }, { label: 'Recargar el BOM', kind: 'primary', onClick: reloadFresh }] });
+  }
+  function reloadFresh() { L.setParam('estado', null); location.reload(); }
+  function retry() {
+    const p = ui.pending; ui.mode = null; ui.saveFailed = false; ui.pending = null; L.setParam('estado', null);
+    if (p) { p.fn(); ui.lastSaved = L.now(); L.toast('Cambios guardados', { detail: p.desc }); }
+    render();
+  }
+  if (ui.mode === 'error') {
+    // Estado de galería: un cambio concreto que no se pudo guardar.
+    const l = L.linesOf(pid).find(x => x.brand == null);
+    if (l) { const av = orderBrands(exactBrands(l.typeId, l.attrs)); const b = av.find(x => rules().preferred.includes(x)) || 'ANY';
+      ui.pending = { desc: 'Marca ' + L.brandLabel(b) + ' en «' + L.lineLabel(l) + '»', fn: () => L.updateLine(l.id, { brand: b }) }; ui.saveFailed = true; }
+  }
+
+  /* ───── Controles reutilizables ───── */
+  function brandSelect(l, k, labelTxt) {
+    const exact = exactBrands(l.typeId, l.attrs); const base = exact.length ? exact : typeBrands(l.typeId);
+    const bl = rules().blocked, pref = rules().preferred;
+    const ok = orderBrands(base.filter(b => !bl.includes(b)));
+    const prefs = ok.filter(b => pref.includes(b)), rest = ok.filter(b => !pref.includes(b));
+    const blockedAv = base.filter(b => bl.includes(b));
+    const extra = l.brand && l.brand !== 'ANY' && !base.includes(l.brand) ? [l.brand] : [];
+    const opt = (v, t) => `<option value="${E(v)}"${(l.brand == null ? '' : l.brand) === v ? ' selected' : ''}>${E(t)}</option>`;
+    return `<select class="bm-sel" data-k="${k}" data-act="brand" data-id="${l.id}" aria-label="${E(labelTxt || 'Marca de ' + L.lineLabel(l))}"${l.brand == null ? ' aria-invalid="true"' : ''}>
+      ${opt('', 'Sin decidir')}${opt('ANY', 'Cualquier marca')}
+      ${prefs.length ? `<optgroup label="Preferidas de la obra">${prefs.map(b => opt(b, b)).join('')}</optgroup>` : ''}
+      ${rest.length ? `<optgroup label="${exact.length ? 'Con catálogo para este material' : 'Venden este componente base'}">${rest.map(b => opt(b, b)).join('')}</optgroup>` : ''}
+      ${blockedAv.length ? `<optgroup label="Excluidas por la obra">${blockedAv.map(b => opt(b, b + ' (excluida)')).join('')}</optgroup>` : ''}
+      ${extra.length ? `<optgroup label="Sin catálogo">${extra.map(b => opt(b, b)).join('')}</optgroup>` : ''}
+    </select>`;
+  }
+  function typeSelect(cur, k, act, id, label) {
+    const ts = S().types; const fams = [...new Set(Object.values(ts).map(t => t.family))];
+    return `<select class="bm-sel" data-k="${k}" data-act="${act}" data-id="${id || ''}" aria-label="${E(label)}"${!cur ? ' aria-invalid="true"' : ''}>
+      <option value=""${!cur ? ' selected' : ''}>Sin componente base</option>
+      ${fams.map(f => `<optgroup label="${E(f)}">${Object.entries(ts).filter(([, t]) => t.family === f).map(([tid, t]) => `<option value="${tid}"${tid === cur ? ' selected' : ''}>${E(t.short)}</option>`).join('')}</optgroup>`).join('')}
+    </select>`;
+  }
+  function attrSelects(typeId, attrs, kp, act, id, who, compact) {
+    const t = L.type(typeId); if (!t) return '<span class="muted">—</span>';
+    if (compact) return `<div class="bm-attrs">${t.attrs.map(a => { const v = attrs[a.k]; const miss = a.req && (v == null || v === '');
+      return `<select class="bm-sel${a.req ? '' : ' bm-opt'}" title="${E(a.label)}${a.req ? ' · esencial' : ' · opcional'}" data-k="${kp}:${a.k}" data-act="${act}" data-id="${id || ''}" data-attr="${a.k}" aria-label="${E(a.label + (a.req ? ' (esencial)' : ' (opcional)') + ' de ' + who)}"${miss ? ' aria-invalid="true"' : ''}>
+        <option value="">${a.req ? 'Falta' : E(a.label.split(' ')[0]) + ' —'}</option>${a.values.map(x => `<option value="${E(x)}"${String(v) === String(x) ? ' selected' : ''}>${E(x)}${a.unit ? ' ' + E(a.unit) : ''}</option>`).join('')}</select>`; }).join('')}</div>`;
+    return `<div class="bm-attrs">${t.attrs.map(a => { const v = attrs[a.k]; const miss = a.req && (v == null || v === '');
+      return `<label class="bm-attr"><span>${E(a.label)}${a.req ? '<i title="Esencial para cotizar"> *</i>' : ''}</span><select class="bm-sel" data-k="${kp}:${a.k}" data-act="${act}" data-id="${id || ''}" data-attr="${a.k}" aria-label="${E(a.label + (a.req ? ' (esencial)' : ' (opcional)') + ' de ' + who)}"${miss ? ' aria-invalid="true"' : ''}>
+        <option value="">${a.req ? 'Falta' : '—'}</option>${a.values.map(x => `<option value="${E(x)}"${String(v) === String(x) ? ' selected' : ''}>${E(x)}${a.unit ? ' ' + E(a.unit) : ''}</option>`).join('')}</select></label>`; }).join('')}</div>`;
+  }
+  const parseVal = (typeId, k, raw) => { if (raw === '') return null; const a = L.type(typeId).attrs.find(x => x.k === k); const hit = a.values.find(x => String(x) === raw); return hit === undefined ? raw : hit; };
+  function issuesHtml(l) {
+    const is = L.lineIssues(l); if (!is.length) return L.badge('Lista', 'ok', 'check');
+    return `<div class="bm-iss">${is.map(i => `<span class="badge ${i.blocks ? 'b-err' : 'b-warn'}" title="${E(i.text)}">${L.icon(i.blocks ? 'alertc' : 'alert', 12)}${E(short[i.code] || i.text)}</span>${i.blocks ? '<small>bloquea la cotización</small>' : ''}`).join('')}</div>`;
+  }
+  function cotHtml(l) {
+    const ms = bestOf(l);
+    if (!ms.length) return `<div class="bm-cot"><span class="badge b-muted">Sin coincidencias</span><span class="bm-reason">${E(L.unmatchedReason(l) || '')}</span></div>`;
+    const sup = new Set(ms.map(m => m.supplierId)).size;
+    return `<div class="bm-cot"><b>${ms.length}</b> en catálogo · ${sup} dist.<br>desde <b>${L.ars(ms[0].price)}</b><br>${L.priceTag('referencia')}${L.isStale(ms[0]) ? '<br><span class="bm-reason">vigencia vencida</span>' : ''}</div>`;
+  }
+  function tagsHtml(l) {
+    const nc = L.commentsOf('line:' + l.id).length;
+    return `${L.srcTag(l.src)}${l.readingStatus && l.readingStatus !== 'READ' ? L.badge(l.readingStatus === 'PENDING' ? 'Lectura pendiente' : 'Lectura fallida', l.readingStatus === 'PENDING' ? 'info' : 'err') : ''}${l.alt ? `<span class="badge b-cyan bm-alt" title="Alternativa permitida: ${E(altText(l.alt))}">${L.icon('split', 11)}alt: ${E(altShort(l.alt, l))}</span>` : ''}${nc ? `<span class="badge b-muted" title="${nc} comentario${nc > 1 ? 's' : ''}">${L.icon('message', 11)}${nc}</span>` : ''}`;
+  }
+  const altText = a => (L.type(a.typeId) ? L.type(a.typeId).short + ' ' + L.attrText(a.typeId, a.attrs || {}) : '') + ' · ' + L.brandLabel(a.brand) + (a.note ? ' · ' + a.note : '');
+  const altShort = (a, l) => a.typeId === l.typeId && JSON.stringify(a.attrs) === JSON.stringify(l.attrs) ? L.brandLabel(a.brand) : L.type(a.typeId).short + ' ' + L.brandLabel(a.brand);
+
+  /* ───── Encabezado: estados, bloqueos, reglas ───── */
+  function renderState() {
+    const h = document.getElementById('bm-state');
+    if (ui.mode === 'error' && ui.saveFailed) {
+      h.innerHTML = `<div class="note note-err" role="alert">${L.icon('alertc', 16)}<div><p><strong>No pudimos guardar ${ui.pending ? '«' + E(ui.pending.desc) + '»' : 'el cambio'}.</strong> El servidor no respondió a tiempo. El BOM queda como estaba: ningún otro cambio se perdió.</p>
+        <div class="row"><button class="btn btn-sm btn-primary" data-act="retry">${L.icon('refresh', 14)}Reintentar</button><button class="btn btn-sm btn-ghost" data-act="dismiss-err">Descartar el cambio</button> ${L.sim('Error simulado')}</div></div></div>`;
+    } else if (ui.mode === 'conflicto') {
+      h.innerHTML = `<div class="note note-err" role="alert">${L.icon('alertc', 16)}<div><p><strong>Alguien más editó este BOM.</strong> Otra persona del equipo guardó cambios mientras lo tenías abierto (409). Tus próximos cambios no se guardan hasta que recargues; lo que ya estaba guardado no se perdió.</p>
+        <div class="row"><button class="btn btn-sm btn-primary" data-act="reload">${L.icon('refresh', 14)}Recargar el BOM</button> ${L.sim('Conflicto simulado')}</div></div></div>`;
+    } else h.innerHTML = '';
+  }
+  function blockersList() {
+    const b = L.blockers(pid);
+    if (estado === 'vacio' && !b.some(x => x.code === 'BOM_VACIO')) return b.filter(x => x.code !== 'LINEAS').concat([{ code: 'BOM_VACIO', text: 'El BOM está vacío.', href: 'd-bom.html' }]);
+    return b;
+  }
+  function renderBlockers() {
+    const b = blockersList(); const h = document.getElementById('bm-blockers');
+    const cta = b.length ? `<button class="btn btn-primary" disabled aria-disabled="true" title="Resolvé lo que falta para pedir cotización">${L.icon('send', 15)}Pedir cotización</button>`
+      : `<a class="btn btn-primary" href="${L.link('d-cotizacion.html', { p: pid })}">${L.icon('send', 15)}Pedir cotización</a>`;
+    h.innerHTML = b.length
+      ? `<div class="bm-block warn" id="blockers" role="region" aria-label="Qué falta para pedir cotización">${L.icon('alert', 18)}<strong>Para pedir cotización falta:</strong><ul>${b.map(x => `<li data-code="${x.code}">${x.code === 'LINEAS' ? `<button class="bm-lnk" data-act="filter-bloq">${E(x.text)}</button>` : x.code === 'BOM_VACIO' ? E(x.text) : `<a href="${L.link(x.href, { p: pid })}">${E(x.text)}</a>`}</li>`).join('')}</ul>${cta}</div>`
+      : `<div class="bm-block ok" id="blockers" role="region" aria-label="Estado para cotizar">${L.icon('check', 18)}<strong>El BOM está listo para cotizar.</strong><ul><li>Todas las líneas tienen marca y cantidad. Los precios que ves son de referencia hasta que lleguen las ofertas.</li></ul>${cta}</div>`;
+  }
+  function renderRules() {
+    const r = rules(); const n = lines().filter(l => l.brand && r.blocked.includes(l.brand)).length;
+    document.getElementById('bm-rules').innerHTML = `<div class="bm-rules" role="region" aria-label="Marcas de la obra">${L.icon('flag', 15)}<strong>Marcas de la obra</strong>${L.cap('existe')}
+      <span>Preferidas: ${r.preferred.length ? r.preferred.map((b, i) => `<b class="mono">${i + 1}.</b> ${E(b)}`).join(' · ') : '<span class="muted">ninguna</span>'}</span>
+      <span>Excluidas: ${r.blocked.length ? r.blocked.map(E).join(', ') : '<span class="muted">ninguna</span>'}</span>
+      ${n ? L.badge(n + (n === 1 ? ' línea usa' : ' líneas usan') + ' una marca excluida', 'warn', 'alert') : ''}
+      <span class="muted" title="En la app, las reglas de la obra pisan a las de la cuenta. Este prototipo todavía no guarda reglas de cuenta.">Reglas de la cuenta: no cargadas en el prototipo</span>
+      <button class="btn btn-sm btn-secondary" data-act="rules" style="margin-left:auto">${L.icon('edit', 13)}Editar marcas</button></div>`;
+  }
+  function renderAct() {
+    document.getElementById('act').innerHTML = `<button class="btn btn-secondary btn-sm" data-act="add">${L.icon('plus', 14)}Agregar línea</button>
+      <button class="btn btn-ghost btn-sm" data-act="csv">${L.icon('download', 14)}CSV</button>
+      <button class="btn btn-secondary btn-sm" data-act="xlsx">${L.icon('download', 14)}Descargar XLSX</button>`;
+  }
+
+  /* ───── Variante a: Por componente ───── */
+  function filtered() {
+    const f = ui.filters; const q = (f.q || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    let ls = lines().filter(l => {
+      if (f.bloq && !blocks(l)) return false;
+      if (f.sinmarca && l.brand != null) return false;
+      if (f.inferidas && l.src !== 'RULE') return false;
+      if (f.faltantes && !L.unmatchedReason(l)) return false;
+      if (f.familia && (!L.type(l.typeId) || L.type(l.typeId).family !== f.familia)) return false;
+      if (q) { const hay = (L.lineLabel(l) + ' ' + L.brandLabel(l.brand) + ' ' + (l.gama || '') + ' ' + (l.note || '')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); if (!hay.includes(q)) return false; }
+      return true;
+    });
+    const k = ui.sort.key, d = ui.sort.dir;
+    const val = { material: l => L.lineLabel(l), base: l => L.type(l.typeId) ? L.type(l.typeId).short : '', marca: l => L.brandLabel(l.brand), dib: l => L.qtyDrawn(l), comprar: l => L.qty(l), cot: l => L.matches(l).length, estado: l => (blocks(l) ? 0 : L.lineIssues(l).length ? 1 : 2) };
+    if (k && val[k]) ls = ls.slice().sort((a, b) => { const x = val[k](a), y = val[k](b); return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * d; });
+    return ls;
+  }
+  function renderComponente(h) {
+    const all = lines(); const ls = filtered(); const f = ui.filters;
+    const fams = [...new Set(all.map(l => L.type(l.typeId) && L.type(l.typeId).family).filter(Boolean))];
+    [...ui.selected].forEach(id => { if (!all.find(l => l.id === id)) ui.selected.delete(id); });
+    const cnt = { bloq: all.filter(blocks).length, sinmarca: all.filter(l => l.brand == null).length, inferidas: all.filter(l => l.src === 'RULE').length, faltantes: all.filter(l => L.unmatchedReason(l)).length };
+    const chip = (k, t) => `<button class="chip" data-act="chip" data-f="${k}" aria-pressed="${!!f[k]}">${E(t)} <span class="mono">${cnt[k]}</span></button>`;
+    const sel = [...ui.selected].map(L.line).filter(Boolean);
+    const unionBrands = orderBrands([...new Set(sel.flatMap(l => exactBrands(l.typeId, l.attrs)))]);
+    const allSel = ls.length && ls.every(l => ui.selected.has(l.id));
+    h.innerHTML = `
+      <div class="card">
+        <div class="bm-tools">
+          <input class="input" type="search" data-k="q" data-act="q" placeholder="Buscar material, marca o gama" aria-label="Buscar en el BOM" value="${E(f.q || '')}">
+          ${chip('bloq', 'Bloqueantes')}${chip('sinmarca', 'Sin marca')}${chip('inferidas', 'Inferidas')}${chip('faltantes', 'Sin coincidencias')}
+          <select class="select" data-k="fam" data-act="fam" aria-label="Filtrar por familia"><option value="">Todas las familias</option>${fams.map(x => `<option${f.familia === x ? ' selected' : ''}>${E(x)}</option>`).join('')}</select>
+          <button class="btn btn-sm btn-ghost" data-act="prefs">${L.icon('wand', 14)}Aplicar mis preferidas</button>
+          <span class="bm-hint" title="Navegación con teclado ${E('(propuesto)')}">↑↓←→ celdas · Enter editar · Esc volver</span>
+        </div>
+        ${sel.length ? `<div class="bm-bulk" role="region" aria-label="Acciones sobre la selección"><strong>${sel.length} ${sel.length === 1 ? 'línea seleccionada' : 'líneas seleccionadas'}</strong>
+          <label for="bm-qa-sel">Asignación rápida de marca</label>
+          <select class="bm-sel" id="bm-qa-sel" data-k="bulkbrand"><option value="ANY">Cualquier marca</option>${unionBrands.map(b => `<option value="${E(b)}">${E(b)}${rules().blocked.includes(b) ? ' (excluida)' : rules().preferred.includes(b) ? ' · preferida' : ''}</option>`).join('')}</select>
+          <button class="btn btn-sm btn-primary" data-act="bulk">Asignar a ${sel.length}</button>
+          <button class="btn btn-sm btn-ghost" data-act="clearsel">Quitar selección</button></div>` : ''}
+        <div class="tbl-wrap bm-wrap">
+          <table class="tbl bm-grid" id="bm-grid" aria-label="Líneas del BOM" aria-rowcount="${ls.length}">
+            <thead><tr>
+              <th class="stick" style="width:36px"><input type="checkbox" data-act="selall" data-k="selall" aria-label="Seleccionar todas las líneas visibles"${allSel ? ' checked' : ''}></th>
+              <th class="stick2" data-sort="material" style="min-width:200px">Material</th>
+              <th data-sort="base">Componente base · atributos</th>
+              <th data-sort="marca">Marca</th>
+              <th data-sort="dib" class="num" title="Símbolos dibujados en los planos, más cantidad extra">Dib.</th>
+              <th data-sort="comprar" class="num" title="Dibujada × repeticiones de cada tablero, más extra">A comprar</th>
+              <th data-sort="cot">Cotización</th>
+              <th data-sort="estado">Estado</th>
+              <th><span class="sr-only">Detalle</span></th>
+            </tr></thead>
+            <tbody>${ls.length ? ls.map(rowHtml).join('') : `<tr><td colspan="9">${all.length ? L.empty({ icon: 'filter', title: 'Ninguna línea coincide', text: 'Probá con otra búsqueda o sacá algún filtro.', action: '<button class="btn btn-secondary btn-sm" data-act="clearf">Limpiar filtros</button>' }) : emptyHtml()}</td></tr>`}</tbody>
+          </table>
+        </div>
+      </div>`;
+    const t = h.querySelector('#bm-grid');
+    L.sortable(t, (key, dir) => { ui.sort = { key, dir }; L.pref('bom:sort', ui.sort); render(); });
+    if (ui.sort.key) { const th = t.querySelector(`th[data-sort="${ui.sort.key}"]`); if (th) th.setAttribute('aria-sort', ui.sort.dir === 1 ? 'ascending' : 'descending'); }
+  }
+  function rowHtml(l) {
+    const lab = L.lineLabel(l); const open = ui.expanded.has(l.id);
+    const c = (col, inner, cls) => `<td data-c="${col}" data-k="${l.id}:c:${col}" tabindex="-1"${cls ? ` class="${cls}"` : ''}>${inner}</td>`;
+    const perPlanDrawn = Object.values(l.perPlan || {}).reduce((a, b) => a + b, 0);
+    const mult = L.qty(l) !== L.qtyDrawn(l);
+    return `<tr data-row="${l.id}" id="row-${l.id}" class="${blocks(l) ? 'blocked' : ''}${ui.focus === l.id ? ' focus' : ''}"${ui.selected.has(l.id) ? ' aria-selected="true"' : ''}>
+      ${c('sel', `<input type="checkbox" data-act="sel" data-id="${l.id}" data-k="${l.id}:sel" aria-label="Seleccionar ${E(lab)}"${ui.selected.has(l.id) ? ' checked' : ''}>`, 'stick')}
+      ${c('mat', `<div class="bm-mat"><strong>${E(lab)}</strong><div class="bm-tags">${tagsHtml(l)}</div></div>`, 'stick2')}
+      ${c('spec', `<div class="bm-spec">${typeSelect(l.typeId, l.id + ':base', 'type', l.id, 'Componente base de ' + lab)}${attrSelects(l.typeId, l.attrs, l.id + ':a', 'attr', l.id, lab, true)}</div>`)}
+      ${c('marca', brandSelect(l, l.id + ':brand') + (l.gama ? `<div class="bm-sub" style="margin-top:3px">gama ${E(l.gama)}</div>` : ''))}
+      ${c('dib', `<span class="bm-q">${L.num(L.qtyDrawn(l))}${l.extraQty ? `<small>${perPlanDrawn} + ${l.extraQty} extra</small>` : ''}</span>`)}
+      ${c('comprar', `<span class="bm-q">${L.num(L.qty(l))}${mult ? `<small title="${E(plansTxt(l))}">con repeticiones</small>` : ''}</span>`)}
+      ${c('cot', cotHtml(l))}
+      ${c('estado', issuesHtml(l))}
+      ${c('det', `<button class="icon-btn" data-act="toggle" data-id="${l.id}" data-k="${l.id}:toggle" aria-expanded="${open}" aria-controls="det-${l.id}" aria-label="${open ? 'Cerrar' : 'Abrir'} detalle de ${E(lab)}">${L.icon(open ? 'chevu' : 'chevd', 16)}</button>`)}
+    </tr>${open ? detailHtml(l) : ''}`;
+  }
+  function detailHtml(l) {
+    const lab = L.lineLabel(l); const plans = Object.entries(l.perPlan || {});
+    const ms = bestOf(l); const is = L.lineIssues(l); const cm = L.commentsOf('line:' + l.id);
+    const gamas = [...new Set(S().catalog.filter(c => c.typeId === l.typeId && (!l.brand || l.brand === 'ANY' || c.brand === l.brand)).map(c => c.gama))];
+    return `<tr class="bm-det" id="det-${l.id}"><td colspan="9"><div class="bm-det-g">
+      <section><h4>${L.icon('layers', 14)}Cantidades por tablero ${L.cap('existe')}</h4>
+        <table class="bm-mini"><thead><tr><th>Tablero</th><th class="num">Dibujada</th><th class="num">Repeticiones</th><th class="num">A comprar</th><th><span class="sr-only">Ver</span></th></tr></thead><tbody>
+        ${plans.map(([id, q]) => { const p = L.plan(id); const m = p ? p.multiplier || 1 : 1; return `<tr><td>${E(p ? p.name : id)}</td><td class="num">${q}</td><td class="num">×${m}</td><td class="num">${q * m}</td><td><a href="${L.link('d-plano.html', { p: pid, plan: id })}">Ver en el plano</a></td></tr>`; }).join('')}
+        ${l.extraQty ? `<tr><td>Cantidad extra</td><td class="num">${l.extraQty}</td><td class="num">—</td><td class="num">${l.extraQty}</td><td></td></tr>` : ''}
+        </tbody><tfoot><tr><td>Total</td><td class="num">${L.qtyDrawn(l)}</td><td></td><td class="num">${L.qty(l)}</td><td></td></tr></tfoot></table>
+        <div class="bm-inl">
+          <div class="field"><label for="ex-${l.id}">Cantidad extra</label><input class="input num" id="ex-${l.id}" type="number" min="0" step="1" data-act="extra" data-id="${l.id}" data-k="${l.id}:extra" value="${l.extraQty || 0}"><span class="hint">Repuestos o faltantes del plano</span></div>
+          <div class="field"><label for="gm-${l.id}">Gama (opcional)</label><input class="input" id="gm-${l.id}" list="gl-${l.id}" data-act="gama" data-id="${l.id}" data-k="${l.id}:gama" value="${E(l.gama || '')}" placeholder="p. ej. ${E(gamas[0] || 'Acti9')}"><datalist id="gl-${l.id}">${gamas.map(g => `<option value="${E(g)}">`).join('')}</datalist></div>
+        </div>
+      </section>
+      <section><h4>${L.icon('alert', 14)}Problemas y cotización</h4>
+        ${is.length ? `<ul class="bm-ul">${is.map(i => `<li>${L.badge(i.blocks ? 'Bloquea la cotización' : i.quote === 'NOT_FOUND' ? 'Cotiza sin coincidencias' : 'Aviso', i.blocks ? 'err' : 'warn')}${E(i.text)}</li>`).join('')}</ul>` : '<p class="muted" style="font-size:var(--fs-xs)">Sin problemas: la línea entra en la solicitud tal cual.</p>'}
+        <table class="bm-mini" style="margin-top:8px"><thead><tr><th>Distribuidor</th><th>Marca · gama</th><th>Código</th><th class="num">Precio ${L.priceTag('referencia')}</th><th class="num">Plazo</th></tr></thead><tbody>
+        ${ms.length ? ms.slice(0, 5).map(m => `<tr><td>${E(L.supplier(m.supplierId).short)}</td><td>${E(m.brand)} · ${E(m.gama)}</td><td class="mono">${E(m.code)}</td><td class="num">${L.ars(m.price)}${L.isStale(m) ? ' <span class="bm-reason" style="display:inline">vencido</span>' : ''}</td><td class="num">${m.leadDays} d</td></tr>`).join('') : `<tr><td colspan="5"><span class="bm-reason">${E(L.unmatchedReason(l) || '')}</span></td></tr>`}
+        </tbody></table>
+        ${ms.length > 5 ? `<small class="muted">y ${ms.length - 5} más</small>` : ''}
+      </section>
+      <section>${altHtml(l)}</section>
+      <section><h4>${L.icon('message', 14)}Comentarios ${L.cap('propuesto')}</h4>
+        ${cm.length ? cm.map(x => { const m = L.member(x.who); return `<div class="bm-cmt">${E(x.text)}<small>${E(L.who(x.who))}${m ? ' · ' + E(m.area) : ''} · ${L.dateShort(x.at)} ${L.time(x.at)}</small></div>`; }).join('') : '<p class="muted" style="font-size:var(--fs-xs)">Todavía no hay comentarios en esta línea.</p>'}
+        <div class="field"><label for="cm-${l.id}">Nuevo comentario</label><textarea class="textarea" id="cm-${l.id}" data-k="${l.id}:cmt" rows="2" placeholder="Ej.: confirmá la sensibilidad con el unifilar"></textarea></div>
+        <div class="row" style="margin-top:6px"><button class="btn btn-sm btn-secondary" data-act="cmt" data-id="${l.id}">Comentar</button></div>
+      </section>
+      <div class="bm-foot">
+        <span>Origen: ${L.srcTag(l.src)}</span><span>Lectura: ${l.readingStatus === 'READ' ? 'leída' : l.readingStatus === 'PENDING' ? 'pendiente' : 'fallida'}</span><span>Vínculo con el catálogo canónico: ${l.linkStatus === 'MANUAL' ? 'manual' : 'automático'}</span>
+        ${l.note ? `<span>${L.icon('info', 12)} ${E(l.note)}</span>` : ''}
+        <button class="btn btn-sm btn-danger" style="margin-left:auto" data-act="del" data-id="${l.id}">${L.icon('trash', 13)}Eliminar línea</button>
+      </div>
+    </div></td></tr>`;
+  }
+  function altHtml(l) {
+    const d = ui.altDraft[l.id] || (ui.altDraft[l.id] = l.alt ? { kind: l.alt.typeId === l.typeId && JSON.stringify(l.alt.attrs) === JSON.stringify(l.attrs) ? 'marca' : 'base', typeId: l.alt.typeId, attrs: Object.assign({}, l.alt.attrs), brand: l.alt.brand, note: l.alt.note || '' } : { kind: 'marca', typeId: l.typeId, attrs: Object.assign({}, l.attrs), brand: '', note: '' });
+    const probe = { typeId: d.kind === 'marca' ? l.typeId : d.typeId, attrs: d.kind === 'marca' ? l.attrs : d.attrs, brand: d.brand };
+    const brands = orderBrands(exactBrands(probe.typeId, probe.attrs).length ? exactBrands(probe.typeId, probe.attrs) : typeBrands(probe.typeId));
+    return `<h4>${L.icon('split', 14)}Alternativa permitida ${L.cap('planificado')} <span class="muted" style="font-weight:400">BOM alternativo · #828</span></h4>
+      ${l.alt ? `<p style="font-size:var(--fs-xs);margin-bottom:6px"><span class="badge b-cyan">${L.icon('split', 11)}Guardada</span> ${E(altText(l.alt))}</p>` : ''}
+      <p class="muted" style="font-size:var(--fs-xs);margin-bottom:8px">El distribuidor la ve en la solicitud y puede ofertarla además del material pedido. Lo que oferte como alternativa llega como <em>sugerida</em> hasta que una persona de ingeniería apruebe la equivalencia.</p>
+      <div class="bm-radio" role="radiogroup" aria-label="Tipo de alternativa">
+        <label><input type="radio" name="ak-${l.id}" value="marca" data-act="alt-kind" data-id="${l.id}" data-k="${l.id}:altk-m"${d.kind === 'marca' ? ' checked' : ''}>Otra marca, mismo material</label>
+        <label><input type="radio" name="ak-${l.id}" value="base" data-act="alt-kind" data-id="${l.id}" data-k="${l.id}:altk-b"${d.kind === 'base' ? ' checked' : ''}>Otro componente base</label></div>
+      ${d.kind === 'base' ? `<div class="field" style="margin-bottom:6px"><label>Componente base de la alternativa</label>${typeSelect(d.typeId, l.id + ':alt-type', 'alt-type', l.id, 'Componente base de la alternativa de ' + L.lineLabel(l))}</div>
+        <div style="margin-bottom:6px" data-alt-attrs="${l.id}">${attrSelects(d.typeId, d.attrs, l.id + ':alta', 'alt-attr', l.id, 'la alternativa')}</div>` : ''}
+      <div class="row" style="align-items:flex-end">
+        <div class="field" style="width:170px"><label for="ab-${l.id}">Marca de la alternativa</label><select class="bm-sel" id="ab-${l.id}" data-act="alt-brand" data-id="${l.id}" data-k="${l.id}:alt-brand"><option value="">Elegí una marca</option><option value="ANY"${d.brand === 'ANY' ? ' selected' : ''}>Cualquier marca</option>${brands.map(b => `<option value="${E(b)}"${d.brand === b ? ' selected' : ''}>${E(b)}${rules().blocked.includes(b) ? ' (excluida)' : ''}</option>`).join('')}</select></div>
+        <div class="field" style="flex:1;min-width:160px"><label for="an-${l.id}">Nota para el distribuidor</label><input class="input" id="an-${l.id}" data-act="alt-note" data-id="${l.id}" data-k="${l.id}:alt-note" value="${E(d.note)}" placeholder="Ej.: misma curva y poder de corte"></div>
+      </div>
+      <div class="row" style="margin-top:8px"><button class="btn btn-sm btn-secondary" data-act="alt-save" data-id="${l.id}">Guardar alternativa</button>${l.alt ? `<button class="btn btn-sm btn-ghost" data-act="alt-remove" data-id="${l.id}">Quitar alternativa</button>` : ''}</div>`;
+  }
+  function emptyHtml() {
+    return L.empty({ icon: 'list', title: 'Todavía no hay BOM en esta obra', text: 'El BOM se arma solo cuando procesás los planos de la obra. Subí los planos, o cargá una línea a mano si ya sabés qué va.',
+      action: `<div class="row" style="justify-content:center"><a class="btn btn-primary" href="${L.link('d-obra.html', { p: pid })}">${L.icon('upload', 15)}Subir planos</a><button class="btn btn-secondary" data-act="add">${L.icon('plus', 15)}Agregar línea a mano</button></div>` });
+  }
+
+  /* ───── Variante b: Por tablero ───── */
+  function renderTablero(h) {
+    const ls = lines(); const plans = L.plansOf(pid);
+    if (!ls.length) { h.innerHTML = `<div class="card">${emptyHtml()}</div>`; return; }
+    const extra = ls.filter(l => l.extraQty);
+    h.innerHTML = `<p class="muted" style="font-size:var(--fs-sm)">La marca es de la línea: si un material está en varios tableros, cambiarla acá la cambia en todos.</p><div class="bm-boards">${plans.map(p => {
+      const bl = ls.filter(l => (l.perPlan || {})[p.id]); const m = p.multiplier || 1;
+      const drawn = bl.reduce((a, l) => a + l.perPlan[p.id], 0); const nob = bl.filter(l => l.brand == null);
+      const qaBrands = orderBrands([...new Set(nob.flatMap(l => exactBrands(l.typeId, l.attrs)))]);
+      return `<section class="card bm-board" id="board-${p.id}" aria-label="Tablero ${E(p.name)}">
+        <div class="card-h"><h3>${E(p.name)}</h3><span class="muted" style="font-size:var(--fs-sm)">${E(p.title)}</span>${L.badge(L.planStatusLabel[p.status], L.planStatusTone[p.status])}
+          ${m > 1 ? L.badge('×' + m + ' repeticiones', 'brand') : ''}
+          <span class="bm-sub">${bl.length} líneas · ${drawn} símbolos dibujados · ${drawn * m} a comprar</span>
+          <span class="spacer"></span>
+          <a class="btn btn-sm btn-ghost" href="${L.link('d-plano.html', { p: pid, plan: p.id })}">${L.icon('scan', 14)}Ver plano</a>
+          <a class="btn btn-sm btn-ghost" href="${L.link('d-tablero-3d.html', { p: pid, plan: p.id })}">${L.icon('cube', 14)}Ver en 3D</a></div>
+        ${p.status !== 'COMPLETED' && p.status !== 'STALE' ? `<div class="card-b"><div class="note">${L.icon('info', 16)}<p>Este tablero todavía no se procesó: no aporta líneas al BOM. <a href="${L.link('d-obra.html', { p: pid })}">Procesalo desde Planos</a>.</p></div></div>` : `
+        <div class="bm-qa">${nob.length ? `<label for="qa-${p.id}"><strong>Asignación rápida</strong> · ${nob.length} ${nob.length === 1 ? 'línea sin marca' : 'líneas sin marca'} en este tablero</label>
+          <select class="bm-sel" id="qa-${p.id}" data-k="qa:${p.id}"><option value="ANY">Cualquier marca</option>${qaBrands.map(b => `<option value="${E(b)}">${E(b)}${rules().preferred.includes(b) ? ' · preferida' : ''}${rules().blocked.includes(b) ? ' (excluida)' : ''}</option>`).join('')}</select>
+          <button class="btn btn-sm btn-secondary" data-act="qa" data-plan="${p.id}">Asignar a ${nob.length}</button>` : `${L.icon('check', 13)} Todas las líneas de este tablero tienen marca.`}</div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Material</th><th>Marca</th><th class="num">En este tablero</th><th class="num">A comprar</th><th>Cotización</th><th>Estado</th></tr></thead><tbody>
+        ${bl.map(l => `<tr class="${blocks(l) ? 'blocked' : ''}${ui.focus === l.id ? ' sel' : ''}" data-row="${l.id}"><td><a href="${L.link('d-bom.html', { p: pid, v: 'componente', linea: l.id })}" style="color:inherit;font-weight:600">${E(L.lineLabel(l))}</a><div class="bm-tags">${tagsHtml(l)}</div></td>
+          <td>${brandSelect(l, p.id + ':' + l.id + ':brand')}</td><td class="num mono">${l.perPlan[p.id]}</td><td class="num mono">${l.perPlan[p.id] * m}</td><td>${cotHtml(l)}</td><td>${issuesHtml(l)}</td></tr>`).join('')}
+        </tbody><tfoot><tr><td>Subtotal del tablero</td><td></td><td class="num">${drawn}</td><td class="num">${drawn * m}</td><td colspan="2"></td></tr></tfoot></table></div>`}
+      </section>`; }).join('')}
+      ${extra.length ? `<section class="card bm-board"><div class="card-h"><h3>Cantidad extra, sin tablero</h3><span class="bm-sub">${extra.reduce((a, l) => a + l.extraQty, 0)} unidades</span></div><div class="tbl-wrap"><table class="tbl"><thead><tr><th>Material</th><th>Marca</th><th class="num">Extra</th></tr></thead><tbody>${extra.map(l => `<tr><td>${E(L.lineLabel(l))} <div class="bm-tags">${tagsHtml(l)}</div></td><td>${E(L.brandLabel(l.brand))}</td><td class="num mono">${l.extraQty}</td></tr>`).join('')}</tbody></table></div></section>` : ''}
+    </div>`;
+  }
+
+  /* ───── Variante c: Revisión asistida (IA simulada, propuestas deterministas desde el store) ───── */
+  const lastRun = () => S().ai.ledger.find(e => e.kind === 'Asistente' && e.projectId === pid && e.ref === 'Revisión de BOM');
+  const dismissedKey = 'bom:asistida:' + pid;
+  const dismissed = () => { const d = L.pref(dismissedKey); const r = lastRun(); return d && r && d.runAt === r.at ? d.ids : []; };
+  function proposals() {
+    const out = []; const r = rules();
+    lines().forEach(l => {
+      const lab = L.lineLabel(l);
+      L.missingAttrs(l).forEach(a => {
+        const src = []; let val = null;
+        L.commentsOf('line:' + l.id).forEach(c => { const hit = a.values.slice().sort((x, y) => String(y).length - String(x).length).find(v => new RegExp('(^|[^0-9])' + String(v).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*' + (a.unit || '') + '(?![0-9])', 'i').test(c.text));
+          if (hit != null && val == null) { val = hit; const m = L.member(c.who); src.push({ ic: 'message', t: 'Comentario de ' + L.who(c.who) + (m ? ' (' + m.area + ')' : '') + ', ' + L.dateShort(c.at) + ': «' + c.text + '»' }); } });
+        if (l.note) src.push({ ic: 'info', t: 'Nota de la lectura: ' + l.note });
+        if (val == null) { out.push({ id: 'attr:' + l.id + ':' + a.k, group: 'attr', lineId: l.id, title: lab, manual: true, change: `${E(a.label)}: <s>falta</s> → <b>ninguna fuente dice el valor</b>`, sources: src.concat([{ ic: 'alert', t: 'El asistente no inventa valores: completalo a mano desde el unifilar.' }]) }); return; }
+        const patch = { attrs: Object.assign({}, l.attrs, { [a.k]: val }) }; const ms = L.matches(Object.assign({}, l, patch)).sort((x, y) => x.price - y.price);
+        out.push({ id: 'attr:' + l.id + ':' + a.k, group: 'attr', lineId: l.id, title: lab, patch, desc: a.label + ' ' + val + (a.unit ? ' ' + a.unit : '') + ' en «' + lab + '»',
+          change: `${E(a.label)}: <s>falta</s> → <b>${E(val)}${a.unit ? ' ' + E(a.unit) : ''}</b>`, sources: src,
+          effect: ms.length ? `Con este valor aparecen ${ms.length} coincidencias en catálogo, desde ${L.ars(ms[0].price)} ${L.priceTag('referencia')}` : 'Con este valor sigue sin coincidencias en catálogo.' });
+      });
+      const av = orderBrands(exactBrands(l.typeId, l.attrs));
+      if (l.brand == null || (l.brand && r.blocked.includes(l.brand))) {
+        const pick = r.preferred.find(b => av.includes(b) && !r.blocked.includes(b));
+        const b = pick || (av.length ? 'ANY' : null); if (!b) return;
+        const sellers = [...new Set(L.matches(Object.assign({}, l, { brand: b })).map(m => L.supplier(m.supplierId).short))];
+        const src = pick ? [{ ic: 'flag', t: 'Regla de la obra: ' + pick + ' es tu marca preferida n.º ' + (r.preferred.indexOf(pick) + 1) + '.' }] : [{ ic: 'flag', t: 'Ninguna marca preferida de la obra tiene este material en catálogo.' }];
+        if (l.brand && r.blocked.includes(l.brand)) src.unshift({ ic: 'alert', t: l.brand + ' está excluida por las reglas de la obra.' });
+        src.push({ ic: 'store', t: 'Catálogos: ' + (sellers.join(', ') || 'ninguno') + (b === 'ANY' ? ' (cada distribuidor elige la marca)' : ' lo tienen en ' + b) + '.' });
+        out.push({ id: 'brand:' + l.id, group: 'brand', lineId: l.id, title: lab, patch: { brand: b }, desc: 'Marca ' + L.brandLabel(b) + ' en «' + lab + '»',
+          change: `Marca: <s>${E(L.brandLabel(l.brand))}</s> → <b>${E(L.brandLabel(b))}</b>`, sources: src, effect: l.brand == null ? 'Deja de bloquear la cotización.' : 'Vuelve a ofrecerse en las solicitudes.' });
+      }
+      if (l.src === 'RULE') {
+        const boards = Object.keys(l.perPlan || {}).map(id => L.plan(id) ? L.plan(id).name : id).join(', ');
+        out.push({ id: 'rule:' + l.id, group: 'rule', lineId: l.id, title: lab, patch: {}, desc: 'Confirmar «' + lab + '» (inferido)',
+          change: `Origen: <s>inferido</s> → <b>confirmado por vos</b> · ${L.qty(l)} u.`, sources: [{ ic: 'workflow', t: l.note || 'Inferido por regla.' }, { ic: 'layers', t: 'Tableros: ' + boards + '.' }],
+          effect: 'Queda como manual; si no corresponde, descartá la sugerencia y editá o eliminá la línea en la grilla.' });
+      }
+    });
+    const dz = dismissed(); return out.filter(p => !dz.includes(p.id));
+  }
+  function renderAsistida(h) {
+    const st = L.aiState(); const run = lastRun(); const limitSim = estado === 'limite';
+    const can = !limitSim && L.aiCan(COST) && !ui.refused;
+    const refused = !can;
+    const manualList = lines().filter(l => L.lineIssues(l).length || l.src === 'RULE');
+    const head = `<div class="card"><div class="card-h"><h3>Revisión asistida</h3>${L.ai('Asistente')}${L.sim('IA simulada')}${L.cap('propuesto')}<span class="spacer"></span>
+        <span class="bm-sub">Costo estimado ${L.usd(COST)} por revisión · usado este mes ${L.usd(st.spent)} de ${L.usd(st.budget)}</span></div>
+      <div class="card-b"><div class="meter ${st.tone}" role="meter" aria-label="Uso de IA del mes" aria-valuenow="${Math.round(st.pct)}" aria-valuemin="0" aria-valuemax="100" style="margin-bottom:12px"><i style="width:${Math.min(100, st.pct)}%"></i></div>
+        <div class="note note-ai">${L.icon('sparkles', 16)}<div><p>El asistente lee el BOM, las reglas de marca de la obra, los comentarios del equipo y los catálogos, y propone cambios concretos con sus fuentes. <strong>Nada se aplica sin que lo confirmes</strong>: lo que aceptás queda como manual.</p>
+          <div class="row">${refused ? '' : `<button class="btn btn-sm btn-primary" data-act="run">${L.icon('sparkles', 14)}${run ? 'Volver a revisar' : 'Revisar el BOM'} (${L.usd(COST)})</button>`}${run ? `<span class="bm-sub">Última revisión: ${L.dateShort(run.at)} ${L.time(run.at)} · ${L.usd(run.usd)}</span>` : ''}</div></div></div>
+        ${refused ? `<div class="note note-err" role="alert" style="margin-top:10px">${L.icon('alertc', 16)}<div><p><strong>La revisión asistida no corrió.</strong> Llegaste al límite de IA del mes (${L.usd(st.spent)} de ${L.usd(st.budget)}) y no gastamos nada. Podés seguir a mano con la lista de abajo, que no usa IA, o pedirle a Dirección que suba el límite en <a href="${L.link('d-cuenta.html')}">Plan, uso y cuenta</a>.</p></div></div>` : ''}
+      </div></div>`;
+    if (!lines().length) { h.innerHTML = head + `<div class="card" style="margin-top:12px">${emptyHtml()}</div>`; return; }
+    if (refused || !run) {
+      h.innerHTML = head + `<div class="bm-grp"><h3>${refused ? 'Revisión manual' : 'Qué va a mirar'}</h3><span class="muted" style="font-size:var(--fs-sm)">${manualList.length} líneas con problemas o inferidas · sin IA</span></div>
+        <div class="card"><ul class="list" aria-label="Líneas para revisar a mano">${manualList.map(l => `<li class="list-i"><span class="grow"><strong>${E(L.lineLabel(l))}</strong> <span class="bm-tags" style="display:inline-flex">${tagsHtml(l)}</span><br><small>${E(L.lineIssues(l).map(i => i.text).join(' · ') || 'Inferido por regla: confirmalo')}</small></span><a class="btn btn-sm btn-secondary" href="${L.link('d-bom.html', { p: pid, v: 'componente', linea: l.id })}">Revisar en la grilla</a></li>`).join('')}</ul></div>`;
+      return;
+    }
+    const ps = proposals();
+    const grp = { attr: ['Atributos que faltan', 'Sin atributo esencial la línea cotiza sin coincidencias.'], brand: ['Decisiones de marca', 'Según las reglas de marca de la obra y los catálogos.'], rule: ['Inferidos por regla para confirmar', 'Gabinetes y bornes que no están dibujados: se agregan por regla.'] };
+    h.innerHTML = head + (ps.length ? Object.keys(grp).map(g => { const list = ps.filter(p => p.group === g); if (!list.length) return '';
+      return `<div class="bm-grp"><h3>${grp[g][0]}</h3><span class="muted" style="font-size:var(--fs-sm)">${list.length} · ${grp[g][1]}</span></div><div class="bm-props">${list.map(p => `<article class="bm-prop" data-prop="${p.id}" aria-label="Sugerencia: ${E(p.title)}">
+        <div><h4>${E(p.title)}</h4><div class="bm-chg">${p.change}</div><ul class="bm-src" aria-label="Fuentes">${p.sources.map(s => `<li>${L.icon(s.ic, 12)}<span>${E(s.t)}</span></li>`).join('')}</ul>${p.effect ? `<p style="font-size:var(--fs-xs);margin:6px 0 0">${p.effect}</p>` : ''}</div>
+        <div class="bm-prop-a">${p.manual ? `<a class="btn btn-sm btn-secondary" href="${L.link('d-bom.html', { p: pid, v: 'componente', linea: p.lineId })}">Completar a mano</a>` : `<button class="btn btn-sm btn-primary" data-act="apply" data-prop="${p.id}">${L.icon('check', 13)}Aplicar</button>`}
+          <button class="btn btn-sm btn-ghost" data-act="dismiss" data-prop="${p.id}">Descartar</button></div></article>`).join('')}</div>`; }).join('')
+      : `<div class="note note-ok" style="margin-top:12px">${L.icon('check', 16)}<p>No quedan sugerencias de esta revisión. Si cambiás el BOM, podés volver a revisarlo.</p></div>`);
+  }
+
+  /* ───── Render ───── */
+  function render() {
+    const ae = document.activeElement; const fk = ae && ae.dataset ? ae.dataset.k : null; const caret = ae && ae.type === 'search' ? ae.selectionStart : null;
+    renderState(); renderBlockers(); renderRules();
+    const ls = lines();
+    const refq = L.referenceQuote(pid);
+    document.getElementById('bm-vdesc').innerHTML = E(VARIANTS.find(v => v.id === ui.variant).desc) + ' ' + L.cap(VCAP[ui.variant]);
+    document.getElementById('bm-saved').innerHTML = ui.mode === 'conflicto' ? L.icon('alert', 12) + 'Sin guardar: recargá' : ui.lastSaved ? L.icon('check', 12) + 'Guardado automático · ' + L.time(ui.lastSaved) : 'Guardado automático';
+    const body = document.getElementById('bm-body');
+    if (estado === 'cargando') { body.innerHTML = `<div class="card card-b" aria-busy="true" aria-label="Cargando el BOM">${Array.from({ length: 8 }, () => '<div class="skel" style="height:28px;margin-bottom:8px"></div>').join('')}</div>`; return; }
+    const stats = ls.length ? `<p class="bm-stats" aria-label="Resumen del BOM"><span><b>${ls.length}</b>líneas</span><span><b>${L.num(ls.reduce((a, l) => a + L.qty(l), 0))}</b>unidades a comprar</span><span><b>${ls.filter(blocks).length}</b>bloquean la cotización</span><span><b>${estado === 'vacio' ? 0 : refq.notFound}</b>sin coincidencias</span><span><b>${L.arsShort(estado === 'vacio' ? 0 : refq.bestTotal)}</b>mejor referencia ${L.priceTag('referencia')}</span></p>` : '';
+    const host = document.createElement('div');
+    if (ui.variant === 'tablero') renderTablero(host); else if (ui.variant === 'asistida') renderAsistida(host); else renderComponente(host);
+    body.innerHTML = (ui.variant === 'asistida' ? '' : stats); body.appendChild(host);
+    if (fk) { const el = document.querySelector(`[data-k="${CSS.escape(fk)}"]`); if (el) { el.focus({ preventScroll: true }); if (caret != null && el.setSelectionRange) el.setSelectionRange(caret, caret); } }
+  }
+
+  /* ───── Acciones ───── */
+  function setBrand(id, v) {
+    const l = L.line(id); const b = v === '' ? null : v; if (l.brand === b) return;
+    if (b && b !== 'ANY' && rules().blocked.includes(b)) L.toast('Marca excluida por las reglas de la obra', { kind: 'warn', detail: 'Se guarda igual. Las marcas excluidas dejan de ofrecerse; lo que ya está guardado en el BOM no cambia.' });
+    save('Marca ' + L.brandLabel(b) + ' en «' + L.lineLabel(l) + '»', () => L.updateLine(id, { brand: b }));
+  }
+  function setType(id, tid) {
+    const l = L.line(id); const prev = { typeId: l.typeId, attrs: Object.assign({}, l.attrs), linkStatus: l.linkStatus };
+    const t = L.type(tid); const attrs = {};
+    if (t) t.attrs.forEach(a => { const v = l.attrs[a.k]; attrs[a.k] = v != null && a.values.some(x => String(x) === String(v)) ? v : null; });
+    if (save('Componente base de «' + L.lineLabel(l) + '»', () => L.updateLine(id, { typeId: tid || null, attrs, linkStatus: 'MANUAL' })))
+      L.toast('Componente base cambiado', { detail: 'Revisá los atributos esenciales: los que no aplican quedaron vacíos.', action: { label: 'Deshacer', onClick: () => L.updateLine(id, prev) } });
+  }
+  function applyPrefs(scope) {
+    const r = rules(); if (!r.preferred.length) { L.toast('No hay marcas preferidas en esta obra', { kind: 'info', detail: 'Cargalas en «Editar marcas» y volvé a aplicarlas.' }); return; }
+    const targets = (scope || lines()).filter(l => l.brand == null); if (!targets.length) { L.toast('Ninguna línea está sin marca', { kind: 'info' }); return; }
+    const plan = targets.map(l => ({ l, b: r.preferred.find(b => !r.blocked.includes(b) && exactBrands(l.typeId, l.attrs).includes(b)) }));
+    const ok = plan.filter(x => x.b), miss = plan.length - ok.length;
+    if (!ok.length) { L.toast('Ninguna preferida tiene esos materiales en catálogo', { kind: 'warn', detail: 'Decidí la marca a mano o elegí «Cualquier marca».' }); return; }
+    if (save('Preferidas en ' + ok.length + ' líneas', () => L.store.update(s => { ok.forEach(x => { const l = s.bomLines.find(y => y.id === x.l.id); l.brand = x.b; l.updatedAt = L.now(); }); L._log(s, pid, s.session.userId, 'Aplicó sus marcas preferidas a ' + ok.length + ' líneas del BOM.'); })))
+      L.toast('Preferidas aplicadas a ' + ok.length + (ok.length === 1 ? ' línea' : ' líneas'), { detail: miss ? miss + ' sin preferida disponible: decidilas a mano.' : 'Revisá la marca de cada una antes de cotizar.' });
+  }
+  function bulkBrand(b, ids, label) {
+    const targets = ids.map(L.line).filter(Boolean);
+    const ok = targets.filter(l => b === 'ANY' || exactBrands(l.typeId, l.attrs).includes(b)); const skip = targets.length - ok.length;
+    if (!ok.length) { L.toast('Ninguna línea tiene ' + b + ' en catálogo', { kind: 'warn', detail: 'No cambió nada.' }); return; }
+    if (b !== 'ANY' && rules().blocked.includes(b)) L.toast('Marca excluida por las reglas de la obra', { kind: 'warn', detail: 'Se guarda igual; no se va a ofrecer en las solicitudes.' });
+    if (save(L.brandLabel(b) + ' en ' + ok.length + ' líneas', () => L.store.update(s => { ok.forEach(x => { const l = s.bomLines.find(y => y.id === x.id); l.brand = b; l.updatedAt = L.now(); }); L._log(s, pid, s.session.userId, 'Asignó ' + L.brandLabel(b) + ' a ' + ok.length + ' líneas' + (label ? ' de ' + label : '') + '.'); }))) {
+      L.toast('Marca asignada a ' + ok.length + (ok.length === 1 ? ' línea' : ' líneas'), { detail: skip ? skip + ' no tienen ' + b + ' en ningún catálogo y quedaron como estaban.' : L.brandLabel(b) });
+      ui.selected.clear(); render();
+    }
+  }
+  function openRules() {
+    const draft = JSON.parse(JSON.stringify(rules())); const box = document.createElement('div');
+    const paint = () => {
+      const free = allBrands().filter(b => !draft.preferred.includes(b) && !draft.blocked.includes(b));
+      box.innerHTML = `<p class="muted" style="font-size:var(--fs-sm)">Las preferidas se ofrecen primero y las usa «Aplicar mis preferidas», en este orden. Las excluidas dejan de ofrecerse; lo que ya está guardado en el BOM no cambia. En la app, las reglas de la obra pisan a las de tu cuenta.</p>
+        <h4 style="margin:10px 0 6px">Preferidas, en orden</h4>
+        <ul class="bm-rl">${draft.preferred.map((b, i) => `<li><b>${i + 1}.</b><span>${E(b)}</span><button type="button" class="icon-btn" data-r="up" data-i="${i}" aria-label="Subir ${E(b)}"${i === 0 ? ' disabled' : ''}>${L.icon('chevu', 14)}</button><button type="button" class="icon-btn" data-r="down" data-i="${i}" aria-label="Bajar ${E(b)}"${i === draft.preferred.length - 1 ? ' disabled' : ''}>${L.icon('chevd', 14)}</button><button type="button" class="icon-btn" data-r="rmp" data-i="${i}" aria-label="Quitar ${E(b)} de preferidas">${L.icon('x', 14)}</button></li>`).join('') || '<li class="muted">Ninguna</li>'}</ul>
+        <div class="row"><select class="select" id="r-addp" aria-label="Marca para agregar a preferidas" style="width:180px">${free.map(b => `<option>${E(b)}</option>`).join('')}</select><button type="button" class="btn btn-sm btn-secondary" data-r="addp"${free.length ? '' : ' disabled'}>Agregar a preferidas</button></div>
+        <h4 style="margin:14px 0 6px">Excluidas</h4>
+        <ul class="bm-rl">${draft.blocked.map((b, i) => `<li><span>${E(b)}</span><button type="button" class="icon-btn" data-r="rmb" data-i="${i}" aria-label="Quitar ${E(b)} de excluidas">${L.icon('x', 14)}</button></li>`).join('') || '<li class="muted">Ninguna</li>'}</ul>
+        <div class="row"><select class="select" id="r-addb" aria-label="Marca para excluir" style="width:180px">${free.map(b => `<option>${E(b)}</option>`).join('')}</select><button type="button" class="btn btn-sm btn-secondary" data-r="addb"${free.length ? '' : ' disabled'}>Excluir marca</button></div>
+        <div class="note" style="margin-top:14px">${L.icon('info', 16)}<p><strong>Lo que termina valiendo en esta obra:</strong> ${draft.preferred.length ? 'primero ' + draft.preferred.map(E).join(', luego ') : 'sin preferidas'}${draft.blocked.length ? ' · nunca ' + draft.blocked.map(E).join(', ') : ''}.</p></div>`;
+    };
+    box.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (!b) return; const i = +b.dataset.i; const P = draft.preferred;
+      if (b.dataset.r === 'up') [P[i - 1], P[i]] = [P[i], P[i - 1]]; if (b.dataset.r === 'down') [P[i + 1], P[i]] = [P[i], P[i + 1]];
+      if (b.dataset.r === 'rmp') P.splice(i, 1); if (b.dataset.r === 'rmb') draft.blocked.splice(i, 1);
+      if (b.dataset.r === 'addp') P.push(box.querySelector('#r-addp').value); if (b.dataset.r === 'addb') draft.blocked.push(box.querySelector('#r-addb').value);
+      paint(); });
+    paint();
+    L.dialog({ title: 'Marcas de la obra', body: box, actions: [{ label: 'Cancelar' }, { label: 'Guardar marcas', kind: 'primary', onClick: () => {
+      if (save('Marcas de la obra', () => L.store.update(s => { s.projects.find(p => p.id === pid).brandRules = draft; L._log(s, pid, s.session.userId, 'Actualizó las marcas de la obra.'); })))
+        L.toast('Marcas de la obra guardadas', { detail: 'Las excluidas dejan de ofrecerse. Lo que ya está guardado en el BOM no cambia.' }); } }] });
+  }
+  function openAdd() {
+    const plans = L.plansOf(pid); const d = { typeId: '', attrs: {}, brand: '', plan: plans.find(p => p.status === 'COMPLETED') ? plans.find(p => p.status === 'COMPLETED').id : '', qty: 1, note: '' };
+    const box = document.createElement('div');
+    const paint = () => {
+      const t = L.type(d.typeId); const probe = { typeId: d.typeId, attrs: d.attrs };
+      const brands = t ? orderBrands(exactBrands(d.typeId, d.attrs).length ? exactBrands(d.typeId, d.attrs) : typeBrands(d.typeId)) : [];
+      box.innerHTML = `<div class="col" style="gap:12px">
+        <div class="field"><label for="n-type">Componente base</label>${typeSelect(d.typeId, 'n-type', 'n-type', '', 'Componente base de la línea nueva').replace('class="bm-sel"', 'class="select" id="n-type"').replace(/ aria-invalid="true"/, '')}</div>
+        ${t ? `<div><span class="lbl">Atributos (* esencial para cotizar)</span><div class="bm-dlg-attrs" style="margin-top:6px">${t.attrs.map(a => `<div class="field"><label for="n-a-${a.k}">${E(a.label)}${a.req ? ' *' : ''}</label><select class="select" id="n-a-${a.k}" data-na="${a.k}"><option value="">${a.req ? 'Elegí un valor' : 'Sin especificar'}</option>${a.values.map(v => `<option value="${E(v)}"${String(d.attrs[a.k]) === String(v) ? ' selected' : ''}>${E(v)}${a.unit ? ' ' + E(a.unit) : ''}</option>`).join('')}</select></div>`).join('')}</div>
+          ${L.missingAttrs(Object.assign({}, probe)).length ? `<p class="bm-reason" id="n-warn" style="margin-top:6px">${L.icon('alert', 12)} Faltan atributos esenciales (${L.missingAttrs(probe).map(a => a.label.toLowerCase()).join(', ')}): la línea se agrega, pero cotiza sin coincidencias hasta que los completes.</p>` : ''}</div>` : ''}
+        <div class="bm-dlg-attrs">
+          <div class="field"><label for="n-brand">Marca</label><select class="select" id="n-brand"><option value="">Sin decidir (bloquea la cotización)</option><option value="ANY"${d.brand === 'ANY' ? ' selected' : ''}>Cualquier marca</option>${brands.map(b => `<option value="${E(b)}"${d.brand === b ? ' selected' : ''}>${E(b)}${rules().blocked.includes(b) ? ' (excluida)' : ''}</option>`).join('')}</select></div>
+          <div class="field"><label for="n-plan">Tablero</label><select class="select" id="n-plan">${plans.map(p => `<option value="${p.id}"${d.plan === p.id ? ' selected' : ''}>${E(p.name)}${(p.multiplier || 1) > 1 ? ' (×' + p.multiplier + ')' : ''}</option>`).join('')}<option value=""${d.plan === '' ? ' selected' : ''}>Sin tablero · cantidad extra</option></select></div>
+          <div class="field"><label for="n-qty">Cantidad</label><input class="input num" id="n-qty" type="number" min="1" step="1" value="${E(d.qty)}"><span class="hint">Por tablero; se multiplica por sus repeticiones.</span></div>
+          <div class="field"><label for="n-note">Nota (opcional)</label><input class="input" id="n-note" value="${E(d.note)}" placeholder="Ej.: no está en el plano, lo pide el cliente"></div>
+        </div></div>`;
+    };
+    box.addEventListener('change', e => {
+      if (e.target.id === 'n-type') { d.typeId = e.target.value; d.attrs = {}; d.brand = ''; paint(); box.querySelector('#n-type').focus(); return; }
+      if (e.target.dataset.na) { d.attrs[e.target.dataset.na] = parseVal(d.typeId, e.target.dataset.na, e.target.value); const id = e.target.id; paint(); box.querySelector('#' + id).focus(); return; }
+      if (e.target.id === 'n-brand') d.brand = e.target.value; if (e.target.id === 'n-plan') d.plan = e.target.value;
+    });
+    box.addEventListener('input', e => { if (e.target.id === 'n-qty') d.qty = e.target.value; if (e.target.id === 'n-note') d.note = e.target.value; });
+    paint();
+    L.dialog({ title: 'Agregar línea a mano', body: box, actions: [{ label: 'Cancelar' }, { label: 'Agregar línea', kind: 'primary', onClick: () => {
+      let bad = false; const ti = box.querySelector('#n-type'), qi = box.querySelector('#n-qty');
+      if (!d.typeId) { L.fieldError(ti, 'Elegí el componente base: sin él la línea no se puede cotizar por atributos.'); bad = true; } else L.fieldError(ti, null);
+      const q = Number(d.qty); if (!(q > 0) || !Number.isInteger(q)) { L.fieldError(qi, 'La cantidad tiene que ser un número entero mayor a 0.'); bad = true; } else L.fieldError(qi, null);
+      if (bad) return false;
+      const t = L.type(d.typeId); const attrs = {}; t.attrs.forEach(a => { attrs[a.k] = d.attrs[a.k] == null ? null : d.attrs[a.k]; if (!a.req && attrs[a.k] == null) delete attrs[a.k]; });
+      const miss = L.missingAttrs({ typeId: d.typeId, attrs }).length;
+      const line = { id: L.uid('b'), projectId: pid, typeId: d.typeId, attrs, perPlan: d.plan ? { [d.plan]: q } : {}, extraQty: d.plan ? 0 : q, brand: d.brand === '' ? null : d.brand, src: 'MANUAL', readingStatus: 'READ', linkStatus: 'MANUAL', note: d.note.trim() };
+      const ok = save('Línea nueva «' + L.lineLabel(line) + '»', () => L.store.update(s => { line.updatedAt = L.now(); s.bomLines.push(line); L._log(s, pid, s.session.userId, 'Agregó a mano «' + L.lineLabel(line) + '» al BOM.'); }));
+      if (ok) { ui.focus = line.id; ui.expanded.add(line.id); render(); L.toast('Línea agregada', { detail: miss ? 'Faltan atributos esenciales: cotiza sin coincidencias hasta completarlos.' : L.lineLabel(line) }); const r = document.getElementById('row-' + line.id); if (r) r.scrollIntoView({ block: 'center' }); }
+    } }] });
+  }
+  async function del(id) {
+    const l = L.line(id); const lab = L.lineLabel(l);
+    if (!(await L.confirm('Eliminar línea', '«' + lab + '» (' + L.qty(l) + ' u.) sale del BOM y de las próximas solicitudes. Los símbolos del plano no se borran.', 'Eliminar línea', 'danger'))) return;
+    if (save('Eliminar «' + lab + '»', () => { L.updateLine(id, { deleted: true }); L.store.update(s => L._log(s, pid, s.session.userId, 'Eliminó «' + lab + '» del BOM.')); })) {
+      ui.expanded.delete(id); ui.selected.delete(id); if (ui.focus === id) { ui.focus = null; L.setParam('linea', null); } render();
+      L.toast('Línea eliminada', { detail: lab, action: { label: 'Deshacer', onClick: () => L.updateLine(id, { deleted: false }) } });
+    }
+  }
+  function saveAlt(id) {
+    const l = L.line(id); const d = ui.altDraft[id]; const sel = document.querySelector(`[data-k="${id}:alt-brand"]`);
+    const alt = d.kind === 'marca' ? { typeId: l.typeId, attrs: Object.assign({}, l.attrs), brand: d.brand, note: d.note.trim() } : { typeId: d.typeId, attrs: Object.assign({}, d.attrs), brand: d.brand, note: d.note.trim() };
+    let err = null;
+    if (!alt.typeId) err = 'Elegí el componente base de la alternativa.';
+    else if (!alt.brand) err = 'Elegí la marca de la alternativa (o «Cualquier marca»).';
+    else if (d.kind === 'marca' && (alt.brand === l.brand || l.brand === 'ANY')) err = l.brand === 'ANY' ? 'La línea ya acepta cualquier marca: para una alternativa, elegí otro componente base.' : 'Elegí una marca distinta de la de la línea.';
+    else if (d.kind === 'base' && L.missingAttrs(alt).length) err = 'Completá los atributos esenciales de la alternativa: el distribuidor necesita la especificación completa.';
+    else if (d.kind === 'base' && alt.typeId === l.typeId && JSON.stringify(alt.attrs) === JSON.stringify(l.attrs) && alt.brand === l.brand) err = 'La alternativa es igual a la línea.';
+    if (err) { L.fieldError(sel, err); sel.focus(); return; }
+    if (save('Alternativa de «' + L.lineLabel(l) + '»', () => L.updateLine(id, { alt })))
+      L.toast('Alternativa guardada', { detail: 'El distribuidor la va a ver en la solicitud como alternativa aceptada.' });
+  }
+  function runReview() {
+    if (estado === 'limite' || !L.aiSpend('Asistente', COST, pid, 'Revisión de BOM')) { ui.refused = true; render(); return; }
+    ui.refused = false; render(); L.toast('Revisión lista', { detail: proposals().length + ' sugerencias para revisar · ' + L.usd(COST) });
+  }
+  function applyProp(id) {
+    const p = proposals().find(x => x.id === id); if (!p) return; const l = L.line(p.lineId);
+    const patch = Object.assign({}, p.patch, { src: 'MANUAL' }); if (p.patch.attrs) patch.linkStatus = 'MANUAL';
+    if (save(p.desc, () => { L.updateLine(l.id, patch); L.store.update(s => L._log(s, pid, s.session.userId, 'Confirmó una sugerencia del asistente: ' + p.desc + '.')); }))
+      L.toast('Sugerencia aplicada', { detail: p.desc + '. Quedó como manual.' });
+  }
+
+  const page = document.getElementById('page');
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act]'); if (!b || !(page.contains(b) || document.getElementById('act').contains(b))) return;
+    const a = b.dataset.act, id = b.dataset.id;
+    if (a === 'retry') retry();
+    else if (a === 'dismiss-err') { ui.mode = null; ui.saveFailed = false; ui.pending = null; L.setParam('estado', null); render(); L.toast('Cambio descartado', { kind: 'info', detail: 'El BOM quedó como estaba.' }); }
+    else if (a === 'reload') reloadFresh();
+    else if (a === 'rules') openRules();
+    else if (a === 'add') openAdd();
+    else if (a === 'xlsx') exportXlsx();
+    else if (a === 'csv') exportCsv();
+    else if (a === 'filter-bloq') { ui.filters = Object.assign({}, ui.filters, { bloq: true }); L.pref('bom:filters', ui.filters); if (ui.variant !== 'componente') { document.querySelector('[data-v="componente"]').click(); } else render(); }
+    else if (a === 'chip') { ui.filters[b.dataset.f] = !ui.filters[b.dataset.f]; L.pref('bom:filters', ui.filters); render(); }
+    else if (a === 'clearf') { ui.filters = { q: '', bloq: false, sinmarca: false, inferidas: false, faltantes: false, familia: '' }; L.pref('bom:filters', ui.filters); render(); }
+    else if (a === 'prefs') applyPrefs();
+    else if (a === 'bulk') bulkBrand(document.getElementById('bm-qa-sel').value, [...ui.selected]);
+    else if (a === 'clearsel') { ui.selected.clear(); render(); }
+    else if (a === 'qa') { const pl = L.plan(b.dataset.plan); bulkBrand(document.getElementById('qa-' + pl.id).value, lines().filter(l => (l.perPlan || {})[pl.id] && l.brand == null).map(l => l.id), pl.name); }
+    else if (a === 'toggle') { if (ui.expanded.has(id)) ui.expanded.delete(id); else { ui.expanded.add(id); ui.focus = id; L.setParam('linea', id); } render(); }
+    else if (a === 'del') del(id);
+    else if (a === 'cmt') { const ta = document.querySelector(`[data-k="${id}:cmt"]`); const t = ta.value.trim(); if (!t) { L.fieldError(ta, 'Escribí el comentario antes de enviarlo.'); ta.focus(); return; } L.addComment('line:' + id, pid, t); L.toast('Comentario agregado', { detail: 'Lo ve todo el equipo en esta línea.' }); }
+    else if (a === 'alt-save') saveAlt(id);
+    else if (a === 'alt-remove') { if (save('Quitar alternativa', () => L.updateLine(id, { alt: null }))) { delete ui.altDraft[id]; render(); L.toast('Alternativa quitada', { detail: 'La solicitud va a pedir solo el material de la línea.' }); } }
+    else if (a === 'run') runReview();
+    else if (a === 'apply') applyProp(b.dataset.prop);
+    else if (a === 'dismiss') { const r = lastRun(); const d = dismissed().concat([b.dataset.prop]); L.pref(dismissedKey, { runAt: r.at, ids: d }); render(); L.toast('Sugerencia descartada', { kind: 'info', detail: 'No cambió nada en el BOM.' }); }
+  });
+  page.addEventListener('change', e => {
+    const t = e.target; const a = t.dataset.act, id = t.dataset.id; if (!a) return;
+    if (a === 'brand') setBrand(id, t.value);
+    else if (a === 'type') setType(id, t.value);
+    else if (a === 'attr') { const l = L.line(id); const attrs = Object.assign({}, l.attrs, { [t.dataset.attr]: parseVal(l.typeId, t.dataset.attr, t.value) }); save(L.type(l.typeId).attrs.find(x => x.k === t.dataset.attr).label + ' de «' + L.lineLabel(l) + '»', () => L.updateLine(id, { attrs, linkStatus: 'MANUAL' })); }
+    else if (a === 'extra') { const v = Number(t.value); if (!(v >= 0) || !Number.isInteger(v)) { L.fieldError(t, 'Poné un número entero, 0 o más.'); return; } L.fieldError(t, null); save('Cantidad extra de «' + L.lineLabel(L.line(id)) + '»', () => L.updateLine(id, { extraQty: v })); }
+    else if (a === 'gama') save('Gama de «' + L.lineLabel(L.line(id)) + '»', () => L.updateLine(id, { gama: t.value.trim() || null }));
+    else if (a === 'sel') { if (t.checked) ui.selected.add(id); else ui.selected.delete(id); render(); }
+    else if (a === 'selall') { filtered().forEach(l => t.checked ? ui.selected.add(l.id) : ui.selected.delete(l.id)); render(); }
+    else if (a === 'fam') { ui.filters.familia = t.value; L.pref('bom:filters', ui.filters); render(); }
+    else if (a === 'alt-kind') { const d = ui.altDraft[id]; const l = L.line(id); d.kind = t.value; if (d.kind === 'base') { d.typeId = d.typeId || l.typeId; } render(); }
+    else if (a === 'alt-type') { const d = ui.altDraft[id]; d.typeId = t.value; d.attrs = {}; d.brand = ''; render(); }
+    else if (a === 'alt-attr') { const d = ui.altDraft[id]; d.attrs[t.dataset.attr] = parseVal(d.typeId, t.dataset.attr, t.value); render(); }
+    else if (a === 'alt-brand') { ui.altDraft[id].brand = t.value; }
+  });
+  page.addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.act === 'q') { ui.filters.q = t.value; L.pref('bom:filters', ui.filters); render(); }
+    if (t.dataset.act === 'alt-note') ui.altDraft[t.dataset.id].note = t.value;
+  });
+  /* Teclado en la grilla: flechas entre celdas; Enter/F2 entra al control; Esc vuelve a la celda. */
+  page.addEventListener('keydown', e => {
+    const td = e.target.closest && e.target.closest('#bm-grid td[data-c]'); if (!td) return;
+    const onCell = e.target === td;
+    if (!onCell) {
+      if (e.key === 'Escape') { e.preventDefault(); td.focus(); return; }
+      const passive = e.target.type === 'checkbox' || e.target.tagName === 'BUTTON' || e.target.tagName === 'A';
+      if (!passive) return;
+    } else if (e.key === 'Enter' || e.key === 'F2') { const c = td.querySelector('select, input, button, a'); if (c) { e.preventDefault(); c.focus(); } return; }
+    const dir = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key]; if (!dir) return;
+    e.preventDefault();
+    const tr = td.parentElement; const rows = [...tr.parentElement.querySelectorAll('tr[data-row]')]; const cells = [...tr.querySelectorAll('td[data-c]')];
+    const r = rows.indexOf(tr) + dir[0]; if (r < 0 || r >= rows.length) return;
+    const tc = [...rows[r].querySelectorAll('td[data-c]')]; tc[Math.max(0, Math.min(tc.length - 1, cells.indexOf(td) + dir[1]))].focus();
+  });
+
+  /* ───── Exportaciones reales ───── */
+  const HEAD = ['Material', 'Componente base', 'Atributos', 'Marca', 'Cantidad dibujada', 'Repeticiones', 'Cantidad a comprar', 'Origen'];
+  const consolidated = () => lines().map(l => [L.lineLabel(l), L.type(l.typeId) ? L.type(l.typeId).name : 'Sin componente base', L.attrText(l.typeId, l.attrs), L.brandLabel(l.brand), L.qtyDrawn(l), plansTxt(l), L.qty(l), srcWord[l.src] || l.src]);
+  function byBoard() {
+    const rows = [['Tablero'].concat(HEAD)];
+    L.plansOf(pid).forEach(p => lines().filter(l => (l.perPlan || {})[p.id]).forEach(l => { const q = l.perPlan[p.id], m = p.multiplier || 1; rows.push([p.name, L.lineLabel(l), L.type(l.typeId) ? L.type(l.typeId).name : '', L.attrText(l.typeId, l.attrs), L.brandLabel(l.brand), q, m, q * m, srcWord[l.src] || l.src]); }));
+    lines().filter(l => l.extraQty).forEach(l => rows.push(['Cantidad extra', L.lineLabel(l), L.type(l.typeId) ? L.type(l.typeId).name : '', L.attrText(l.typeId, l.attrs), L.brandLabel(l.brand), l.extraQty, 1, l.extraQty, srcWord[l.src] || l.src]));
+    return rows;
+  }
+  function exportXlsx() {
+    if (!lines().length) { L.toast('No hay líneas para exportar', { kind: 'info', detail: 'Procesá los planos o agregá una línea a mano.' }); return; }
+    L.download('bom-' + slug(L.project(pid).name) + '.xlsx', L.xlsx([{ name: 'BOM consolidado', rows: [HEAD].concat(consolidated()) }, { name: 'Por tablero', rows: byBoard() }]));
+    L.toast('XLSX descargado', { detail: 'Hojas «BOM consolidado» y «Por tablero» · ' + lines().length + ' líneas' });
+  }
+  function exportCsv() {
+    if (!lines().length) { L.toast('No hay líneas para exportar', { kind: 'info', detail: 'Procesá los planos o agregá una línea a mano.' }); return; }
+    L.download('bom-' + slug(L.project(pid).name) + '.csv', L.csv([HEAD].concat(consolidated())), 'text/csv;charset=utf-8');
+    L.toast('CSV descargado', { detail: lines().length + ' líneas · separador «;»' });
+  }
+
+  L.ready(() => {
+    renderAct();
+    L.variants(document.getElementById('bm-variants'), VARIANTS, v => { ui.variant = v; render(); }, 'bom');
+    L.store.subscribe(() => render());
+    if (ui.focus) { const r = document.getElementById('row-' + ui.focus); if (r) setTimeout(() => r.scrollIntoView({ block: 'center' }), 50); }
+    if (ui.variant === 'asistida' && L.param('correr') === '1' && !lastRun() && estado !== 'limite') runReview();
+  });
+})();
+</script>
+</body>
+</html>

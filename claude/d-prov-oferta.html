@@ -1,0 +1,480 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Armar oferta</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .req-h { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--sp-4); align-items: start; }
+  .req-h h2 { font-size: var(--fs-2xl); }
+  .req-meta { display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-5); margin-top: var(--sp-2); font-size: var(--fs-sm); color: var(--ink-2); }
+  .req-meta b { color: var(--ink); font-weight: 600; }
+  .deadline { text-align: right; }
+  .deadline strong { display: block; font: 600 var(--fs-xl)/1.1 var(--font-display); }
+  .conds { display: grid; grid-template-columns: 170px 170px 150px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+  .bulk { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+  .bulk .input { width: 72px; }
+  .bulk .kb { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); display: flex; gap: 10px; align-items: center; }
+  .sheet td { padding: 6px 8px; } .sheet th { padding: 8px; }
+  .sheet .input, .sheet .select { height: 30px; font-size: var(--fs-xs); padding: 0 6px; }
+  .sheet .w-mode { width: 104px; } .sheet .w-item { width: 180px; } .sheet .w-price { width: 92px; } .sheet .w-stock { width: 112px; } .sheet td.altc { width: 180px; } .sheet td.altc small { display: block; word-break: break-all; }
+  .sheet td.mat { min-width: 150px; } .delta { display: block; font: 500 10.5px/1.4 var(--font-mono); color: var(--ink-3); margin-top: 2px; white-space: nowrap; } .delta.up { color: var(--copper); } .delta.down { color: var(--ok); } .sheet .w-qty { width: 62px; } .sheet .w-lead { width: 58px; }
+  .sheet td.mat strong { display: block; font-size: var(--fs-sm); } .sheet td.mat small { color: var(--ink-3); }
+  .sheet tr.detail td { background: var(--surface-2); padding: 10px 12px 12px 44px; }
+  .sheet tr.has-err td:first-child { box-shadow: inset 3px 0 0 var(--err); }
+  .sheet tr.ro td { color: var(--ink-3); }
+  .alt-box { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.6fr); gap: var(--sp-3); align-items: start; }
+  .diff { font-size: var(--fs-xs); color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 4px; }
+  .diff .chg { color: var(--copper); font-weight: 600; }
+  .line-errs { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; }
+  .foot { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: var(--sp-5); padding: 12px 16px; margin-top: var(--sp-4);
+    background: var(--stage); color: var(--stage-ink); border-radius: var(--r-lg); box-shadow: var(--shadow-3); }
+  .foot .tot small { display: block; color: var(--stage-ink-2); font: 600 10px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .1em; }
+  .foot .tot strong { font: 600 var(--fs-lg)/1.2 var(--font-mono); }
+  .foot .tot.big strong { font-size: var(--fs-xl); color: var(--volt); }
+  .foot .spacer { flex: 1; } .foot .dirty { color: var(--volt); font-size: var(--fs-xs); }
+  .foot .btn-secondary { background: transparent; color: var(--stage-ink); border-color: var(--stage-line); }
+  .errsum ul { margin: 6px 0 0; padding-left: 18px; } .errsum button { all: unset; cursor: pointer; text-decoration: underline; color: var(--err); font-weight: 600; } .errsum button:focus-visible { box-shadow: var(--focus); }
+  .cards { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+  .lc { border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+  .lc.cur { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .lc.has-err { border-color: var(--err); }
+  .lc-h { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; gap: 12px; align-items: center; padding: 12px 14px; }
+  .lc-h:focus-visible { box-shadow: var(--focus); border-radius: var(--r-md); }
+  .lc-h .n { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-3); font: 600 11px var(--font-mono); flex: none; }
+  .lc.done .lc-h .n { background: var(--ok); color: #fff; }
+  .lc-h .grow { flex: 1; min-width: 0; } .lc-h small { display: block; color: var(--ink-3); }
+  .lc-b { padding: 4px 14px 14px 52px; display: flex; flex-direction: column; gap: var(--sp-3); }
+  .lc-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+  .ro-tbl td small { display: block; color: var(--ink-3); }
+  .outcome { margin-bottom: var(--sp-4); }
+  @media (max-width: 760px) { .foot { flex-wrap: wrap; gap: 8px 16px; position: static; } .foot .spacer { display: none; } .foot .btn { flex: 1; }
+    .card-h { flex-wrap: wrap; } .bulk .kb { display: none; } .conds { grid-template-columns: 1fr; } .alt-box { grid-template-columns: 1fr; } .alt-box .field, .alt-box .row { min-width: 0; } .lc-b { padding-left: 14px; } .lc-h { flex-wrap: wrap; } .lc-h .grow { flex: 1 1 calc(100% - 40px); } .lc-h .badge { margin-left: 38px; } }
+  @media (max-width: 1100px) { .conds { grid-template-columns: 1fr 1fr; } .alt-box, .lc-grid { grid-template-columns: 1fr; } .req-h { grid-template-columns: 1fr; } .deadline { text-align: left; } }
+</style></head>
+<body data-role="SUPPLIER" data-active="prov-solicitudes" data-title="Armar oferta" data-sub="Solicitud de cotización">
+<div id="act"></div>
+<div id="page"></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get();
+  const SID = S().session.supplierId;
+  const page = document.getElementById('page'), act = document.getElementById('act');
+  const estado = L.param('estado');
+  const PAY = ['Contado', '30 días', '60 días', '90 días'];
+  const NOQ = ['Sin stock ni reposición en plazo', 'No trabajo esa marca', 'No trabajo ese material', 'No llego con el plazo pedido', 'Otro motivo'];
+  const mine = () => S().requests.filter(r => r.supplierIds.includes(SID));
+  let rid = L.param('r') || ((mine().find(r => r.status === 'ABIERTA') || mine()[0] || {}).id);
+  let bulkLeadVal = '', draft = null, dirty = false, editing = false, showErrs = false, variant = 'planilla', cur = 0;
+
+  const req = () => L.request(rid);
+  const offer = () => L.offer(rid, SID);
+  const isOpen = () => { const r = req(); return r && r.status === 'ABIERTA' && r.deadline >= B.TODAY; };
+  const project = () => L.project(req().projectId);
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const n0 = v => (v == null || v === '' || isNaN(v)) ? '' : String(v);
+  const parseNum = v => { const s = String(v).trim().replace(/\s|\./g, '').replace(',', '.'); return s === '' ? null : Number(s); };
+  const mode = ol => ol.mode === 'SIN_OFERTA' ? 'SIN_OFERTA' : ol.mode === 'ALTERNATIVA' ? 'ALTERNATIVA' : 'COTIZO';
+  const myItems = l => L.matches(l, SID).sort((a, b) => a.price - b.price);
+  const altItems = l => S().catalog.filter(c => c.supplierId === SID && c.published && c.typeId === l.typeId && !myItems(l).some(m => m.id === c.id)).sort((a, b) => a.price - b.price);
+  const disc = () => (+draft.discountPct || 0) / 100;
+  const net = base => base == null || isNaN(base) ? null : Math.round(base * (1 - disc()));
+  const baseOf = ol => mode(ol) === 'ALTERNATIVA' ? (ol.alt || {}).basePrice : ol.basePrice;
+  const qtyOf = ol => L.reqQty(req(), L.line(ol.lineId));
+
+  function load() {
+    const o = offer(); draft = o ? clone(o) : null; dirty = false;
+    if (!draft) return;
+    draft.discountPct = draft.discountPct || 0; draft.note = draft.note || '';
+    draft.lines.forEach(ol => {
+      if (ol.basePrice == null && ol.unitPrice != null) ol.basePrice = ol.unitPrice;
+      if (ol.alt && ol.alt.basePrice == null) ol.alt.basePrice = ol.alt.unitPrice;
+    });
+  }
+  /* Líneas tal como se guardan: precio neto = precio base con el descuento global aplicado. */
+  function stored() {
+    const prev = offer();
+    return draft.lines.map(ol => {
+      const x = clone(ol); const m = mode(ol);
+      if (m === 'COTIZO') { x.mode = ol.itemId ? 'CATALOGO' : 'AJUSTADO'; x.unitPrice = net(ol.basePrice); }
+      if (m === 'ALTERNATIVA') {
+        x.unitPrice = 0; x.alt.unitPrice = net(ol.alt.basePrice);
+        const p = prev && prev.lines.find(y => y.lineId === ol.lineId);
+        const same = p && p.alt && p.alt.code === x.alt.code && p.alt.unitPrice === x.alt.unitPrice && p.alt.reason === x.alt.reason;
+        if (!same || !x.alt.equivalence) { x.alt.equivalence = 'SUGERIDA'; delete x.alt.decidedBy; delete x.alt.decidedAt; }
+      }
+      if (x.stock !== 'PARCIAL') delete x.stockQty;
+      return x;
+    });
+  }
+  function errors() {
+    const o = Object.assign({}, draft, { lines: stored() });
+    const errs = L.validateOffer(o).slice();
+    draft.lines.forEach(ol => {
+      if (mode(ol) === 'SIN_OFERTA' && !(ol.note || '').trim()) errs.push({ lineId: ol.lineId, text: 'Contá por qué no cotizás esta línea.' });
+      if (mode(ol) === 'ALTERNATIVA' && !req().alternativesAllowed) errs.push({ lineId: ol.lineId, text: 'Esta solicitud no acepta alternativas.' });
+    });
+    if (!(draft.discountPct >= 0 && draft.discountPct < 100)) errs.push({ field: 'discountPct', text: 'El descuento tiene que estar entre 0 y 99 %.' });
+    if (!isOpen()) errs.push({ text: 'La solicitud ya no recibe ofertas.' });
+    return errs;
+  }
+  function totals() {
+    let gross = 0, total = 0, quoted = 0, lead = 0, confirmed = 0;
+    draft.lines.forEach(ol => {
+      if (mode(ol) === 'SIN_OFERTA') return; const b = baseOf(ol); const q = qtyOf(ol); quoted++;
+      if (b > 0) { gross += b * q; total += net(b) * q; }
+      if (ol.leadDays > lead) lead = ol.leadDays; if (ol.stock === 'CONFIRMADO') confirmed++;
+    });
+    return { gross, total, discount: gross - total, quoted, count: draft.lines.length, lead, confirmed };
+  }
+  function persist(extra) {
+    L.saveOffer(draft.id, Object.assign({ lines: stored(), validUntil: draft.validUntil, paymentTerms: draft.paymentTerms, discountPct: +draft.discountPct || 0, note: draft.note, savedAt: L.now() }, extra || {}));
+    dirty = false;
+  }
+
+  /* ───── Encabezado de la solicitud ───── */
+  function headHtml() {
+    const r = req(), pr = project(), o = offer(); const days = L.daysBetween(B.TODAY, r.deadline);
+    const dl = r.status !== 'ABIERTA' ? L.badge('Cerrada', 'muted') : days < 0 ? L.badge('Vencida', 'err', 'clock') : days === 0 ? L.badge('Vence hoy', 'err', 'clock') : L.badge('Vence en ' + days + (days === 1 ? ' día' : ' días'), days <= 2 ? 'warn' : 'info', 'clock');
+    return `<section class="card card-b req-h" aria-labelledby="rq-t">
+      <div><div class="row"><span class="eyebrow">Solicitud de cotización</span>${L.cap('existe')}<span class="muted" style="font-size:var(--fs-xs)">pedido de precio por material</span></div>
+        <h2 id="rq-t" class="mono" style="margin-top:6px">${L.esc(r.code)}</h2>
+        <div class="req-meta"><span>Comprador <b>${L.esc(S().company.name)}</b></span><span>Obra <b>${L.esc(pr.name)}</b> · entrega en ${L.esc(pr.city)}</span>
+          <span>Recibida <b>${L.date(r.createdAt.slice(0, 10))}</b></span><span><b>${r.lineIds.length}</b> materiales</span>
+          <span>${r.alternativesAllowed ? L.badge('Acepta alternativas', 'info', 'split') : L.badge('Sin alternativas: solo lo pedido', 'muted')}</span>
+          <span>Mi oferta ${L.badge(L.offerStatusLabel[o ? o.status : 'PENDIENTE'], L.offerStatusTone[o ? o.status : 'PENDIENTE'])}${o && o.revision ? ' <small class="muted">revisión ' + (o.revision + 1) + '</small>' : ''}</span></div>
+        ${r.note ? `<p class="ink2" style="margin:10px 0 0"><span class="eyebrow">Nota del comprador</span><br>${L.esc(r.note)}</p>` : ''}</div>
+      <div class="deadline"><span class="eyebrow">Responder antes del</span><strong>${L.date(r.deadline)}</strong>${dl}</div>
+    </section>
+    <div class="note mt" role="note">${L.icon('lock', 16)}<p><b>Confidencial.</b> Solo ves tu oferta: nunca ves precios ni nombres de otros distribuidores, y ellos no ven los tuyos.
+      El contacto del comprador aparece cuando confirmás un pedido. El pago y el flete se acuerdan fuera de liard.</p></div>`;
+  }
+
+  /* ───── Materiales pedidos (lectura) ───── */
+  function askedHtml() {
+    const r = req();
+    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Material pedido</th><th>Componente base</th><th>Marca pedida</th><th class="num">Cantidad</th><th>En mi catálogo</th></tr></thead><tbody>
+      ${r.lineIds.map((id, i) => { const l = L.line(id); const t = L.type(l.typeId); const ms = myItems(l);
+        return `<tr><td class="tight mono">${i + 1}</td><td><strong>${L.esc(L.lineLabel(l))}</strong></td><td class="ink2">${L.esc(t ? t.name : '—')}</td><td>${L.esc(L.brandLabel(l.brand))}</td><td class="num">${L.num(L.reqQty(r, l))}</td>
+          <td>${ms.length ? L.badge(ms.length + (ms.length === 1 ? ' artículo' : ' artículos'), 'ok', 'check') + ' <small class="muted">desde ' + L.ars(ms[0].price) + '</small>' : L.badge('Sin artículo', 'warn', 'alert')}</td></tr>`; }).join('')}
+    </tbody></table></div>`;
+  }
+
+  /* ───── Selects y campos compartidos entre variantes ───── */
+  const fid = (ol, f) => 'f-' + ol.lineId + '-' + f;
+  const opt = (v, label, sel) => `<option value="${L.esc(v)}"${sel ? ' selected' : ''}>${L.esc(label)}</option>`;
+  function modeSel(ol, cls) {
+    return `<select class="select ${cls || ''}" id="${fid(ol, 'mode')}" data-f="mode" aria-label="Qué ofrecés para esta línea">${opt('COTIZO', 'Cotizo', mode(ol) === 'COTIZO')}${req().alternativesAllowed || mode(ol) === 'ALTERNATIVA' ? opt('ALTERNATIVA', 'Alternativa', mode(ol) === 'ALTERNATIVA') : ''}${opt('SIN_OFERTA', 'No cotizo', mode(ol) === 'SIN_OFERTA')}</select>`;
+  }
+  function itemSel(ol, l, cls) {
+    const ms = myItems(l);
+    if (!ms.length) return `<div class="row" style="flex-wrap:nowrap"><input class="input ${cls || ''}" id="${fid(ol, 'brand')}" data-f="brand" placeholder="Marca" aria-label="Marca" value="${L.esc(ol.brand || '')}"><input class="input ${cls || ''} mono" id="${fid(ol, 'code')}" data-f="code" placeholder="Código" aria-label="Código de producto" value="${L.esc(ol.code || '')}"></div>`;
+    return `<select class="select ${cls || ''}" id="${fid(ol, 'item')}" data-f="item" aria-label="Artículo de tu catálogo">${ms.map(m => opt(m.id, m.brand + ' · ' + m.gama + ' · ' + m.code, m.id === ol.itemId)).join('')}</select>`;
+  }
+  const STOCK_SHORT = { CONFIRMADO: 'Confirmado', PARCIAL: 'Parcial', A_PEDIDO: 'A pedido', DESCONOCIDO: 'Sin confirmar' };
+  function stockSel(ol, cls) {
+    return `<select class="select ${cls || ''}" id="${fid(ol, 'stock')}" data-f="stock" aria-label="Disponibilidad">${['CONFIRMADO', 'PARCIAL', 'A_PEDIDO', 'DESCONOCIDO'].map(k => opt(k, STOCK_SHORT[k], ol.stock === k)).join('')}</select>`;
+  }
+  /* Diferencia entre el precio que ofrezco (neto) y el de mi catálogo (referencia). */
+  function deltaHtml(ol) {
+    const ref = mode(ol) === 'ALTERNATIVA' ? null : ol.refPrice; const b = baseOf(ol);
+    if (!ref || !(b > 0)) return `<span class="delta" data-delta="${ol.lineId}">${mode(ol) === 'ALTERNATIVA' ? 'alternativa' : 'sin precio de catálogo'}</span>`;
+    const n = net(b); const d = (n - ref) / ref * 100;
+    return `<span class="delta ${Math.abs(d) < 0.05 ? '' : d > 0 ? 'up' : 'down'}" data-delta="${ol.lineId}" title="Catálogo ${L.ars(ref)}">${Math.abs(d) < 0.05 ? '= catálogo' : (d > 0 ? '+' : '−') + L.pct(Math.abs(d), 1) + ' vs catálogo'}</span>`;
+  }
+  const numIn = (ol, f, val, label, cls, extra) => `<input class="input num ${cls || ''}" id="${fid(ol, f)}" data-f="${f}" inputmode="numeric" aria-label="${L.esc(label)}" value="${L.esc(n0(val))}" ${extra || ''}>`;
+  function lineErrs(id) { return showErrs ? errors().filter(e => e.lineId === id) : []; }
+  const errList = es => es.length ? `<div class="line-errs">${es.map(e => `<span class="field-err">${L.icon('alertc', 12)}${L.esc(e.text)}</span>`).join('')}</div>` : '';
+
+  /* Detalle de alternativa o motivo de «no cotizo» (debajo de la fila o dentro de la tarjeta). */
+  function detailHtml(ol, l) {
+    if (mode(ol) === 'SIN_OFERTA') {
+      const preset = NOQ.includes(ol.note) ? ol.note : (ol.note ? 'Otro motivo' : '');
+      return `<div class="row" style="align-items:flex-end"><div class="field" style="width:280px"><label for="${fid(ol, 'noq')}">Por qué no cotizás</label>
+        <select class="select" id="${fid(ol, 'noq')}" data-f="noq">${opt('', 'Elegí un motivo', !preset)}${NOQ.map(x => opt(x, x, x === preset)).join('')}</select></div>
+        ${preset === 'Otro motivo' || (ol.note && !NOQ.includes(ol.note)) ? `<div class="field" style="flex:1;min-width:220px"><label for="${fid(ol, 'note')}">Detalle</label><input class="input" id="${fid(ol, 'note')}" data-f="note" value="${L.esc(NOQ.includes(ol.note) ? '' : ol.note || '')}" placeholder="Ej.: esa medida la fabrica solo a pedido"></div>` : ''}
+        <small class="muted">El comprador ve el motivo, no tu nombre junto al de otros.</small></div>`;
+    }
+    if (mode(ol) !== 'ALTERNATIVA') return '';
+    const a = ol.alt || {}; const t = L.type(l.typeId); const items = altItems(l);
+    const picked = items.find(c => c.code === a.code);
+    const diff = t ? t.attrs.map(x => { const want = l.attrs[x.k], got = (a.attrs || {})[x.k]; if (want == null && got == null) return ''; const chg = String(want) !== String(got);
+      return `<span class="${chg ? 'chg' : ''}">${L.esc(x.label)}: ${L.esc(want == null ? '—' : want)}${chg ? ' → ' + L.esc(got == null ? '—' : got) : ''}</span>`; }).join('') : '';
+    return `<div class="alt-box">
+      <div class="field"><label for="${fid(ol, 'altItem')}">Artículo alternativo de tu catálogo</label>
+        <select class="select" id="${fid(ol, 'altItem')}" data-f="altItem">${opt('', 'Elegí un artículo', !picked && !a.manual)}${items.map(c => opt(c.id, c.brand + ' · ' + L.attrText(c.typeId, c.attrs) + ' · ' + c.code, picked && picked.id === c.id)).join('')}${opt('MANUAL', 'Otro código (cargar a mano)', a.manual)}</select>
+        ${a.code ? `<div class="diff" aria-label="Diferencias con lo pedido">${diff}${a.brand ? `<span>Marca: ${L.esc(a.brand)}${a.gama ? ' ' + L.esc(a.gama) : ''}</span>` : ''}</div>` : ''}</div>
+      ${a.manual ? `<div class="row" style="align-items:flex-end;flex-wrap:nowrap"><div class="field"><label for="${fid(ol, 'altBrand')}">Marca</label><input class="input" id="${fid(ol, 'altBrand')}" data-f="altBrand" value="${L.esc(a.brand || '')}"></div>
+        <div class="field"><label for="${fid(ol, 'altCode')}">Código</label><input class="input mono" id="${fid(ol, 'altCode')}" data-f="altCode" value="${L.esc(a.code || '')}"></div></div>` : `<div class="field"><label>Precio de lista</label><div class="mono" style="padding-top:8px">${picked ? L.ars(picked.price) + ' ' + L.priceTag('referencia') : '—'}</div></div>`}
+      <div class="field"><label for="${fid(ol, 'altReason')}">Por qué es equivalente</label><textarea class="textarea" style="min-height:52px" id="${fid(ol, 'altReason')}" data-f="altReason" placeholder="Ej.: misma corriente y poder de corte, otra gama del fabricante">${L.esc(a.reason || '')}</textarea>
+        <span class="hint">${L.icon('shield', 12)} Queda como <b>alternativa sugerida</b>: la aprueba una persona de ingeniería antes de adjudicar.</span></div>
+    </div>`;
+  }
+
+  /* ───── Variante Planilla ───── */
+  function sheetHtml() {
+    const rows = draft.lines.map((ol, i) => {
+      const l = L.line(ol.lineId); const m = mode(ol); const es = lineErrs(ol.lineId); const b = baseOf(ol); const q = qtyOf(ol);
+      const itemCls = m === 'ALTERNATIVA' ? ' class="altc"' : ''; const itemCell = m === 'ALTERNATIVA' ? `<span class="badge b-info">${L.icon('split', 12)}alternativa sugerida</span> <small class="mono">${L.esc((ol.alt || {}).code || 'sin elegir')}</small>` : itemSel(ol, l, 'w-item');
+      const cells = m === 'SIN_OFERTA' ? `<td colspan="5" class="muted">No cotizás esta línea${ol.note ? ': ' + L.esc(ol.note) : ''}</td>`
+        : `<td${itemCls}>${itemCell}</td>
+          <td>${numIn(ol, 'base', b, 'Precio unitario sin descuento', 'w-price')}${deltaHtml(ol)}</td><td>${stockSel(ol, 'w-stock')}</td>
+          <td>${numIn(ol, 'stockQty', ol.stockQty, 'Unidades en stock', 'w-qty', ol.stock === 'PARCIAL' ? '' : 'disabled title="Solo con stock parcial"')}</td>
+          <td>${numIn(ol, 'lead', ol.leadDays, 'Plazo de entrega en días', 'w-lead')}</td>`;
+      const sub = m === 'SIN_OFERTA' || !(b > 0) ? '—' : L.ars(net(b) * q);
+      const detail = detailHtml(ol, l);
+      return `<tr data-line="${ol.lineId}" id="row-${ol.lineId}" class="${es.length ? 'has-err' : ''}"><td class="tight mono">${i + 1}</td>
+        <td class="mat"><strong>${L.esc(L.lineLabel(l))}</strong><small title="${L.esc(L.type(l.typeId) ? L.type(l.typeId).name : '')}">${L.esc(L.brandLabel(l.brand))}${l.brand && l.brand !== 'ANY' ? ' (pedida)' : ''}${ol.stale ? ' · ' + L.badge('tu precio venció', 'warn') : ''}</small></td>
+        <td class="num">${L.num(q)}</td><td>${modeSel(ol, 'w-mode')}</td>${cells}<td class="num" data-sub="${ol.lineId}">${sub}</td></tr>
+        ${detail || es.length ? `<tr class="detail" data-line="${ol.lineId}"><td colspan="10">${detail}${errList(es)}</td></tr>` : ''}`;
+    }).join('');
+    return `<div class="tbl-wrap"><table class="tbl sheet" id="sheet"><thead><tr><th>#</th><th>Material pedido</th><th class="num">Cant.</th><th>Qué ofrezco</th><th>Artículo (marca · gama · código)</th>
+      <th title="Sin descuento global; debajo, la diferencia del precio neto con tu catálogo">Precio unit. ARS</th><th>Disponibilidad</th><th>En stock</th><th>Plazo (d)</th><th class="num">Subtotal neto</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  }
+
+  /* ───── Variante Línea por línea ───── */
+  function cardsHtml() {
+    const done = draft.lines.filter(ol => ol.checked).length; const pct = Math.round(done / draft.lines.length * 100);
+    const cards = draft.lines.map((ol, i) => {
+      const l = L.line(ol.lineId); const m = mode(ol); const es = lineErrs(ol.lineId); const b = baseOf(ol); const q = qtyOf(ol); const open = i === cur;
+      const sum = m === 'SIN_OFERTA' ? 'No cotizo' : (m === 'ALTERNATIVA' ? 'Alternativa ' + ((ol.alt || {}).code || 'sin elegir') : (ol.brand || '') + ' ' + (ol.code || '')) + (b > 0 ? ' · ' + L.ars(net(b)) + ' c/u' : '') + ' · ' + L.stockLabel[ol.stock || 'DESCONOCIDO'];
+      return `<article class="lc${open ? ' cur' : ''}${ol.checked ? ' done' : ''}${es.length ? ' has-err' : ''}" data-line="${ol.lineId}" id="card-${ol.lineId}">
+        <button class="lc-h" data-open="${i}" aria-expanded="${open}"><span class="n">${ol.checked ? '✓' : i + 1}</span><span class="grow"><strong>${L.esc(L.lineLabel(l))} × ${L.num(q)}</strong><small>${L.esc(sum)}</small></span>
+          ${es.length ? L.badge(es.length + (es.length === 1 ? ' error' : ' errores'), 'err', 'alertc') : ol.checked ? L.badge('Lista', 'ok', 'check') : L.badge('Por revisar', 'muted')}
+          <span class="num mono">${m === 'SIN_OFERTA' || !(b > 0) ? '—' : L.ars(net(b) * q)}</span>${L.icon(open ? 'chevu' : 'chevd', 16)}</button>
+        ${open ? `<div class="lc-b"><p class="ink2" style="margin:0">${L.esc(L.type(l.typeId) ? L.type(l.typeId).name : '')} · marca pedida: <b>${L.esc(L.brandLabel(l.brand))}</b> · referencia de tu catálogo: ${ol.refPrice ? L.ars(ol.refPrice) + ' ' + L.priceTag('referencia') : '—'}</p>
+          <div class="lc-grid"><div class="field"><label for="${fid(ol, 'mode')}">Qué ofrecés</label>${modeSel(ol)}</div>
+          ${m === 'SIN_OFERTA' ? '' : `<div class="field"><label for="${fid(ol, 'base')}">Precio unit. ARS</label>${numIn(ol, 'base', b, 'Precio unitario sin descuento')}${deltaHtml(ol)}</div>
+            <div class="field"><label for="${fid(ol, 'stock')}">Disponibilidad</label>${stockSel(ol)}</div>
+            <div class="field"><label for="${fid(ol, 'stockQty')}">En stock</label>${numIn(ol, 'stockQty', ol.stockQty, 'Unidades en stock', '', ol.stock === 'PARCIAL' ? '' : 'disabled')}</div>
+            <div class="field"><label for="${fid(ol, 'lead')}">Plazo (días)</label>${numIn(ol, 'lead', ol.leadDays, 'Plazo de entrega en días')}</div>`}</div>
+          ${m === 'COTIZO' ? `<div class="field" style="max-width:460px"><label for="${fid(ol, 'item')}">Artículo de tu catálogo</label>${itemSel(ol, l)}</div>` : ''}
+          ${detailHtml(ol, l)}${errList(es)}
+          <div class="row"><button class="btn btn-primary btn-sm" data-next="${i}">${L.icon('check', 14)}Línea lista, seguir</button>${i > 0 ? `<button class="btn btn-ghost btn-sm" data-open="${i - 1}">${L.icon('chevl', 14)}Anterior</button>` : ''}</div></div>` : ''}
+      </article>`;
+    }).join('');
+    return `<div style="padding:14px 16px 0"><div class="row"><strong>${done} de ${draft.lines.length} líneas revisadas</strong><span class="spacer"></span><small class="muted">Marcá cada línea como lista; no hace falta para enviar.</small></div>
+      <div class="meter ${pct === 100 ? 'ok' : ''}" style="margin-top:8px" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}" aria-label="Líneas revisadas"><i style="width:${pct}%"></i></div></div><div class="cards">${cards}</div>`;
+  }
+
+  function footHtml() {
+    const t = totals(); const sent = offer().status === 'ENVIADA';
+    return `<div class="foot" role="region" aria-label="Totales y envío">
+      <div class="tot"><small>Cotizo</small><strong>${t.quoted}/${t.count}</strong></div>
+      <div class="tot"><small>Subtotal lista</small><strong id="t-gross">${L.ars(t.gross)}</strong></div>
+      <div class="tot"><small>Descuento ${L.pct(+draft.discountPct || 0, 1)}</small><strong id="t-disc">− ${L.ars(t.discount)}</strong></div>
+      <div class="tot big"><small>Total oferta</small><strong id="t-total">${L.ars(t.total)}</strong></div>
+      <div class="tot"><small>Plazo máx.</small><strong id="t-lead">${t.lead} d</strong></div>
+      <span class="spacer"></span><span class="dirty" id="dirty" ${dirty ? '' : 'hidden'}>Cambios sin guardar</span>
+      ${sent ? `<button class="btn btn-secondary" data-act="cancel-edit">Cancelar edición</button><button class="btn btn-volt" data-act="submit">${L.icon('send', 15)}Reenviar oferta</button>`
+        : `<button class="btn btn-secondary" data-act="save" title="Ctrl+S">${L.icon('check', 15)}Guardar borrador</button><button class="btn btn-volt" data-act="submit" title="Ctrl+Enter">${L.icon('send', 15)}Enviar oferta</button>`}
+    </div>`;
+  }
+
+  function editorHtml() {
+    const errs = showErrs ? errors() : []; const gen = errs.filter(e => !e.lineId);
+    const sent = offer().status === 'ENVIADA';
+    return `${errs.length ? `<div class="note note-err errsum mt" id="errsum" tabindex="-1" role="alert">${L.icon('alertc', 16)}<div><b>${errs.length === 1 ? 'Falta corregir 1 cosa' : 'Faltan corregir ' + errs.length + ' cosas'} antes de enviar.</b><ul>
+        ${errs.map(e => `<li>${e.lineId ? `<button data-goto="${e.lineId}">Línea ${draft.lines.findIndex(x => x.lineId === e.lineId) + 1} · ${L.esc(L.lineLabel(L.line(e.lineId)))}</button>: ` : ''}${L.esc(e.text)}</li>`).join('')}</ul></div></div>` : ''}
+      ${sent ? `<div class="note note-warn mt">${L.icon('edit', 16)}<p>Estás editando una oferta ya enviada. El comprador sigue viendo la versión anterior hasta que la reenvíes.</p></div>` : ''}
+      <section class="card mt" aria-labelledby="c-t"><div class="card-h"><h3 id="c-t">Condiciones de la oferta</h3>${L.cap('propuesto')}<span class="spacer"></span><small class="muted">Se aplican a todas las líneas</small></div>
+        <div class="card-b conds">
+          <div class="field"><label for="validUntil">Válida hasta</label><input type="date" class="input" id="validUntil" data-o="validUntil" min="${B.TODAY}" value="${L.esc(draft.validUntil || '')}">${gen.find(e => e.field === 'validUntil') ? errList(gen.filter(e => e.field === 'validUntil')) : ''}</div>
+          <div class="field"><label for="paymentTerms">Condición de pago</label><select class="select" id="paymentTerms" data-o="paymentTerms">${opt('', 'Elegí', !draft.paymentTerms)}${PAY.map(p => opt(p, p, draft.paymentTerms === p)).join('')}</select>${errList(gen.filter(e => e.field === 'paymentTerms'))}</div>
+          <div class="field"><label for="discountPct">Descuento global %</label><input class="input num" id="discountPct" data-o="discountPct" inputmode="decimal" value="${L.esc(n0(draft.discountPct))}"><span class="hint">Baja el precio de todas las líneas</span>${errList(gen.filter(e => e.field === 'discountPct'))}</div>
+          <div class="field"><label for="onote">Nota para el comprador</label><textarea class="textarea" style="min-height:36px" id="onote" data-o="note" placeholder="Ej.: precios por pago a 30 días; flete a obra a cargo del comprador">${L.esc(draft.note || '')}</textarea></div>
+        </div></section>
+      <section class="card mt" aria-labelledby="l-t"><div class="card-h"><h3 id="l-t">Líneas</h3>${L.cap('propuesto')}<span class="muted" style="font-size:var(--fs-xs)">Arranca desde tu catálogo: ${L.priceTag('referencia')} y disponibilidad sin confirmar hasta que la confirmes.</span><span class="spacer"></span><div id="vhost"></div></div>
+        <div class="bulk" role="toolbar" aria-label="Acciones sobre todas las líneas">
+          <button class="btn btn-secondary btn-sm" data-act="stock-all">${L.icon('check', 14)}Confirmar stock de todo</button>
+          <label class="lbl" for="bulkLead" style="margin-left:8px">Plazo</label><input class="input input-sm num" id="bulkLead" inputmode="numeric" placeholder="días" value="${L.esc(bulkLeadVal)}"><button class="btn btn-secondary btn-sm" data-act="lead-all">Aplicar plazo a todo</button>
+          <button class="btn btn-ghost btn-sm" data-act="ref-all" title="Vuelve cada precio al de tu catálogo">${L.icon('rotate', 14)}Volver a precios de catálogo</button>
+          <span class="kb"><span><kbd>Tab</kbd> siguiente campo</span><span><kbd>Enter</kbd> misma columna, línea siguiente</span><span><kbd>Ctrl</kbd>+<kbd>S</kbd> guardar</span><span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> enviar</span></span></div>
+        <div id="lines">${variant === 'lineas' ? cardsHtml() : sheetHtml()}</div></section>
+      ${footHtml()}`;
+  }
+
+  /* ───── Vista de oferta enviada (solo lectura) ───── */
+  function readOnlyHtml() {
+    const o = offer(); const r = req(); const tot = L.offerTotal(o);
+    const rows = o.lines.map((ol, i) => { const l = L.line(ol.lineId); const q = L.reqQty(r, l); const p = L.offerLinePrice(ol);
+      let what = '';
+      if (ol.mode === 'SIN_OFERTA') what = `<span class="muted">No cotizo</span><small>${L.esc(ol.note || 'Sin motivo')}</small>`;
+      else if (ol.mode === 'ALTERNATIVA') { const eq = ol.alt.equivalence; what = `${L.badge(eq === 'APROBADA' ? 'Equivalencia aprobada por ingeniería' : eq === 'RECHAZADA' ? 'Alternativa rechazada por ingeniería' : 'Alternativa sugerida · la aprueba ingeniería', eq === 'APROBADA' ? 'ok' : eq === 'RECHAZADA' ? 'err' : 'info', 'split')}<small>${L.esc(ol.alt.brand + ' ' + (ol.alt.gama || '') + ' · ' + ol.alt.code)} — ${L.esc(ol.alt.reason || '')}</small>`; }
+      else what = `${L.esc(ol.brand)} · <span class="mono">${L.esc(ol.code || '')}</span>${ol.mode === 'AJUSTADO' ? ' ' + (ol.basePrice != null && ol.refPrice && ol.basePrice === ol.refPrice ? L.badge('catálogo − desc. global', 'muted') : L.badge('precio ajustado', 'copper')) : ''}`;
+      return `<tr><td class="tight mono">${i + 1}</td><td><strong>${L.esc(L.lineLabel(l))}</strong></td><td class="num">${L.num(q)}</td><td>${what}</td><td class="num">${p ? L.ars(p) : '—'}</td>
+        <td>${ol.mode === 'SIN_OFERTA' ? '—' : L.badge(L.stockLabel[ol.stock] + (ol.stock === 'PARCIAL' ? ' (' + ol.stockQty + ')' : ''), L.stockTone[ol.stock])}</td><td class="num">${ol.mode === 'SIN_OFERTA' ? '—' : ol.leadDays + ' d'}</td><td class="num">${p ? L.ars(p * q) : '—'}</td></tr>`; }).join('');
+    return `<section class="card mt" aria-labelledby="ro-t"><div class="card-h"><h3 id="ro-t">Tu oferta enviada</h3>${L.badge('Oferta enviada', 'ok', 'send')}<small class="muted">${L.dateShort(o.submittedAt)} · ${L.time(o.submittedAt)}</small><span class="spacer"></span>
+        ${isOpen() ? `<button class="btn btn-primary btn-sm" data-act="edit">${L.icon('edit', 14)}Editar oferta</button>` : `<small class="muted">${r.status === 'ADJUDICADA' ? 'Ya se adjudicó: no se puede editar.' : 'La solicitud cerró: no se puede editar.'}</small>`}</div>
+      <div class="card-b row" style="gap:var(--sp-6)"><span>Válida hasta <b>${L.date(o.validUntil)}</b></span><span>Pago <b>${L.esc(o.paymentTerms)}</b></span><span>Descuento global <b>${L.pct(o.discountPct || 0, 1)}</b></span>${o.note ? `<span class="ink2">Nota: «${L.esc(o.note)}»</span>` : ''}</div>
+      <div class="tbl-wrap"><table class="tbl ro-tbl"><thead><tr><th>#</th><th>Material</th><th class="num">Cant.</th><th>Ofrecí</th><th class="num">Precio unit.</th><th>Disponibilidad</th><th class="num">Plazo</th><th class="num">Subtotal</th></tr></thead>
+        <tbody>${rows}</tbody><tfoot><tr><td colspan="7">Total (con descuento aplicado)</td><td class="num">${L.ars(tot)}</td></tr></tfoot></table></div></section>`;
+  }
+
+  function outcomeHtml() {
+    const r = req(); const o = offer();
+    if (r.status !== 'ADJUDICADA') return '';
+    const ords = S().orders.filter(x => x.requestId === rid && x.supplierId === SID);
+    if (ords.length) return `<div class="note note-ok outcome mt">${L.icon('check', 16)}<p><b>Te adjudicaron ${ords.reduce((a, x) => a + x.lines.length, 0)} de ${r.lineIds.length} materiales.</b> ${ords.map(x => `<a href="${L.link('d-prov-pedidos.html', { o: x.id })}">Ver pedido ${L.esc(x.code)}</a>`).join(' · ')} para confirmarlo o rechazarlo.</p></div>`;
+    return `<div class="note outcome mt">${L.icon('info', 16)}<p><b>${L.esc(r.code)} se adjudicó a otro distribuidor.</b> Por confidencialidad no se muestra a quién ni a qué precio. ${o && o.status === 'ENVIADA' ? 'Gracias por cotizar.' : ''}</p></div>`;
+  }
+
+  function actHtml() {
+    const o = offer(); const can = o && o.lines.length;
+    act.innerHTML = `<a class="btn btn-ghost btn-sm" href="${L.link('d-prov-solicitudes.html')}">${L.icon('arrowl', 14)}Solicitudes</a>
+      <button class="btn btn-secondary btn-sm" data-act="pdf" ${can ? '' : 'disabled'}>${L.icon('download', 14)}Oferta PDF</button>
+      <button class="btn btn-secondary btn-sm" data-act="xlsx" ${can ? '' : 'disabled'}>${L.icon('table', 14)}XLSX</button>
+      ${o && isOpen() && (o.status === 'PENDIENTE' || o.status === 'BORRADOR') ? `<button class="btn btn-ghost btn-sm" data-act="decline">${L.icon('x', 14)}No cotizar</button>` : ''}`;
+  }
+
+  function render() {
+    const fa = document.activeElement; const fidNow = fa && fa.id; const sel = fa && typeof fa.selectionStart === 'number' ? fa.selectionStart : null;
+    if (estado === 'cargando') { act.innerHTML = ''; page.innerHTML = `<div class="card card-b"><div class="skel" style="height:28px;width:220px"></div><div class="skel mt" style="height:14px;width:60%"></div></div><div class="card mt card-b col">${'<div class="skel" style="height:34px"></div>'.repeat(7)}</div>`; return; }
+    if (estado === 'error') { act.innerHTML = ''; page.innerHTML = `<div class="note note-err" role="alert">${L.icon('alertc', 16)}<div><p><b>No pudimos cargar la solicitud.</b> Tu borrador está a salvo: se guarda en tu cuenta cada vez que tocás «Guardar borrador».</p><a class="btn btn-secondary btn-sm" href="${L.link('d-prov-oferta.html', { r: rid || 'r-0141' }).replace(/[?&]estado=error/, '')}">${L.icon('refresh', 14)}Reintentar</a></div></div>`; return; }
+    const r = req();
+    if (!r || !r.supplierIds.includes(SID) || estado === 'vacio') { act.innerHTML = ''; page.innerHTML = `<div class="card">${L.empty({ icon: 'inbox', title: 'No hay una solicitud para ofertar', text: 'Cuando un tablerista te pida cotización, la abrís desde Solicitudes y armás la oferta acá, partiendo de tu catálogo.', action: `<a class="btn btn-primary" href="${L.link('d-prov-solicitudes.html')}">Ir a solicitudes</a>` })}</div>`; return; }
+    document.title = 'liard · Oferta ' + r.code;
+    actHtml();
+    const o = offer(); let body = '';
+    if (o.status === 'DECLINADA') body = `<div class="note note-err mt">${L.icon('x', 16)}<p><b>No cotizás esta solicitud.</b> Motivo que ve el comprador: «${L.esc(o.declineReason || 'sin motivo')}». La respuesta es una sola vez.</p></div><section class="card mt"><div class="card-h"><h3>Materiales pedidos</h3></div>${askedHtml()}</section>`;
+    else if (o.status === 'PENDIENTE' || !draft || !draft.lines.length) {
+      body = isOpen() ? `<section class="card mt" aria-labelledby="st-t"><div class="card-h"><h3 id="st-t">Materiales pedidos</h3>${L.cap('propuesto')}<span class="spacer"></span><small class="muted">Lista ya contada y especificada por el tablerista</small></div>${askedHtml()}
+          <div class="card-f"><button class="btn btn-primary" data-act="start">${L.icon('wand', 15)}Armar oferta desde mi catálogo</button>
+          <small class="muted">Toma el artículo más barato de tu catálogo que coincide por componente y atributos. Precio de referencia y disponibilidad sin confirmar: los ajustás antes de enviar.</small></div></section>`
+        : `<div class="note note-warn mt">${L.icon('clock', 16)}<p>La solicitud cerró sin tu respuesta.</p></div><section class="card mt"><div class="card-h"><h3>Materiales pedidos</h3></div>${askedHtml()}</section>`;
+    } else if (o.status === 'ENVIADA' && !editing) body = readOnlyHtml();
+    else if (!isOpen()) body = `<div class="note note-warn mt">${L.icon('clock', 16)}<p>La solicitud ya no recibe ofertas. Tu borrador quedó sin enviar.</p></div>`;
+    else body = editorHtml();
+    page.innerHTML = headHtml() + outcomeHtml() + body;
+    const vh = document.getElementById('vhost');
+    if (vh) L.variants(vh, [{ id: 'planilla', label: 'Planilla', desc: 'Densa, como una hoja de cálculo; Tab y Enter' }, { id: 'lineas', label: 'Línea por línea', desc: 'Tarjetas guiadas con progreso' }], v => { if (v !== variant) { variant = v; document.getElementById('lines').innerHTML = variant === 'lineas' ? cardsHtml() : sheetHtml(); } }, 'prov-oferta');
+    if (fidNow) { const el = document.getElementById(fidNow); if (el) { el.focus(); if (sel != null && typeof el.setSelectionRange === 'function' && el.type !== 'date') try { el.setSelectionRange(sel, sel); } catch (e) { /* select */ } } }
+  }
+  variant = L.param('v') || L.pref('v:prov-oferta') || 'planilla';
+
+  function updateLive(lineId) {
+    const t = totals();
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+    set('t-gross', L.ars(t.gross)); set('t-disc', '− ' + L.ars(t.discount)); set('t-total', L.ars(t.total)); set('t-lead', t.lead + ' d');
+    const dz = document.querySelectorAll('.foot .tot small')[2]; if (dz) dz.textContent = 'Descuento ' + L.pct(+draft.discountPct || 0, 1);
+    const upd = ol => { const dl = document.querySelector('[data-delta="' + ol.lineId + '"]'); if (dl) dl.outerHTML = deltaHtml(ol); const c = document.querySelector('[data-sub="' + ol.lineId + '"]'); const b = baseOf(ol); if (c) c.textContent = mode(ol) === 'SIN_OFERTA' || !(b > 0) ? '—' : L.ars(net(b) * qtyOf(ol)); };
+    (lineId ? draft.lines.filter(x => x.lineId === lineId) : draft.lines).forEach(upd);
+    const dr = document.getElementById('dirty'); if (dr) dr.hidden = !dirty;
+  }
+
+  /* ───── Edición ───── */
+  function onField(el, commit) {
+    const host = el.closest('[data-line]'); const f = el.dataset.f; const o = el.dataset.o;
+    if (o) { draft[o] = o === 'discountPct' ? (parseNum(el.value) == null ? 0 : parseNum(el.value)) : el.value; dirty = true; if (commit) render(); else updateLive(); return; }
+    if (!host || !f) return;
+    const ol = draft.lines.find(x => x.lineId === host.dataset.line); const l = L.line(ol.lineId); dirty = true;
+    const v = el.value;
+    if (f === 'base') { const n = parseNum(v); if (mode(ol) === 'ALTERNATIVA') ol.alt.basePrice = n; else ol.basePrice = n; }
+    else if (f === 'stockQty') ol.stockQty = parseNum(v);
+    else if (f === 'lead') ol.leadDays = parseNum(v);
+    else if (f === 'brand') ol.brand = v; else if (f === 'code') ol.code = v;
+    else if (f === 'note') ol.note = v;
+    else if (f === 'altReason') { ol.alt.reason = v; }
+    else if (f === 'altBrand') ol.alt.brand = v; else if (f === 'altCode') ol.alt.code = v;
+    else if (f === 'stock') { ol.stock = v; if (v !== 'PARCIAL') delete ol.stockQty; }
+    else if (f === 'noq') ol.note = v === 'Otro motivo' ? '' : v;
+    else if (f === 'item') { const m = myItems(l).find(x => x.id === v); if (m) Object.assign(ol, { itemId: m.id, brand: m.brand, code: m.code, refPrice: m.price, basePrice: m.price, leadDays: m.leadDays, stale: L.isStale(m) }); }
+    else if (f === 'altItem') {
+      if (v === 'MANUAL') ol.alt = { typeId: l.typeId, attrs: Object.assign({}, l.attrs), brand: '', gama: '', code: '', basePrice: null, reason: (ol.alt || {}).reason || '', manual: true };
+      else { const c = S().catalog.find(x => x.id === v); ol.alt = c ? { typeId: c.typeId, attrs: Object.assign({}, c.attrs), brand: c.brand, gama: c.gama, code: c.code, basePrice: c.price, reason: (ol.alt || {}).reason || '', itemId: c.id } : { reason: (ol.alt || {}).reason || '' }; if (c && !(ol.leadDays >= 0)) ol.leadDays = c.leadDays; }
+    }
+    else if (f === 'mode') {
+      if (v === 'SIN_OFERTA') { ol.mode = 'SIN_OFERTA'; ol.note = ol.note || ''; }
+      else if (v === 'ALTERNATIVA') { ol.mode = 'ALTERNATIVA'; ol.alt = ol.alt || { typeId: l.typeId, attrs: {}, reason: '' }; if (!ol.stock) ol.stock = 'DESCONOCIDO'; }
+      else { ol.mode = 'CATALOGO'; if (!ol.itemId && !ol.code) { const m = myItems(l)[0]; if (m) Object.assign(ol, { itemId: m.id, brand: m.brand, code: m.code, refPrice: m.price, basePrice: m.price, leadDays: m.leadDays }); } if (!ol.stock) ol.stock = 'DESCONOCIDO'; }
+      if (v !== 'SIN_OFERTA' && ol.leadDays == null) ol.leadDays = L.supplier(SID).lead;
+    }
+    if (commit) render(); else updateLive(ol.lineId);
+  }
+  page.addEventListener('input', e => { if (e.target.matches('input[type=text], input:not([type]), textarea')) onField(e.target, false); });
+  page.addEventListener('change', e => { if (e.target.matches('select, input[type=date]')) onField(e.target, true); else if (e.target.matches('input, textarea') && showErrs) setTimeout(render, 0); });
+  /* El re-render al salir de un campo espera a que el foco llegue al siguiente, así no se pierde. */
+  page.addEventListener('input', e => { if (e.target.id === 'bulkLead') bulkLeadVal = e.target.value; });
+
+  function save() { persist(); L.toast('Borrador guardado', { detail: 'Solo lo ves vos hasta que lo envíes.' }); render(); }
+  function submit() {
+    showErrs = true; const errs = errors();
+    if (errs.length) { render(); const s = document.getElementById('errsum'); if (s) s.focus(); L.toast('Revisá la oferta antes de enviar', { kind: 'err', detail: errs.length + (errs.length === 1 ? ' problema' : ' problemas') + ' marcados arriba.' }); return; }
+    const o = offer(); const wasSent = o.status === 'ENVIADA';
+    persist(wasSent ? { revision: (o.revision || 0) + 1 } : {});
+    const res = L.submitOffer(draft.id);
+    if (!res.ok) { L.toast('No se pudo enviar', { kind: 'err', detail: res.errs.map(x => x.text).join(' ') }); return; }
+    editing = false; showErrs = false; load(); render();
+    L.toast(wasSent ? 'Oferta reenviada' : 'Oferta enviada', { detail: S().company.name + ' ya puede compararla. No ve precios de otros distribuidores contra tu nombre, ni vos los de ellos.' });
+  }
+  function decline() {
+    const d = L.dialog({ title: 'No cotizar ' + req().code, body: `<p>El comprador ve que no cotizás y el motivo. <b>Se responde una sola vez</b>: después no vas a poder ofertar en esta solicitud.</p>
+      <div class="field"><label for="dr">Motivo</label><select class="select" id="dr">${opt('', 'Elegí un motivo', true)}${['No trabajo estas marcas', 'Sin stock para estos plazos', 'No llego con la fecha de entrega', 'La obra está fuera de mi zona', 'Otro motivo'].map(x => opt(x, x)).join('')}</select></div>
+      <div class="field mt"><label for="drt">Detalle (opcional)</label><textarea class="textarea" id="drt"></textarea></div>`,
+      actions: [{ label: 'Cancelar' }, { label: 'No cotizar', kind: 'danger', onClick: dl => { const s = dl.querySelector('#dr'); const t = dl.querySelector('#drt').value.trim();
+        if (!s.value) { L.fieldError(s, 'Elegí un motivo: el comprador lo ve.'); s.focus(); return false; }
+        if (s.value === 'Otro motivo' && !t) { L.fieldError(dl.querySelector('#drt'), 'Contá el motivo.'); return false; }
+        L.declineOffer(offer().id, s.value === 'Otro motivo' ? t : s.value + (t ? '. ' + t : '')); load(); render(); L.toast('Respondiste que no cotizás', { detail: 'El comprador ya lo ve.' }); } }] });
+    return d;
+  }
+  function bulk(kind) {
+    if (kind === 'stock-all') { let n = 0; draft.lines.forEach(ol => { if (mode(ol) !== 'SIN_OFERTA' && ol.stock !== 'CONFIRMADO') { ol.stock = 'CONFIRMADO'; delete ol.stockQty; n++; } }); dirty = true; render(); L.toast(n ? 'Stock confirmado en ' + n + (n === 1 ? ' línea' : ' líneas') : 'Ya estaba todo confirmado', { kind: n ? 'ok' : 'info' }); }
+    if (kind === 'lead-all') { const inp = document.getElementById('bulkLead'); const v = parseNum(inp.value); if (!(v >= 0) || v > 365) { L.fieldError(inp, 'Días entre 0 y 365'); inp.focus(); return; } draft.lines.forEach(ol => { if (mode(ol) !== 'SIN_OFERTA') ol.leadDays = v; }); dirty = true; render(); L.toast('Plazo de ' + v + ' días en todas las líneas que cotizás'); }
+    if (kind === 'ref-all') { draft.lines.forEach(ol => { if (mode(ol) === 'COTIZO' && ol.refPrice) ol.basePrice = ol.refPrice; }); dirty = true; render(); L.toast('Precios de catálogo restaurados'); }
+  }
+
+  /* ───── Descargas ───── */
+  function exportRows() {
+    const o = draft && (editing || offer().status !== 'ENVIADA') ? Object.assign({}, draft, { lines: stored() }) : offer(); const r = req();
+    return { o, r, rows: o.lines.map((ol, i) => { const l = L.line(ol.lineId); const q = L.reqQty(r, l); const p = L.offerLinePrice(ol);
+      const what = ol.mode === 'SIN_OFERTA' ? 'No cotizo: ' + (ol.note || '') : ol.mode === 'ALTERNATIVA' ? 'Alternativa ' + (ol.alt.brand || '') + ' ' + (ol.alt.code || '') : (ol.brand || '') + ' ' + (ol.code || '');
+      return { i: i + 1, mat: L.lineLabel(l), q, what, p, stock: ol.mode === 'SIN_OFERTA' ? '' : L.stockLabel[ol.stock || 'DESCONOCIDO'], lead: ol.mode === 'SIN_OFERTA' ? '' : ol.leadDays, sub: p ? p * q : 0 }; }) };
+  }
+  function pdf() {
+    const { o, r, rows } = exportRows(); const sup = L.supplier(SID); const total = rows.reduce((a, x) => a + x.sub, 0);
+    const W = [22, 150, 36, 130, 66, 44, 50];
+    const blocks = [{ h1: 'Oferta · ' + r.code }, { p: sup.name + ' · ' + sup.city + ' · ' + sup.email }, { p: 'Para ' + S().company.name + ' · obra ' + project().name + ' (' + project().city + ')' },
+      { small: 'Estado: ' + L.offerStatusLabel[o.status] + ' · Válida hasta ' + L.date(o.validUntil) + ' · Pago ' + (o.paymentTerms || '—') + ' · Descuento global ' + L.pct(o.discountPct || 0, 1) + ' (ya aplicado en los precios)' }, { hr: true },
+      { row: ['#', 'Material', 'Cant.', 'Artículo ofrecido', 'Precio unit.', 'Plazo', 'Subtotal'], widths: W, bold: true, align: ['l', 'l', 'r', 'l', 'r', 'r', 'r'] },
+      ...rows.map(x => ({ row: [x.i, x.mat, x.q, x.what, x.p ? L.ars(x.p) : '—', x.lead === '' ? '—' : x.lead + ' d', x.p ? L.ars(x.sub) : '—'], widths: W, align: ['l', 'l', 'r', 'l', 'r', 'r', 'r'] })),
+      { hr: true }, { row: ['', 'Total', '', '', '', '', L.ars(total)], widths: W, bold: true, align: ['l', 'l', 'r', 'l', 'r', 'r', 'r'] },
+      { gap: 8 }, ...rows.filter(x => x.stock).map(x => ({ small: x.i + '. ' + x.stock })), o.note ? { p: 'Nota: ' + o.note } : { gap: 1 },
+      { small: 'Alternativas: sugeridas por el distribuidor; la equivalencia la aprueba ingeniería del comprador. El pago y el flete se acuerdan fuera de liard.' }];
+    L.download('Oferta-' + r.code + '-' + sup.short.replace(/\s+/g, '') + '.pdf', L.pdf(blocks, { title: 'Oferta ' + r.code }));
+  }
+  function xlsx() {
+    const { o, r, rows } = exportRows();
+    L.download('Oferta-' + r.code + '.xlsx', L.xlsx([{ name: 'Oferta ' + r.code, rows: [['#', 'Material', 'Cantidad', 'Artículo ofrecido', 'Precio unitario ARS', 'Disponibilidad', 'Plazo (días)', 'Subtotal ARS'],
+      ...rows.map(x => [x.i, x.mat, x.q, x.what, x.p || '', x.stock, x.lead, x.sub || '']), [], ['', 'Válida hasta', o.validUntil || ''], ['', 'Condición de pago', o.paymentTerms || ''], ['', 'Descuento global %', o.discountPct || 0]] }]));
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-act],[data-goto],[data-open],[data-next]'); if (!b) return;
+    if (b.dataset.goto) { const id = b.dataset.goto; if (variant === 'lineas') { cur = draft.lines.findIndex(x => x.lineId === id); render(); } const el = document.getElementById('row-' + id) || document.getElementById('card-' + id); if (el) { el.scrollIntoView({ block: 'center' }); const f = el.querySelector('input:not([disabled]), select, textarea'); if (f) f.focus(); } return; }
+    if (b.dataset.open != null) { cur = +b.dataset.open; document.getElementById('lines').innerHTML = cardsHtml(); const c = document.querySelector('.lc.cur .lc-h'); if (c) c.focus(); return; }
+    if (b.dataset.next != null) { const i = +b.dataset.next; draft.lines[i].checked = true; dirty = true; const nx = draft.lines.findIndex((x, k) => k > i && !x.checked); cur = nx >= 0 ? nx : Math.min(i + 1, draft.lines.length - 1); render(); const c = document.querySelector('.lc.cur .lc-h'); if (c) c.focus(); return; }
+    const a = b.dataset.act;
+    if (a === 'start') { L.prefillOffer(rid, SID); load(); render(); L.toast('Oferta armada desde tu catálogo', { detail: 'Revisá precios y confirmá disponibilidad antes de enviar.' }); }
+    else if (a === 'save') save(); else if (a === 'submit') submit(); else if (a === 'decline') decline();
+    else if (a === 'edit') { editing = true; load(); render(); }
+    else if (a === 'cancel-edit') { editing = false; showErrs = false; load(); render(); }
+    else if (a === 'pdf') pdf(); else if (a === 'xlsx') xlsx();
+    else if (a === 'stock-all' || a === 'lead-all' || a === 'ref-all') bulk(a);
+  });
+  /* Teclado: Enter baja a la misma columna; Ctrl+S guarda; Ctrl+Enter envía. */
+  document.addEventListener('keydown', e => {
+    const inEditor = draft && document.getElementById('lines');
+    if (!inEditor) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (offer().status !== 'ENVIADA') { const el = document.activeElement; if (el && el.dataset && (el.dataset.f || el.dataset.o)) onField(el, false); save(); } return; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); const el = document.activeElement; if (el && el.dataset && (el.dataset.f || el.dataset.o)) onField(el, false); submit(); return; }
+    const el = e.target;
+    if (e.key === 'Enter' && variant === 'planilla' && el.matches('#sheet input')) {
+      e.preventDefault(); const f = el.dataset.f; const rows = [...document.querySelectorAll('#sheet tbody tr[id^="row-"]')]; const i = rows.indexOf(el.closest('tr'));
+      for (let k = i + 1; k < rows.length; k++) { const n = rows[k].querySelector('[data-f="' + f + '"]:not([disabled])'); if (n) { n.focus(); n.select(); return; } }
+    }
+    if (e.key === 'Enter' && el.id === 'bulkLead') { e.preventDefault(); bulk('lead-all'); }
+  });
+
+  L.store.subscribe(() => { if (!dirty && !editing) { load(); render(); } });
+  load();
+  if (L.param('prefill') === '1' && offer() && offer().status === 'PENDIENTE' && isOpen()) { L.prefillOffer(rid, SID); load(); }
+  render();
+});
+</script></body></html>

@@ -1,0 +1,242 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 04 · Supuestos y lo que no está verificado</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="01-estrategia.html" class="">01 · Estrategia de liard</a><a href="02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="04-supuestos-y-no-verificado.html" class="on">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="../research/01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="../research/02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="../research/03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="../research/04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="../research/05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>04 · Supuestos y lo que no está verificado</h1>
+<p>Todo lo que sigue es <strong>supuesto</strong>: un número inventado para el prototipo, una hipótesis de la estrategia o algo que no se
+pudo comprobar. Nada de esto se usa como dato en una conversación comercial sin antes validarlo.</p>
+<h2>1. Datos del prototipo (<code>data.js</code>, <code>app.js</code>): todo es ficticio</h2>
+<p><code>data.js</code> lo dice en su cabecera: &quot;Toda empresa, persona, obra, código y precio de este archivo es inventado&quot;. Las marcas
+(Schneider, ABB, Chint, Siemens) son referencias de dominio; <strong>los códigos y los precios no son reales</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Dato del prototipo</th>
+<th>Valor</th>
+<th>Contra qué se puede contrastar</th>
+<th>Estado</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Precios base por componente (<code>basePrice</code>)</td>
+<td>ARS 1.450 (borne de 4 mm²) a ARS 3.150.000 (gabinete IP55 2000×800)</td>
+<td>Ningún catálogo real en el repo</td>
+<td><strong>Inventado</strong></td>
+</tr>
+<tr>
+<td>Factor por distribuidor</td>
+<td>Sur 1,00 · Delta 1,04 · Norte 0,95</td>
+<td>—</td>
+<td>Inventado</td>
+</tr>
+<tr>
+<td>Factor por marca</td>
+<td>Schneider 1,00 · ABB 0,97 · Siemens 1,06 · Chint 0,63</td>
+<td>—</td>
+<td>Inventado. No usarlo como &quot;Chint es 37 % más barato&quot;</td>
+</tr>
+<tr>
+<td>Plazos de entrega</td>
+<td>Sur 2 · Delta 4 · Norte 9 días hábiles; +5 si es Siemens; +6 para caja moldeada y gabinete</td>
+<td>Nisamat: stock con hasta 3 meses de demora [entrevista]</td>
+<td>Inventado y <strong>optimista</strong> frente a lo que dice el discovery</td>
+</tr>
+<tr>
+<td>Precios vencidos y productos que un distribuidor no trabaja</td>
+<td>2 combinaciones vencidas; 4 tipos sin catálogo</td>
+<td>—</td>
+<td>Inventado, para mostrar los estados</td>
+</tr>
+<tr>
+<td>Ofertas de SC-0141</td>
+<td>Modos CATALOGO/AJUSTADO/ALTERNATIVA, condición &quot;30 días&quot;, vigencia 03–09/10</td>
+<td>El backend actual <strong>no tiene</strong> ofertas editables</td>
+<td>Inventado; es el flujo propuesto O-06/O-07</td>
+</tr>
+<tr>
+<td><strong>Tipo de cambio</strong></td>
+<td><code>usdArs: 1245</code>, &quot;Cotización simulada para la demo&quot;</td>
+<td>Mayorista ARS 1.522 al 29/09/2026 [fuente externa, <code>research/05 §4</code>]</td>
+<td>Inventado y <strong>~18 % por debajo</strong> del dato publicado. No usar en ninguna cuenta real</td>
+</tr>
+<tr>
+<td><strong>Inflación en el presupuesto</strong></td>
+<td>2,4 % mensual (obras p1, p2 y p4) y 2,6 % (p3)</td>
+<td>IPC de agosto 2026: 1,7 % mensual y 33,5 % interanual [fuente externa, INDEC]</td>
+<td>Inventado y <strong>por encima</strong> del último dato. El escenario &quot;cobertura&quot; sobreestima el ajuste</td>
+</tr>
+<tr>
+<td>Parámetros del presupuesto</td>
+<td>22–30 h de mano de obra por tablero, ARS 20.000–21.500 por hora, extras 5–6 %, contingencia 4–5 %, margen 20–24 %, validez 7–10 días</td>
+<td>Margen de tableristas en EE. UU.: 15–25 % estándar y 35–50 % a medida [fuente externa, blog]; no hay dato argentino (<code>research/05 §5</code>)</td>
+<td>Inventado. ARS 21.500/h ≈ USD 17 al TC ficticio: cae dentro del rango <strong>supuesto</strong> de USD 15–30 de <code>research/05 §3.2</code>, que tampoco está verificado</td>
+</tr>
+<tr>
+<td>Escenario &quot;Competitivo&quot;</td>
+<td>−4 puntos de margen</td>
+<td>—</td>
+<td>Inventado</td>
+</tr>
+<tr>
+<td>Plan del ingeniero</td>
+<td>&quot;Estudio&quot;: USD 150/mes, 40 tableros incluidos, USD 2,5 por tablero extra; facturas F-0007/F-0008</td>
+<td>Coincide con la hipótesis H-M1 (<code>research/05 §3.3</code>: USD 60/150/400, excedente USD 1,5–3) [estimación]</td>
+<td><strong>Hipótesis mostrada como si fuera un hecho.</strong> No hay precio validado (V1)</td>
+</tr>
+<tr>
+<td>Plan del distribuidor</td>
+<td>&quot;Distribuidor&quot;: USD 120/mes, USD 4 por lead, 5 leads gratis</td>
+<td>H-M3: USD 100–300/mes o USD 2–10 por RFQ [estimación]</td>
+<td>Hipótesis; la comisión nunca se preguntó (V2)</td>
+</tr>
+<tr>
+<td>Presupuesto de IA</td>
+<td>USD 40/mes, alerta al 80 %, tope estricto</td>
+<td>—</td>
+<td>Inventado</td>
+</tr>
+<tr>
+<td>Ledger de IA</td>
+<td>Detección de TGBT USD 1,02; TS-PB 0,74; TS-P tipo 0,61; TDE 0,88; lectura de BOM 0,04; asistente 0,09</td>
+<td>Medido: USD 1,02 por plano de 221 cajas, ~0,73 por plano medio y ~0,041 por lectura de BOM de un plano (<code>research/04 §4</code>)</td>
+<td>1,02 y 0,04 están <strong>anclados en mediciones</strong>; el resto es inventado. El &quot;asistente&quot; no existe</td>
+</tr>
+<tr>
+<td>Regla de aprobación</td>
+<td>Adjudicación &gt; ARS 30.000.000 → aprueba Dirección</td>
+<td>—</td>
+<td>Inventado</td>
+</tr>
+<tr>
+<td>Empresa, personas, distribuidores y obras</td>
+<td>Tableros Andes SRL, Distribuidora Sur Eléctrica, Clínica San Martín, etc.; CUIT <code>30-00000000-0</code>; dominios <code>.example</code></td>
+<td>—</td>
+<td>Ficticio. Cualquier parecido con empresas reales es casual</td>
+</tr>
+<tr>
+<td>Detección, lectura IA y tiempos de proceso</td>
+<td>Simulados (<code>L.sim()</code>, <code>L.tick()</code> cada 1 s)</td>
+<td>Tiempos reales: mediana de 14 s por plano en la ubicación, ~80 s un plano medio completo (<code>research/04 §4</code>)</td>
+<td>Simulado; el prototipo es <strong>más rápido</strong> que la realidad</td>
+</tr>
+</tbody></table>
+<h2>2. Supuestos de la estrategia</h2>
+<table>
+<thead>
+<tr>
+<th>Supuesto</th>
+<th>Dónde se usa</th>
+<th>Qué lo falsaría</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>El segmento A (conteo) paga antes que el B</td>
+<td><code>01 §3</code></td>
+<td>V1: ninguna empresa del segmento A se compromete; el B sí</td>
+</tr>
+<tr>
+<td>USD 1–3,5 por tablero como techo de precio por valor</td>
+<td><code>01 §4</code></td>
+<td>V1. Sale de las horas de EMEVE [entrevista] y de un costo de ingeniero de USD 15–30/h y un ahorro del 60–75 %, que son <strong>supuestos</strong> (<code>research/05 §3.2</code>)</td>
+</tr>
+<tr>
+<td>El margen bruto por tablero es fino con ~USD 1 de IA</td>
+<td><code>01 §4</code></td>
+<td>El ledger real de O-09</td>
+</tr>
+<tr>
+<td>Los distribuidores prefieren suscripción o tarifa por RFQ antes que una comisión</td>
+<td><code>01 §4</code>, <code>02</code></td>
+<td>V2</td>
+</tr>
+<tr>
+<td>La comisión &gt; 1–2 % del GMV se come la mitad del margen del distribuidor</td>
+<td><code>01 §4</code></td>
+<td>El margen neto de ~3 % es de EE. UU. y Europa (Wesco, Rexel, NAED) [fuente externa]; <strong>el margen argentino no se conoce</strong></td>
+</tr>
+<tr>
+<td>La oferta editable (O-06) captura la mayor parte del valor de la RFQ</td>
+<td><code>02</code>, <code>03</code></td>
+<td>V7</td>
+</tr>
+<tr>
+<td>El 3D no aporta en la etapa de cotización</td>
+<td><code>02</code></td>
+<td>≥ 2 de 5 pilotos lo piden sin sugerirlo</td>
+</tr>
+<tr>
+<td>El catálogo canónico se puede reusar en LatAm IEC</td>
+<td><code>01 §7</code></td>
+<td>Diferencias de denominación o de gamas por país que obliguen a rehacer tipos</td>
+</tr>
+<tr>
+<td>300 a 1.500 tableristas en Argentina</td>
+<td>Tamaño de la cabeza de playa</td>
+<td>Es una estimación sin censo (<code>research/05 §1.2</code>)</td>
+</tr>
+<tr>
+<td>Esfuerzos S/M/L y factibilidad del backlog</td>
+<td><code>02</code></td>
+<td>Estimaciones de lectura de código, sin ejecutar nada</td>
+</tr>
+<tr>
+<td>Umbrales de salida (−60 % de tiempo, ≤ 1 faltante con precio, 90/80 % de líneas aceptadas, &lt; 30 min de respuesta, ≥ 40 % pagaría por FX)</td>
+<td><code>01 §6</code>, <code>03 §3</code> y §6</td>
+<td>Son <strong>propuestas</strong> tomadas de <code>research/05 §4</code>; hay que acordarlas con los pilotos (V4)</td>
+</tr>
+</tbody></table>
+<h2>3. Lo que no está verificado</h2>
+<ul>
+<li><strong>El deploy.</strong> No hay ninguna instancia pública (R1). Ninguna afirmación sobre &quot;usuarios&quot; es válida hasta #985.</li>
+<li><strong>El acierto del matching de punta a punta</strong> sobre datos reales: no está medido (R4). Las lecturas IA del 98,6 % y el
+97,5 % son sobre casos sintéticos escritos por Claude.</li>
+<li><strong>El caso Fundaleu</strong> (4 h → 17 min): el listado manual no está en el repo y no se confirmó que los 8 tableros del repo sean
+los de la demo (<code>research/01 §8.4</code>).</li>
+<li>El costo de D1 &quot;USD 0,1–0,2 por tablero&quot; no tiene moneda aclarada, y la cifra <code>EZE4077 US$ 0,66</code> no se leyó completa
+(<code>research/01 §8.6</code>).</li>
+<li>El contacto con Eaton (RM §Sprint 4.12): no hay evidencia en el repo.</li>
+<li>El tamaño del mercado argentino de tableros y de distribución eléctrica, los márgenes locales y el costo por hora de un
+ingeniero (<code>research/05 §5</code>).</li>
+<li>La precisión, el precio y la presencia en LatAm de Switchonomy y OpenDrawing.</li>
+<li>La licencia y el costo de un conversor DWG (O-18): no se investigaron.</li>
+<li>El rol de CADIME y la relación LIARD–Marcelo–Adrián–CADIME (<code>research/01 §3</code>).</li>
+<li>El contenido del North Star y de los OKRs &quot;definidos&quot; en el Sprint 3: no están escritos en ningún lado.</li>
+<li><strong>Este documento no ejecutó nada</strong>: ni tests, ni docker, ni el detector. El diagrama mermaid de <code>03-roadmap.md</code> no se
+renderizó para verificarlo.</li>
+</ul>
+<hr>
+<h2>Resumen (~300 palabras)</h2>
+<p>liard tiene construido en <code>dev</code> el circuito completo: plano DXF o PDF → BOM revisado → componente base → cotización por
+igualdad contra los catálogos de los distribuidores → pedido por proveedor. Pero <strong>no está desplegado</strong>: el Roadmap dice
+que se desplegó para 5 usuarios, y #985 sigue con todas las casillas sin marcar. Tampoco está medido de punta a punta sobre
+datos reales. Por eso el próximo paso no es construir más, sino poner lo que ya existe frente a usuarios reales.</p>
+<p>Las mediciones por etapa son buenas: 97,3–99,4 % de aparatos ubicados, 51–52 de 56 bien clasificados y alrededor de
+USD 1 de IA por plano [medido]. Falta el número que importa para vender, que es cuántas líneas terminan con la oferta
+correcta, y falta saber cuánto pagaría alguien: nunca se preguntó. La &quot;suscripción + comisión por lead&quot; del Sprint 5 es
+una hipótesis, y con distribuidores que viven con ~3 % de margen neto [fuente externa] una comisión sobre el pedido es
+frágil.</p>
+<p>El valor defendible está en la cadena completa y en el catálogo canónico multimarca, no en detectar símbolos. Los
+distribuidores quieren un BOM ya interpretado y confirmar precio, stock y plazo, cosa que hoy no pueden hacer. Esa
+brecha (O-06) es la más importante del lado comercial.</p>
+<p><strong>H1</strong>: deploy, confidencialidad de los catálogos, email, plazos, medición, tope de IA, cobertura de componentes y oferta
+editable, con 5 empresas del segmento A y 3 distribuidores. <strong>H2</strong>: RFQ, adjudicación persistente, historial de precios,
+reglas de accesorios y presupuesto con FX (se suma el segmento B) y cobro según la validación. <strong>H3</strong>: LatAm IEC y datos,
+solo si se cumplen las condiciones de <code>01 §7</code>. Tanto el prototipo como los precios, tipos de cambio y tarifas que muestra
+son ficticios.</p>
+<h2>5 decisiones que hay que tomar ahora</h2>
+<ol>
+<li><strong>Corregir el Roadmap</strong> (R1) y terminar #985 antes de abrir cualquier trabajo nuevo del Sprint 5.</li>
+<li><strong>Reemplazar &quot;pagos&quot; del Sprint 5 por V1 y V2</strong>, con facturación manual en el piloto.</li>
+<li><strong>Agregar O-23 (confidencialidad) como bloqueante</strong> para sumar el primer distribuidor real.</li>
+<li><strong>Priorizar la oferta editable (O-06) por delante de la RFQ completa (O-07)</strong> y validarla primero con el prototipo (V7).</li>
+<li><strong>Fijar con los pilotos el umbral de precisión (V4)</strong> y publicar la medición de punta a punta (O-04) antes de prometer
+&quot;precisión&quot; en cualquier material comercial.</li>
+</ol>
+</article></body></html>

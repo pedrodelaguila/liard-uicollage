@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Asistentes IA</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<style>
+  .as-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+  .as-tab { all: unset; box-sizing: border-box; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); transition: border-color var(--t-fast); }
+  .as-tab:hover { border-color: var(--line-strong); }
+  .as-tab[aria-selected='true'] { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand), var(--shadow-1); }
+  .as-tab:focus-visible { box-shadow: var(--focus); }
+  .as-ic { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--surface-3); color: var(--ink-2); flex: none; }
+  .as-tab[aria-selected='true'] .as-ic { background: var(--brand); color: #fff; }
+  .as-tab strong { display: block; font-size: var(--fs-sm); }
+  .as-tab small { color: var(--ink-3); display: block; line-height: 1.35; margin-top: 2px; }
+  .as-tab .as-n { margin-left: auto; font: 600 10.5px/1.6 var(--font-mono); color: var(--ink-3); }
+  .as-layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--sp-4); align-items: start; }
+  @media (max-width: 1180px) { .as-layout { grid-template-columns: 1fr; } .as-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .chat { display: flex; flex-direction: column; }
+  .chat .card-h { flex-wrap: wrap; }
+  .chat-log { padding: 16px; display: flex; flex-direction: column; gap: 14px; min-height: 280px; background: var(--surface-2); border-bottom: 1px solid var(--line); }
+  .msg-u { align-self: flex-end; max-width: 75%; background: var(--ink); color: #fff; padding: 9px 14px; border-radius: 14px 14px 4px 14px; font-size: var(--fs-sm); }
+  .msg-u small { display: block; color: rgba(255,255,255,.6); font-size: 10.5px; margin-top: 2px; text-align: right; }
+  .msg-a { align-self: flex-start; width: min(100%, 720px); background: var(--surface); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px; padding: 12px 14px; font-size: var(--fs-sm); box-shadow: var(--shadow-1); }
+  .msg-a.m-warn { border-color: color-mix(in srgb, var(--warn) 45%, transparent); }
+  .msg-h { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+  .msg-h .spacer { flex: 1; }
+  .msg-h .cost { font: 600 11px/1.6 var(--font-mono); color: var(--ink-2); }
+  .msg-a p { margin: 0 0 6px; }
+  .msg-a ul { margin: 4px 0 8px; padding-left: 18px; }
+  .msg-a li { margin: 3px 0; }
+  .msg-src { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); }
+  .msg-src a { font-size: var(--fs-xs); display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); text-decoration: none; color: var(--ink-2); background: var(--surface); }
+  .msg-src a:hover { background: var(--surface-2); }
+  .msg-act { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+  .act { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-radius: var(--r-md); border: 1px dashed var(--brand); background: var(--brand-soft); }
+  .act .grow { flex: 1; min-width: 220px; }
+  .act small { display: block; color: var(--ink-3); }
+  .act.done { border-style: solid; border-color: color-mix(in srgb, var(--ok) 40%, transparent); background: var(--ok-soft); }
+  .act.gone { border-color: var(--line-strong); background: var(--surface-2); }
+  .cmp { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); margin: 6px 0 8px; }
+  .cmp th, .cmp td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  .cmp th { font: 600 10px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); }
+  .cmp .num { text-align: right; }
+  .sugg { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 16px 0; }
+  .sugg .chip { height: auto; min-height: 28px; padding: 5px 10px; text-align: left; }
+  .sugg .chip small { color: var(--ink-3); font-family: var(--font-mono); }
+  .chip[disabled] { opacity: .5; cursor: not-allowed; }
+  .ask { display: flex; gap: 8px; padding: 12px 16px 16px; align-items: flex-start; }
+  .ask .field { flex: 1; }
+  .ask .textarea { min-height: 44px; height: 44px; }
+  .ask .hint { margin-top: 2px; }
+  .side-c .card-b { display: flex; flex-direction: column; gap: 10px; }
+  .side-c .list-i { padding: 8px 0; }
+  .ok-i { color: var(--ok); } .no-i { color: var(--err); }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="asistentes" data-title="Asistentes IA" data-sub="Cuatro asistentes que leen los datos de tus obras, citan de dónde sale cada número y proponen cambios que vos confirmás">
+<div id="act"></div>
+<div id="page">
+  <div class="as-tabs" role="tablist" aria-label="Asistentes" id="tabs"></div>
+  <div id="banner"></div>
+  <div class="as-layout">
+    <section class="card chat" aria-labelledby="chat-t">
+      <header class="card-h" id="chat-h"></header>
+      <div class="chat-log" id="log" aria-live="polite" aria-label="Conversación"></div>
+      <div class="sugg" id="sugg" aria-label="Preguntas sugeridas"></div>
+      <form class="ask" id="ask" novalidate>
+        <div class="field"><label for="q" class="sr-only">Tu pregunta</label>
+          <textarea class="textarea" id="q" rows="1" placeholder="Preguntá sobre la obra, p. ej. «¿qué bloquea la cotización?»"></textarea>
+          <span class="hint" id="q-hint"></span></div>
+        <button class="btn btn-primary" id="send" type="submit">Preguntar</button>
+      </form>
+    </section>
+    <aside class="col side-c" id="side" aria-label="Contexto del asistente"></aside>
+  </div>
+</div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get();
+  const norm = t => String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const short = pid => L.project(pid).name.split(' · ')[0];
+  const estado = L.param('estado');
+  const unavailable = estado === 'ia-no-disponible';
+  const limitForced = estado === 'limite';
+  const TODAY = B.TODAY;
+
+  /* ─── Los cuatro asistentes ─── */
+  const A = {
+    revision: { name: 'Revisión', icon: 'scan', desc: 'Consistencia entre planos y BOM: qué bloquea, qué falta, qué revisar.',
+      reads: 'planos, símbolos sin identificar, líneas del BOM, atributos esenciales y comentarios',
+      manual: pid => [[L.link('d-bom.html', { p: pid }), 'Revisar el BOM a mano'], [L.link('d-plano.html', { p: pid }), 'Revisión en plano'], [L.link('d-obra.html', { p: pid }), 'Planos de la obra']] },
+    estimacion: { name: 'Estimación', icon: 'percent', desc: 'Costo, margen y riesgo del presupuesto de venta.',
+      reads: 'el presupuesto de la obra, el costo de materiales con su procedencia y los escenarios',
+      manual: pid => [[L.link('d-presupuesto.html', { p: pid }), 'Presupuesto y margen']] },
+    compras: { name: 'Compras', icon: 'truck', desc: 'Ofertas, stock, validez y quién falta responder.',
+      reads: 'las solicitudes de cotización, las ofertas de cada distribuidor y la comparación',
+      manual: (pid, rid) => [[rid ? L.link('d-comparar.html', { r: rid, p: L.request(rid).projectId }) : L.link('d-comparar.html', { p: pid }), 'Comparar ofertas'], [L.link('d-cotizacion.html', { p: pid }), 'Cotización']] },
+    catalogo: { name: 'Catálogo y materiales', icon: 'tag', desc: 'Equivalencias entre marcas por atributos esenciales.',
+      reads: 'los componentes base, sus atributos esenciales, los catálogos publicados y las alternativas ofertadas',
+      manual: (pid, rid) => [[rid ? L.link('d-comparar.html', { r: rid, p: L.request(rid).projectId }) : L.link('d-comparar.html', { p: pid }), 'Aprobar equivalencias en la comparación'], [L.link('d-directorio.html'), 'Distribuidores y catálogos']] },
+  };
+  const AKEYS = Object.keys(A);
+  let cur = AKEYS.includes(L.param('a')) ? L.param('a') : (AKEYS.includes(L.pref('asistentes:a')) ? L.pref('asistentes:a') : 'revision');
+  let pidSel = L.currentProjectId();
+
+  /* ─── Contexto de una pregunta: obra, solicitud, días ─── */
+  const PKW = { p1: ['clinica', 'san martin'], p2: ['hotel', 'costa serena'], p3: ['frigorific', 'rafaela'], p4: ['alvear'] };
+  function context(text) {
+    const n = norm(text); let pid = pidSel; let rid = null;
+    Object.entries(PKW).forEach(([id, ks]) => { if (L.project(id) && ks.some(k => n.includes(k))) pid = id; });
+    const m = String(text).match(/SC-?\s?(\d{3,4})/i);
+    if (m) { const r = S().requests.find(x => x.code === 'SC-' + m[1].padStart(4, '0')); if (r) { rid = r.id; } }
+    if (!rid) { const r = L.requestsOf(pid).find(x => x.status === 'ABIERTA') || S().requests.find(x => x.status === 'ABIERTA'); rid = r ? r.id : null; }
+    const d = String(text).match(/(\d{1,3})\s*d[ií]as/i);
+    const lm = String(text).match(/\b([bhr]\d{1,2})\b/i);
+    return { pid, rid, days: d ? Math.min(365, Math.max(1, +d[1])) : null, lineId: lm && L.line(lm[1].toLowerCase()) ? lm[1].toLowerCase() : null };
+  }
+  const openReq = ctx => ctx.rid ? L.request(ctx.rid) : null;
+
+  /* ─── Utilidades de respuesta ─── */
+  const li = arr => '<ul>' + arr.map(x => '<li>' + x + '</li>').join('') + '</ul>';
+  const b = t => '<strong>' + L.esc(t) + '</strong>';
+  const q = t => '«' + L.esc(t) + '»';
+  const src = (href, label, icon = 'link') => ({ href, label, icon });
+  const brandOption = l => { const pr = L.project(l.projectId); const pref = pr.brandRules.preferred.find(br => L.matches(Object.assign({}, l, { brand: br })).length); return pref || 'ANY'; };
+  const act = (kind, args, label, detail, confirm) => ({ id: L.uid('ac'), kind, args, label, detail, confirm, status: 'propuesta' });
+
+  /* ─── Intenciones: palabras clave cerradas, costo estimado fijo según cuántos datos lee ─── */
+  const INTENTS = [
+    { id: 'rev-bloqueos', a: 'revision', cost: 0.02, kw: ['bloquea', 'bloqueo', 'impide', 'que falta para', 'no puedo pedir', 'pedir cotizacion', 'pedir la cotizacion'],
+      q: c => '¿Qué bloquea la cotización de ' + short(c.pid) + '?',
+      run: c => {
+        const pr = L.project(c.pid); const bl = L.blockers(c.pid);
+        const sources = [src(L.link('d-cotizacion.html', { p: c.pid }), 'Cotización · ' + short(c.pid), 'send')];
+        if (!bl.length) return { html: '<p>Nada bloquea: ' + q(pr.name) + ' está lista para pedir cotización.</p>', sources };
+        const actions = []; const parts = [];
+        bl.forEach(x => {
+          if (x.code === 'LINEAS') {
+            const lines = L.linesOf(c.pid).filter(l => L.lineIssues(l).some(i => i.blocks));
+            parts.push(b(x.text) + li(lines.map(l => q(L.lineLabel(l)) + ' · ' + L.num(L.qty(l)) + ' u · ' + L.lineIssues(l).filter(i => i.blocks).map(i => L.esc(i.text)).join('; '))));
+            lines.filter(l => l.brand == null).forEach(l => { const br = brandOption(l); const n = L.matches(Object.assign({}, l, { brand: br })).length;
+              actions.push(act('setBrand', { lineId: l.id, brand: br, prev: null, pid: c.pid }, 'Definir ' + (br === 'ANY' ? '«Cualquier marca»' : 'marca ' + br) + ' en «' + L.lineLabel(l) + '»',
+                (br === 'ANY' ? 'La obra no tiene una marca preferida que alguien venda para este material.' : br + ' es la marca preferida de la obra') + ' · ' + n + (n === 1 ? ' ítem de catálogo coincide' : ' ítems de catálogo coinciden') + ' por atributos esenciales.',
+                { title: 'Definir la marca', text: 'Vas a cambiar la marca de «' + L.lineLabel(l) + '» a ' + L.brandLabel(br) + ' en el BOM de ' + pr.name + '. La propuso el asistente (IA simulada): confirmala solo si estás de acuerdo.', label: 'Definir marca' })); });
+            sources.push(src(L.link('d-bom.html', { p: c.pid }), 'BOM · ' + lines.length + ' líneas', 'list'));
+          } else if (x.code === 'SIMBOLOS') {
+            const us = L.unidentifiedOf(c.pid);
+            parts.push(b(x.text) + li(us.map(u => { const p = L.plan(u.planId); const t = u.guess && L.type(u.guess); return L.esc(p.name) + ': texto ' + q(u.text) + (t ? ' · parece ' + L.esc(t.short) + ' (confianza ' + L.pct(u.conf * 100) + ')' : ' · sin sugerencia (confianza ' + L.pct(u.conf * 100) + ')'); })));
+            sources.push(src(L.link('d-plano.html', { p: c.pid }), 'Revisión en plano · ' + us.length + ' símbolos', 'scan'));
+          } else { parts.push(b(x.text)); sources.push(src(L.link(x.href, { p: c.pid }), x.text.replace(/\.$/, ''), 'layers')); }
+        });
+        return { html: '<p>' + bl.length + (bl.length === 1 ? ' cosa impide' : ' cosas impiden') + ' pedir cotización de ' + q(pr.name) + ':</p>' + li(parts) + (actions.length ? '<p class="muted">Te propongo la marca de cada línea. Los símbolos los resolvés vos en el plano: la confianza es baja para asignarlos solo.</p>' : ''), sources, actions };
+      } },
+    { id: 'rev-sinprecio', a: 'revision', cost: 0.02, kw: ['sin precio', 'not found', 'notfound', 'sin cotizar', 'no se cotiza', 'no van a cotizar', 'falta atributo', 'atributo'],
+      q: () => '¿Qué líneas van a salir sin precio?',
+      run: c => {
+        const lines = L.linesOf(c.pid).map(l => ({ l, r: L.unmatchedReason(l) })).filter(x => x.r);
+        const sources = [src(L.link('d-bom.html', { p: c.pid }), 'BOM · ' + short(c.pid), 'list')];
+        if (!lines.length) return { html: '<p>Todas las líneas de ' + q(short(c.pid)) + ' tienen al menos un ítem de catálogo con el mismo componente base y los mismos atributos esenciales.</p>', sources };
+        const actions = []; const items = lines.map(({ l, r }) => {
+          let extra = '';
+          const miss = L.missingAttrs(l);
+          L.commentsOf('line:' + l.id).filter(cm => !cm.resolved).forEach(cm => {
+            extra += '<br><span class="muted">Comentario de ' + L.esc(L.who(cm.who)) + ': ' + q(cm.text) + '</span>';
+            miss.forEach(a => { const mm = a.unit && cm.text.match(new RegExp('(\\d+(?:[.,]\\d+)?)\\s*' + a.unit, 'i')); const v = mm ? +mm[1].replace(',', '.') : null;
+              if (v != null && (!a.values || a.values.includes(v))) { actions.push(act('setAttr', { lineId: l.id, k: a.k, v, prev: l.attrs[a.k] == null ? null : l.attrs[a.k], pid: c.pid }, 'Cargar ' + a.label.toLowerCase() + ' ' + v + ' ' + a.unit + ' en «' + L.lineLabel(l) + '»', 'Sale del comentario de ' + L.who(cm.who) + '. Confirmalo contra el unifilar antes de aplicarlo.',
+                { title: 'Cargar un atributo esencial', text: 'Vas a cargar ' + a.label.toLowerCase() + ' = ' + v + ' ' + a.unit + ' en «' + L.lineLabel(l) + '». Sale de un comentario, no del plano: confirmalo solo si lo revisaste.', label: 'Cargar atributo' })); } });
+          });
+          sources.push(src(L.link('d-bom.html', { p: c.pid, linea: l.id }), L.lineLabel(l), 'list'));
+          return q(L.lineLabel(l)) + ' · ' + L.num(L.qty(l)) + ' u: ' + L.esc(r) + extra;
+        });
+        return { html: '<p>' + lines.length + (lines.length === 1 ? ' línea va a salir' : ' líneas van a salir') + ' <span class="mono">NOT_FOUND</span> en la cotización (el matching es por igualdad de atributos esenciales, nunca por texto):</p>' + li(items), sources, actions };
+      } },
+    { id: 'rev-simbolos', a: 'revision', cost: 0.02, kw: ['simbolo', 'sin identificar', 'identificad'],
+      q: () => '¿Qué símbolos quedan sin identificar?',
+      run: c => {
+        const us = L.unidentifiedOf(c.pid); const sources = [src(L.link('d-plano.html', { p: c.pid }), 'Revisión en plano', 'scan')];
+        if (!us.length) return { html: '<p>No quedan símbolos sin identificar en ' + q(short(c.pid)) + '.</p>', sources };
+        const actions = [];
+        const rows = us.map(u => { const p = L.plan(u.planId); const t = u.guess && L.type(u.guess);
+          if (t && u.conf >= 0.7) actions.push(act('resolveSymbol', { uid: u.id, typeId: u.guess, attrs: u.guessAttrs, pid: c.pid }, 'Asignar el símbolo «' + u.text + '» de ' + p.name + ' a ' + t.short + ' ' + L.attrText(u.guess, u.guessAttrs), 'Confianza ' + L.pct(u.conf * 100) + ': la más alta de la obra. Se suma 1 unidad a la línea que coincida o se crea una.',
+            { title: 'Asignar un símbolo', text: 'Vas a asignar el símbolo "' + u.text + '" de ' + p.name + ' a ' + t.short + ' ' + L.attrText(u.guess, u.guessAttrs) + '. Si no lo miraste en el plano, hacelo antes.', label: 'Asignar símbolo' }));
+          return '<tr><td>' + L.esc(p.name) + '</td><td class="mono">' + L.esc(u.text) + '</td><td>' + (t ? L.esc(t.short + ' ' + L.attrText(u.guess, u.guessAttrs)) : '<span class="muted">sin sugerencia</span>') + '</td><td class="num">' + L.pct(u.conf * 100) + '</td></tr>'; });
+        us.forEach(u => sources.push(src(L.link('d-plano.html', { p: c.pid, plan: u.planId }), L.plan(u.planId).name, 'scan')));
+        return { html: '<p>' + us.length + ' símbolos bloquean la cotización hasta que los asignes o descartes:</p><table class="cmp"><thead><tr><th>Plano</th><th>Texto</th><th>Sugerencia</th><th class="num">Confianza</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>' + (actions.length ? '<p class="muted">Solo propongo asignar los de confianza ≥ 70 %. El resto miralo en el plano.</p>' : ''), sources: sources.filter((s, i, a) => a.findIndex(x => x.href === s.href) === i), actions };
+      } },
+    { id: 'rev-planos', a: 'revision', cost: 0.01, kw: ['planos', 'plano', 'procesar', 'repeticion', 'tableros'],
+      q: () => '¿Qué planos faltan procesar o revisar?',
+      run: c => {
+        const ps = L.plansOf(c.pid); const sources = [src(L.link('d-obra.html', { p: c.pid }), 'Planos · ' + short(c.pid), 'layers')];
+        if (!ps.length) return { html: '<p>' + q(short(c.pid)) + ' no tiene planos todavía. Subí los DXF o PDF desde Planos.</p>', sources };
+        const notDone = ps.filter(p => p.status !== 'COMPLETED'); const unrev = ps.filter(p => p.status === 'COMPLETED' && !p.reviewed);
+        const actions = notDone.filter(p => ['PENDING', 'ERROR', 'STALE'].includes(p.status)).map(p => act('processPlan', { planId: p.id, pid: c.pid }, 'Procesar ' + p.name, 'La detección es otro consumo de IA: cerca de USD 0,60–1,00 por plano (simulado).',
+          { title: 'Procesar un plano', text: 'Vas a mandar ' + p.name + ' a detección. Consume presupuesto de IA (cerca de USD 0,60–1,00, simulado) y tarda unos segundos en la demo.', label: 'Procesar plano' }));
+        const parts = [];
+        if (notDone.length) parts.push(b('Sin terminar:') + li(notDone.map(p => L.esc(p.name) + ' · ' + L.esc(L.planStatusLabel[p.status]) + (p.lastError ? ' · ' + L.esc(p.lastError) : ''))));
+        if (unrev.length) parts.push(b('Procesados sin revisar:') + li(unrev.map(p => L.esc(p.name) + (p.multiplier > 1 ? ' · se repite ×' + p.multiplier + ': cada error se multiplica por ' + p.multiplier : ''))));
+        if (!parts.length) parts.push('Todos los planos están procesados y revisados.');
+        return { html: '<p>' + ps.length + ' planos en ' + q(short(c.pid)) + ', ' + L.boardsOf(c.pid) + ' tableros contando repeticiones.</p>' + parts.join(''), sources, actions };
+      } },
+
+    { id: 'est-margen', a: 'estimacion', cost: 0.03, kw: ['margen', 'validez', 'ganancia', 'dias', 'me queda'],
+      q: () => '¿Qué margen me queda si la validez es 15 días?',
+      run: c => {
+        const d = c.days || 15; const base = L.budget(c.pid); const alt = L.budget(c.pid, { validityDays: d }); const cob = L.budget(c.pid, { validityDays: d, scenario: 'cobertura' });
+        const sources = [src(L.link('d-presupuesto.html', { p: c.pid }), 'Presupuesto · ' + short(c.pid), 'percent')];
+        if (!alt.materials || !isFinite(alt.price)) return { html: '<p>' + q(short(c.pid)) + ' no tiene costo de materiales todavía: sin líneas con precio no puedo calcular un margen.</p>', sources };
+        const eff = alt.profitAfterDrift / alt.price * 100, effBase = base.profitAfterDrift / base.price * 100;
+        const refPct = alt.matSources.referencia / alt.materials * 100;
+        const html = '<p>Con validez de ' + b(d + ' días') + ' (hoy guardaste ' + base.params.validityDays + ') en ' + q(short(c.pid)) + ':</p>' + li([
+          'Precio de venta: ' + b(L.ars(alt.price)) + ' (el escenario ' + L.esc(L.scenarios[alt.params.scenario] ? L.scenarios[alt.params.scenario].label : 'Base') + ' no ajusta el precio por la validez).',
+          'Ganancia antes de inflación: ' + L.ars(alt.profit) + ' (' + L.pct(alt.marginPct, 1) + ').',
+          'Inflación esperada durante la validez: ' + L.ars(alt.driftRisk) + ' (' + L.pct(alt.params.inflationMonthlyPct, 1) + ' mensual × ' + d + '/30 sobre ' + L.ars(alt.materials) + ' de materiales).',
+          b('Te queda ' + L.ars(alt.profitAfterDrift) + ', un margen efectivo de ' + L.pct(eff, 1)) + '. Con ' + base.params.validityDays + ' días: ' + L.ars(base.profitAfterDrift) + ' (' + L.pct(effBase, 1) + ').',
+          'Para sostener el ' + L.pct(alt.marginPct, 1) + ', el escenario «Cobertura por inflación» sube el precio a ' + L.ars(cob.price) + '.',
+        ]) + (refPct > 0 ? '<p class="muted">Ojo: el ' + L.pct(refPct) + ' del costo de materiales es ' + L.priceTag('referencia') + ', no oferta confirmada.</p>' : '');
+        const actions = d !== base.params.validityDays ? [act('saveBudget', { pid: c.pid, patch: { validityDays: d }, prev: base.params.validityDays }, 'Guardar validez de ' + d + ' días en el presupuesto de ' + short(c.pid), 'Cambia el parámetro del presupuesto; el escenario sigue siendo ' + (L.scenarios[base.params.scenario] || L.scenarios.base).label + '.',
+          { title: 'Guardar la validez', text: 'Vas a cambiar la validez del presupuesto de ' + short(c.pid) + ' de ' + base.params.validityDays + ' a ' + d + ' días.', label: 'Guardar validez' })] : [];
+        return { html, sources, actions };
+      } },
+    { id: 'est-precios', a: 'estimacion', cost: 0.02, kw: ['de donde', 'precios', 'procedencia', 'riesgo', 'referencia', 'costo de materiales', 'confirmad'],
+      q: () => '¿De dónde salen los precios y qué riesgo tienen?',
+      run: c => {
+        const m = L.materialCost(c.pid); const sources = [src(L.link('d-presupuesto.html', { p: c.pid }), 'Presupuesto · ' + short(c.pid), 'percent'), src(L.link('d-bom.html', { p: c.pid }), 'BOM', 'list')];
+        if (!m.rows.length) return { html: '<p>' + q(short(c.pid)) + ' no tiene líneas en el BOM.</p>', sources };
+        const pct = v => m.total ? L.pct(v / m.total * 100) : '—';
+        const noPrice = m.rows.filter(r => r.source === 'sinPrecio').map(r => L.line(r.lineId));
+        const stale = L.linesOf(c.pid).filter(l => { const r = m.rows.find(x => x.lineId === l.id); if (!r || r.source !== 'referencia') return false; const it = L.matches(l).sort((x, y) => x.price - y.price)[0]; return it && L.isStale(it); });
+        const risks = [];
+        if (m.bySource.referencia) risks.push(pct(m.bySource.referencia) + ' del costo es precio de catálogo: el distribuidor todavía no lo confirmó.');
+        if (noPrice.length) risks.push(noPrice.length + (noPrice.length === 1 ? ' línea no tiene precio' : ' líneas no tienen precio') + ' y no suma al costo: ' + noPrice.map(l => q(L.lineLabel(l))).join(', ') + '.');
+        if (stale.length) risks.push(stale.length + ' precios de referencia están vencidos.');
+        const html = '<p>Costo de materiales de ' + q(short(c.pid)) + ': ' + b(L.ars(m.total)) + '.</p><table class="cmp"><thead><tr><th>Procedencia</th><th class="num">Importe</th><th class="num">Parte</th></tr></thead><tbody>'
+          + [['pedido', m.bySource.pedido], ['oferta', m.bySource.oferta], ['referencia', m.bySource.referencia]].map(([k, v]) => '<tr><td>' + L.priceTag(k) + '</td><td class="num">' + L.ars(v) + '</td><td class="num">' + pct(v) + '</td></tr>').join('')
+          + '<tr><td>' + L.priceTag('sinPrecio') + '</td><td class="num">' + noPrice.length + (noPrice.length === 1 ? ' línea' : ' líneas') + '</td><td class="num">—</td></tr></tbody></table>'
+          + (risks.length ? b('Riesgos') + li(risks) : '<p>Todo el costo sale de pedidos u ofertas confirmadas.</p>');
+        return { html, sources };
+      } },
+    { id: 'est-escenario', a: 'estimacion', cost: 0.03, kw: ['escenario', 'competitiv', 'licitacion', 'cobertura'],
+      q: () => '¿Qué pasa si voy con el escenario competitivo?',
+      run: c => {
+        const base = L.budget(c.pid); const comp = L.budget(c.pid, { scenario: 'competitivo' }); const sources = [src(L.link('d-presupuesto.html', { p: c.pid }), 'Presupuesto · ' + short(c.pid), 'percent')];
+        if (!base.materials) return { html: '<p>' + q(short(c.pid)) + ' no tiene costo de materiales todavía.</p>', sources };
+        return { html: '<p>' + L.esc(L.scenarios.competitivo.desc) + '</p>' + li([
+          'Precio de venta: ' + L.ars(base.price) + ' → ' + b(L.ars(comp.price)) + ' (' + L.ars(comp.price - base.price) + ').',
+          'Ganancia: ' + L.ars(base.profit) + ' → ' + b(L.ars(comp.profit)) + ' (margen ' + L.pct(base.marginPct, 1) + ' → ' + L.pct(comp.marginPct, 1) + ').',
+          'Después de la inflación de la validez te quedarían ' + L.ars(comp.profitAfterDrift) + '.',
+        ]) + '<p class="muted">El costo no cambia: ' + L.ars(comp.costTotal) + ' con contingencia. Elegir el escenario lo hacés vos en Presupuesto.</p>', sources };
+      } },
+
+    { id: 'com-barata', a: 'compras', cost: 0.04, kw: ['barata', 'barato', 'mas barat', 'conviene', 'menor precio', 'mejor precio', 'mas economic'],
+      q: c => '¿Cuál es la oferta más barata en ' + (openReq(c) ? openReq(c).code : 'la solicitud abierta') + '?',
+      run: c => {
+        const r = openReq(c); if (!r) return { html: '<p>No hay solicitudes de cotización abiertas.</p>', sources: [src(L.link('d-cotizacion.html', { p: c.pid }), 'Cotización', 'send')] };
+        const cmp = L.compare(r.id); const al = L.allocate(r.id, 'BARATO'); const sum = L.allocationSummary(r.id, al);
+        const sources = [src(L.link('d-comparar.html', { r: r.id, p: r.projectId }), 'Comparar ofertas · ' + r.code, 'compare')];
+        const offers = cmp.offers.filter(o => o.status === 'ENVIADA').map(o => { const cov = o.lines.filter(x => x.mode !== 'SIN_OFERTA').length; const alts = o.lines.filter(x => x.mode === 'ALTERNATIVA' && (!x.alt || x.alt.equivalence !== 'APROBADA')).length; return { o, total: L.offerTotal(o), cov, alts, valid: L.offerValid(o) }; }).sort((x, y) => x.total - y.total);
+        const blockedAlt = cmp.rows.map(row => { const alt = row.opts.find(x => !x.none && x.isAlt && x.equivalence !== 'APROBADA' && x.valid && (!row.cheapest || x.price < row.cheapest.price)); return alt ? { row, alt } : null; }).filter(Boolean);
+        const pend = cmp.offers.filter(o => o.status === 'PENDIENTE' || o.status === 'BORRADOR');
+        const html = '<p>En ' + b(r.code) + ' (' + L.esc(short(r.projectId)) + '), combinando por línea lo más barato con oferta vigente y equivalencia aprobada: ' + b(L.ars(sum.total)) + ', plazo máximo ' + sum.lead + ' días.</p>'
+          + li(Object.entries(sum.bySupplier).map(([sid, x]) => L.esc(L.supplier(sid).short) + ': ' + x.lines + (x.lines === 1 ? ' línea' : ' líneas') + ' · ' + L.ars(x.total)))
+          + '<p>Por oferta completa:</p><table class="cmp"><thead><tr><th>Distribuidor</th><th class="num">Total</th><th>Cubre</th><th>Válida hasta</th></tr></thead><tbody>'
+          + offers.map(x => '<tr><td>' + L.esc(L.supplier(x.o.supplierId).short) + '</td><td class="num">' + L.ars(x.total) + '</td><td>' + x.cov + ' de ' + r.lineIds.length + (x.alts ? ' · ' + x.alts + ' alternativa sin aprobar' : '') + '</td><td>' + L.dateShort(x.o.validUntil) + (x.valid ? '' : ' · vencida') + '</td></tr>').join('') + '</tbody></table>'
+          + (blockedAlt.length ? '<p>' + blockedAlt.map(({ row, alt }) => 'La alternativa ' + L.esc(alt.brand) + ' ' + L.esc(alt.altCode) + ' de ' + L.esc(L.supplier(alt.supplierId).short) + ' para ' + q(L.lineLabel(row.line)) + ' cuesta ' + L.ars(alt.price) + ' c/u' + (row.cheapest ? ' (contra ' + L.ars(row.cheapest.price) + ')' : '') + ', pero no cuenta hasta que Ingeniería apruebe la equivalencia.').join(' ') + ' Preguntale al asistente de Catálogo.</p>' : '')
+          + (pend.length ? '<p class="muted">Falta responder: ' + pend.map(o => L.esc(L.supplier(o.supplierId).short)).join(', ') + '. Vence el ' + L.date(r.deadline) + '.</p>' : '');
+        return { html, sources };
+      } },
+    { id: 'com-vencen', a: 'compras', cost: 0.02, kw: ['vence', 'vencen', 'vencer', 'vencimiento', 'caduca'],
+      q: () => '¿Qué ofertas vencen esta semana?',
+      run: () => {
+        const lim = L.addDays(TODAY, 7);
+        const offs = S().offers.filter(o => o.status === 'ENVIADA' && o.validUntil && o.validUntil >= TODAY && o.validUntil <= lim && L.request(o.requestId).status === 'ABIERTA').sort((x, y) => x.validUntil < y.validUntil ? -1 : 1);
+        const reqs = S().requests.filter(r => r.status === 'ABIERTA' && r.deadline >= TODAY && r.deadline <= lim);
+        const sources = reqs.concat(offs.map(o => L.request(o.requestId))).filter((r, i, a) => a.indexOf(r) === i).map(r => src(L.link('d-comparar.html', { r: r.id, p: r.projectId }), 'Comparar · ' + r.code, 'compare'));
+        if (!offs.length && !reqs.length) return { html: '<p>Ninguna oferta ni solicitud abierta vence en los próximos 7 días.</p>', sources };
+        const d = x => L.daysBetween(TODAY, x);
+        return { html: '<p>Hasta el ' + L.date(lim) + ':</p>' + li([
+          ...offs.map(o => 'Oferta de ' + L.esc(L.supplier(o.supplierId).short) + ' en ' + L.esc(L.request(o.requestId).code) + ': vale hasta el ' + b(L.date(o.validUntil)) + ' (' + (d(o.validUntil) === 0 ? 'hoy' : 'en ' + d(o.validUntil) + ' días') + '). Después no se puede adjudicar sin pedirle que la renueve.'),
+          ...reqs.map(r => 'La solicitud ' + L.esc(r.code) + ' cierra el ' + b(L.date(r.deadline)) + ' (en ' + d(r.deadline) + ' días).'),
+        ]), sources };
+      } },
+    { id: 'com-stock', a: 'compras', cost: 0.03, kw: ['stock', 'disponibilidad', 'a pedido', 'entrega', 'plazo'],
+      q: c => '¿Qué materiales no tienen stock confirmado' + (openReq(c) ? ' en ' + openReq(c).code : '') + '?',
+      run: c => {
+        const r = openReq(c); if (!r) return { html: '<p>No hay solicitudes abiertas.</p>', sources: [] };
+        const cmp = L.compare(r.id); const items = [];
+        cmp.rows.forEach(row => row.opts.filter(x => !x.none && x.stock !== 'CONFIRMADO').forEach(x => items.push(q(L.lineLabel(row.line)) + ' (' + row.qty + ' u) · ' + L.esc(L.supplier(x.supplierId).short) + ': ' + L.esc(L.stockLabel[x.stock]) + (x.stock === 'PARCIAL' && x.stockQty ? ' (' + x.stockQty + ' de ' + row.qty + ')' : '') + ' · ' + x.lead + ' días')));
+        const sources = [src(L.link('d-comparar.html', { r: r.id, p: r.projectId }), 'Comparar ofertas · ' + r.code, 'compare')];
+        if (!items.length) return { html: '<p>En ' + b(r.code) + ' todas las opciones ofertadas tienen stock confirmado.</p>', sources };
+        return { html: '<p>En ' + b(r.code) + ', ' + items.length + ' opciones no tienen stock confirmado. Una disponibilidad sin confirmar no es stock:</p>' + li(items), sources };
+      } },
+    { id: 'com-pendientes', a: 'compras', cost: 0.01, kw: ['respondi', 'respond', 'pendiente', 'recordatorio', 'contesto', 'falta ofertar'],
+      q: c => '¿Quién no respondió ' + (openReq(c) ? openReq(c).code : 'la solicitud') + '?',
+      run: c => {
+        const r = openReq(c); if (!r) return { html: '<p>No hay solicitudes abiertas.</p>', sources: [] };
+        const pend = L.offersOf(r.id).filter(o => o.status === 'PENDIENTE' || o.status === 'BORRADOR');
+        const sources = [src(L.link('d-comparar.html', { r: r.id, p: r.projectId }), 'Comparar ofertas · ' + r.code, 'compare')];
+        if (!pend.length) return { html: '<p>Todos los distribuidores de ' + b(r.code) + ' respondieron.</p>', sources };
+        const actions = pend.map(o => { const sp = L.supplier(o.supplierId); return act('remind', { rid: r.id, sid: o.supplierId, pid: r.projectId }, 'Mandar un recordatorio a ' + sp.short, 'Aviso en liard y correo a ' + sp.email + ' (simulado: queda en la bandeja de correos).',
+          { title: 'Mandar un recordatorio', text: 'Vas a avisarle a ' + sp.name + ' que ' + r.code + ' vence el ' + L.date(r.deadline) + '. Ningún correo sale del prototipo: queda en la bandeja simulada.', label: 'Mandar recordatorio' }); });
+        return { html: '<p>En ' + b(r.code) + ' falta' + (pend.length > 1 ? 'n' : '') + ' ' + pend.map(o => b(L.supplier(o.supplierId).short) + ' (' + L.esc(L.offerStatusLabel[o.status].toLowerCase()) + ')').join(', ') + '. La solicitud vence el ' + L.date(r.deadline) + ' (en ' + L.daysBetween(TODAY, r.deadline) + ' días).</p>', sources, actions };
+      } },
+
+    { id: 'cat-alternativas', a: 'catalogo', cost: 0.04, kw: ['alternativa', 'aprobacion', 'aprobar', 'equivalencia', 'equivalente'],
+      q: () => '¿Qué alternativas esperan mi aprobación?',
+      run: () => {
+        const found = []; S().offers.filter(o => o.status === 'ENVIADA').forEach(o => o.lines.filter(x => x.mode === 'ALTERNATIVA' && x.alt && x.alt.equivalence === 'SUGERIDA').forEach(x => found.push({ o, x })));
+        if (!found.length) return { html: '<p>No hay alternativas esperando aprobación.</p>', sources: [] };
+        const actions = []; const sources = [];
+        const blocks = found.map(({ o, x }) => {
+          const l = L.line(x.lineId); const t = L.type(l.typeId); const r = L.request(o.requestId); const pr = L.project(r.projectId); const sp = L.supplier(o.supplierId);
+          const rows = t.attrs.map(a => { const want = l.attrs[a.k], got = x.alt.attrs[a.k]; const same = String(want) === String(got);
+            return '<tr><td>' + L.esc(a.label) + (a.req ? ' <span class="muted">(esencial)</span>' : '') + '</td><td>' + L.esc(want == null ? '—' : want + (a.unit ? ' ' + a.unit : '')) + '</td><td>' + L.esc(got == null ? '—' : got + (a.unit ? ' ' + a.unit : '')) + '</td><td>' + (a.req ? (same ? L.icon('check', 14, 'ok-i') + ' igual' : L.icon('x', 14, 'no-i') + ' distinto') : (want == null && got == null ? '—' : same ? 'igual' : 'distinto')) + '</td></tr>'; }).join('');
+          const essOk = t.attrs.filter(a => a.req).every(a => String(l.attrs[a.k]) === String(x.alt.attrs[a.k])) && x.alt.typeId === l.typeId;
+          const brandOk = (!l.brand || l.brand === 'ANY' || l.brand === x.alt.brand) && !pr.brandRules.blocked.includes(x.alt.brand);
+          const row = L.compare(r.id).rows.find(y => y.lineId === l.id);
+          sources.push(src(L.link('d-comparar.html', { r: r.id, p: r.projectId }), 'Comparar · ' + r.code, 'compare'));
+          const ok = essOk && brandOk;
+          actions.push(act('setEquivalence', { oid: o.id, lineId: l.id, decision: ok ? 'APROBADA' : 'RECHAZADA', pid: r.projectId }, (ok ? 'Aprobar' : 'Rechazar') + ' la equivalencia de ' + x.alt.code + ' (' + sp.short + ') para «' + L.lineLabel(l) + '»',
+            ok ? 'Cumple el componente base y todos los atributos esenciales. Aprobarla es una decisión técnica tuya.' : 'No cumple ' + (essOk ? 'la regla de marca de la obra.' : 'algún atributo esencial.'),
+            { title: ok ? 'Aprobar la equivalencia técnica' : 'Rechazar la equivalencia', text: (ok ? 'Vas a aprobar ' : 'Vas a rechazar ') + x.alt.brand + ' ' + x.alt.gama + ' ' + x.alt.code + ' como equivalente de «' + L.lineLabel(l) + '» en ' + r.code + '. Queda registrado a tu nombre.', label: ok ? 'Aprobar equivalencia' : 'Rechazar equivalencia' }));
+          return '<p>' + b(sp.short) + ' ofrece ' + b(x.alt.brand + ' ' + x.alt.gama + ' ' + x.alt.code) + ' en lugar de ' + q(L.lineLabel(l)) + ' (' + L.esc(r.code) + ', la línea pide ' + L.esc(L.brandLabel(l.brand)) + '). Motivo del distribuidor: ' + q(x.alt.reason) + '</p>'
+            + '<table class="cmp"><thead><tr><th>Atributo</th><th>Pedido</th><th>Alternativa</th><th>Resultado</th></tr></thead><tbody>' + rows + '</tbody></table>'
+            + '<p>' + (essOk ? 'Mismo componente base y mismos atributos esenciales.' : 'No coincide en algún atributo esencial.') + ' ' + (brandOk ? 'La marca ' + L.esc(x.alt.brand) + ' no está excluida en ' + L.esc(short(pr.id)) + '.' : 'La marca ' + L.esc(x.alt.brand) + ' no cumple la regla de marca de la obra.') + ' Precio ' + L.ars(x.alt.unitPrice) + ' c/u' + (row && row.cheapest ? ' contra ' + L.ars(row.cheapest.price) + ' de la opción usable más barata (' + L.esc(L.supplier(row.cheapest.supplierId).short) + ').' : '.') + ' ' + L.esc(L.stockLabel[x.stock]) + ', ' + x.leadDays + ' días.</p>';
+        });
+        return { html: '<p>' + found.length + (found.length === 1 ? ' alternativa sugerida espera' : ' alternativas sugeridas esperan') + ' una decisión de Ingeniería. Sugerida no es equivalencia aprobada:</p>' + blocks.join(''), sources: sources.filter((s, i, a) => a.findIndex(y => y.href === s.href) === i), actions };
+      } },
+    { id: 'cat-marcas', a: 'catalogo', cost: 0.03, kw: ['marcas', 'que marca', 'equivalen', 'otra marca', 'otras marcas'],
+      q: c => { const l = targetLine(c); return l ? '¿Qué marcas equivalen para ' + L.lineLabel(l) + ' (' + l.id + ')?' : '¿Qué marcas equivalen para una línea del BOM?'; },
+      run: c => {
+        const l = targetLine(c); if (!l) return { html: '<p>' + q(short(c.pid)) + ' no tiene líneas en el BOM.</p>', sources: [] };
+        const pr = L.project(l.projectId); const sources = [src(L.link('d-bom.html', { p: l.projectId, linea: l.id }), L.lineLabel(l), 'list')];
+        if (!l.typeId || L.missingAttrs(l).length) return { html: '<p>' + q(L.lineLabel(l)) + ' no tiene componente base o le falta un atributo esencial: no puedo buscar equivalencias por atributos. ' + L.esc(L.unmatchedReason(l)) + '</p>', sources };
+        const ms = L.matches(Object.assign({}, l, { brand: 'ANY' }));
+        const by = {}; ms.forEach(m => { const k = m.brand; by[k] = by[k] || { brand: k, gama: m.gama, sup: new Set(), min: Infinity, stale: 0 }; by[k].sup.add(m.supplierId); by[k].min = Math.min(by[k].min, m.price); if (L.isStale(m)) by[k].stale++; });
+        const list = Object.values(by).sort((x, y) => x.min - y.min);
+        if (!list.length) return { html: '<p>Ningún catálogo publicado tiene ' + q(L.lineLabel(l)) + ' con esos atributos esenciales.</p>', sources };
+        const t = L.type(l.typeId);
+        const actions = [];
+        const pref = pr.brandRules.preferred.find(br => by[br]);
+        if (pref && l.brand !== pref) actions.push(act('setBrand', { lineId: l.id, brand: pref, prev: l.brand, pid: l.projectId }, 'Definir marca ' + pref + ' en «' + L.lineLabel(l) + '»', 'Marca preferida de ' + short(pr.id) + '. Desde ' + L.ars(by[pref].min) + ' (precio de referencia).',
+          { title: 'Definir la marca', text: 'Vas a cambiar la marca de «' + L.lineLabel(l) + '» de ' + L.brandLabel(l.brand) + ' a ' + pref + '.', label: 'Definir marca' }));
+        if (l.brand !== 'ANY') actions.push(act('setBrand', { lineId: l.id, brand: 'ANY', prev: l.brand, pid: l.projectId }, 'Aceptar «Cualquier marca» en «' + L.lineLabel(l) + '»', 'Deja que la oferta más conveniente elija entre las ' + list.length + ' marcas que cumplen los atributos esenciales.',
+          { title: 'Aceptar cualquier marca', text: 'Vas a cambiar la marca de «' + L.lineLabel(l) + '» de ' + L.brandLabel(l.brand) + ' a «Cualquier marca».', label: 'Aceptar cualquier marca' }));
+        return { html: '<p>' + q(L.lineLabel(l)) + ' pide ' + t.attrs.filter(a => a.req).map(a => L.esc(a.label.toLowerCase() + ' ' + l.attrs[a.k] + (a.unit ? ' ' + a.unit : ''))).join(', ') + '. Hoy la línea dice ' + b(L.brandLabel(l.brand)) + '. Estas marcas tienen el mismo componente base y los mismos atributos esenciales en algún catálogo:</p>'
+          + '<table class="cmp"><thead><tr><th>Marca</th><th>Gama</th><th class="num">Distribuidores</th><th class="num">Desde</th></tr></thead><tbody>' + list.map(x => '<tr><td>' + L.esc(x.brand) + (pr.brandRules.preferred.includes(x.brand) ? ' ' + L.badge('preferida', 'brand') : '') + (pr.brandRules.blocked.includes(x.brand) ? ' ' + L.badge('excluida', 'err') : '') + '</td><td>' + L.esc(x.gama) + '</td><td class="num">' + x.sup.size + '</td><td class="num">' + L.ars(x.min) + (x.stale ? ' · vencido' : '') + '</td></tr>').join('') + '</tbody></table>'
+          + '<p class="muted">Son ' + L.priceTag('referencia') + ' de catálogo: la oferta del distribuidor puede cambiar precio, stock y plazo. Elegir la marca es tu criterio técnico.</p>', sources, actions };
+      } },
+    { id: 'cat-excluidas', a: 'catalogo', cost: 0.02, kw: ['excluid', 'bloquead', 'prohibid', 'regla de marca', 'reglas de marca'],
+      q: () => '¿Alguna línea pide una marca excluida?',
+      run: () => {
+        const hits = []; const rules = [];
+        S().projects.forEach(pr => { if (pr.brandRules.blocked.length) rules.push(L.esc(short(pr.id)) + ' excluye ' + pr.brandRules.blocked.map(L.esc).join(', '));
+          L.linesOf(pr.id).filter(l => l.brand && pr.brandRules.blocked.includes(l.brand)).forEach(l => hits.push(q(L.lineLabel(l)) + ' en ' + L.esc(short(pr.id)) + ' pide ' + L.esc(l.brand)));
+          L.requestsOf(pr.id).forEach(r => L.offersOf(r.id).filter(o => o.status === 'ENVIADA').forEach(o => o.lines.forEach(x => { const br = x.mode === 'ALTERNATIVA' ? x.alt.brand : x.brand; if (br && pr.brandRules.blocked.includes(br)) hits.push(L.esc(L.supplier(o.supplierId).short) + ' ofertó ' + L.esc(br) + ' en ' + L.esc(r.code)); }))); });
+        const sources = S().projects.filter(pr => pr.brandRules.blocked.length).map(pr => src(L.link('d-bom.html', { p: pr.id }), 'Reglas de marca · ' + short(pr.id), 'shield'));
+        return { html: (hits.length ? '<p>' + hits.length + ' casos:</p>' + li(hits) : '<p>' + b('Ninguna.') + ' Ninguna línea ni oferta vigente usa una marca excluida.</p>') + (rules.length ? '<p class="muted">Reglas vigentes: ' + rules.join('; ') + '.</p>' : '<p class="muted">Ninguna obra tiene marcas excluidas.</p>'), sources };
+      } },
+  ];
+  function targetLine(c) {
+    if (c.lineId) return L.line(c.lineId);
+    const ls = L.linesOf(c.pid); return ls.find(l => l.brand == null && l.typeId && !L.missingAttrs(l).length) || ls.find(l => l.brand === 'ANY' && l.typeId) || ls[0] || null;
+  }
+
+  /* ─── Acciones: cada una se revalida antes de pedir confirmación ─── */
+  const ACTIONS = {
+    setBrand: { check: a => { const l = L.line(a.lineId); if (!l || l.deleted) return 'La línea ya no existe.'; if (l.brand === a.brand) return 'La línea ya tiene esa marca.'; if (l.brand !== a.prev) return 'Alguien ya decidió la marca (' + L.brandLabel(l.brand) + '): cambiala desde el BOM.'; return null; },
+      run: a => L.updateLine(a.lineId, { brand: a.brand }), done: 'Marca definida' },
+    setAttr: { check: a => { const l = L.line(a.lineId); if (!l) return 'La línea ya no existe.'; const v = l.attrs[a.k] == null ? null : l.attrs[a.k]; if (v !== a.prev) return 'El atributo ya cambió (' + v + ').'; return null; },
+      run: a => { const l = L.line(a.lineId); L.updateLine(a.lineId, { attrs: Object.assign({}, l.attrs, { [a.k]: a.v }) }); }, done: 'Atributo cargado' },
+    resolveSymbol: { check: a => { const u = S().unidentified.find(x => x.id === a.uid); return !u || u.status !== 'PENDIENTE' ? 'El símbolo ya se resolvió.' : null; },
+      run: a => L.resolveSymbol(a.uid, { typeId: a.typeId, attrs: a.attrs }), done: 'Símbolo asignado' },
+    processPlan: { check: a => { const p = L.plan(a.planId); if (!p || !['PENDING', 'ERROR', 'STALE'].includes(p.status)) return 'El plano ya se está procesando o ya terminó.'; if (!L.aiCan(1)) return 'El tope de IA del mes no alcanza para una detección.'; return null; },
+      run: a => L.processPlans([a.planId]), done: 'Plano en proceso' },
+    saveBudget: { check: a => { const bd = L.budget(a.pid); return bd.params.validityDays !== a.prev ? 'La validez ya cambió (' + bd.params.validityDays + ' días).' : null; },
+      run: a => L.saveBudget(a.pid, a.patch), done: 'Validez guardada' },
+    setEquivalence: { check: a => { const o = S().offers.find(x => x.id === a.oid); const ol = o && o.lines.find(x => x.lineId === a.lineId); return !ol || !ol.alt || ol.alt.equivalence !== 'SUGERIDA' ? 'La equivalencia ya se decidió.' : null; },
+      run: a => L.setEquivalence(a.oid, a.lineId, a.decision), done: 'Equivalencia decidida' },
+    remind: { check: a => { const o = L.offer(a.rid, a.sid); return !o || !['PENDIENTE', 'BORRADOR'].includes(o.status) ? 'El distribuidor ya respondió.' : null; },
+      run: a => L.store.update(s => { const r = s.requests.find(x => x.id === a.rid); const sp = s.suppliers.find(x => x.id === a.sid);
+        L._notify(s, { role: 'SUPPLIER', supplierId: sp.id, title: 'Recordatorio: ' + r.code + ' vence el ' + L.date(r.deadline), body: s.company.name + ' espera tu oferta.', href: 'd-prov-oferta.html?r=' + r.id });
+        L._mail(s, sp.email, 'Recordatorio: ' + r.code + ' vence el ' + L.date(r.deadline), s.company.name + ' espera tu oferta para «' + s.projects.find(p => p.id === r.projectId).name + '». Respondé desde liard.');
+        L._log(s, r.projectId, s.session.userId, 'Le recordó a ' + sp.short + ' que responda ' + r.code + '.'); }), done: 'Recordatorio enviado' },
+  };
+
+  /* ─── Conversaciones en s.ui.asist (persistentes, compartidas entre pestañas) ─── */
+  const conv = a => ((S().ui || {}).asist || {})[a] || [];
+  const push = (a, msgs) => L.store.update(s => { s.ui = s.ui || {}; s.ui.asist = s.ui.asist || {}; (s.ui.asist[a] = s.ui.asist[a] || []).push(...msgs); });
+  const blockedByBudget = () => limitForced || !L.aiCan(0.01);
+
+  function match(a, text) {
+    const n = norm(text); let best = null, bs = 0;
+    INTENTS.forEach(it => { let sc = it.kw.reduce((acc, k) => acc + (n.includes(k) ? (k.includes(' ') ? 2 : 1) : 0), 0); if (sc > 0 && it.a === a) sc += 0.5; if (sc > bs) { bs = sc; best = it; } });
+    return best;
+  }
+  function ask(a, text) {
+    text = String(text || '').trim(); const input = document.getElementById('q');
+    if (!text) { L.fieldError(input, 'Escribí una pregunta o elegí una sugerida.'); return; }
+    L.fieldError(input, null);
+    if (unavailable) return;
+    const at = L.now(); const user = { role: 'user', text, at };
+    if (blockedByBudget()) { push(a, [user, { role: 'ai', kind: 'refusal', cost: 0, at, html: refusalHtml(0.01) }]); return; }
+    const ctx = context(text); const it = match(a, text);
+    if (!it) { push(a, [user, { role: 'ai', kind: 'unknown', cost: 0, at, html: '<p>' + b('No sé responder eso con los datos de la obra.') + ' Este asistente mira ' + L.esc(A[a].reads) + '. No se cobró la consulta.</p>' }]); return; }
+    if (it.a !== a) { push(a, [user, { role: 'ai', kind: 'redirect', to: it.a, question: text, cost: 0, at, html: '<p>Eso lo responde el asistente de ' + b(A[it.a].name) + '. No se cobró la consulta.</p>' }]); return; }
+    if (!L.aiCan(it.cost)) { push(a, [user, { role: 'ai', kind: 'refusal', cost: 0, at, html: refusalHtml(it.cost) }]); return; }
+    const ans = it.run(ctx);
+    const pid = (it.a === 'compras' && ctx.rid) ? L.request(ctx.rid).projectId : ctx.pid;
+    if (!L.aiSpend('Asistente', it.cost, pid, A[a].name + ': ' + text.slice(0, 60))) { push(a, [user, { role: 'ai', kind: 'refusal', cost: 0, at, html: refusalHtml(it.cost) }]); return; }
+    push(a, [user, { role: 'ai', kind: 'answer', intent: it.id, pid, cost: it.cost, at, html: ans.html, sources: ans.sources || [], actions: ans.actions || [] }]);
+  }
+  function reveal() { const last = logEl.lastElementChild; if (last && last.scrollIntoView) last.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }); }
+  function refusalHtml(cost) {
+    const st = L.aiState();
+    return '<p>' + b('No respondí para no pasar el tope de IA del mes.') + ' Esta consulta costaría ' + L.usd(cost) + ' y ya van ' + L.usd(st.spent) + ' de ' + L.usd(st.budget) + '. No se cobró nada.</p><p>Podés seguir a mano desde los enlaces de «Camino manual», o pedir que suban el tope en Plan, uso y cuenta.</p>';
+  }
+
+  /* ─── Render ─── */
+  const tabsEl = document.getElementById('tabs'), logEl = document.getElementById('log'), suggEl = document.getElementById('sugg'), sideEl = document.getElementById('side');
+  function ctxNow() { return context(''); }
+  function render() {
+    const c = ctxNow();
+    tabsEl.innerHTML = AKEYS.map(k => { const n = conv(k).filter(m => m.role === 'user').length;
+      return `<button class="as-tab" role="tab" data-a="${k}" id="tab-${k}" aria-selected="${k === cur}" aria-controls="log"><span class="as-ic">${L.icon(A[k].icon, 17)}</span><span><strong>${L.esc(A[k].name)}</strong><small>${L.esc(A[k].desc)}</small></span>${n ? `<span class="as-n" title="Preguntas en esta conversación">${n}</span>` : ''}</button>`; }).join('');
+    const st = L.aiState(); const blocked = blockedByBudget();
+    const manual = A[cur].manual(c.pid, c.rid).map(([h, t]) => `<a href="${h}">${L.esc(t)}</a>`).join(' · ');
+    document.getElementById('banner').innerHTML = unavailable
+      ? `<div class="note note-warn" role="alert" style="margin-bottom:var(--sp-4)">${L.icon('alert', 16)}<div><p><strong>El servicio de IA no responde en este momento</strong> ${L.sim('Caída simulada')}. No se perdió nada: la conversación, la obra y el presupuesto de IA quedaron como estaban, y no se cobró ninguna consulta.</p><p>Mientras tanto seguí a mano: ${manual}. <button class="btn btn-sm btn-secondary" data-retry>${L.icon('refresh', 13)}Reintentar</button></p></div></div>`
+      : blocked ? `<div class="note note-err" role="alert" style="margin-bottom:var(--sp-4)">${L.icon('lock', 16)}<div><p><strong>Llegaste al tope de IA del mes: ${L.usd(limitForced ? st.budget : st.spent)} de ${L.usd(st.budget)}.</strong> Los asistentes quedan en pausa hasta el 1 de octubre o hasta que suban el tope${limitForced ? ' ' + L.sim('Tope simulado por URL') : ''}. Todo lo que hacen se puede hacer a mano: ${manual}.</p><p><a href="${L.link('d-cuenta.html', { tab: 'ia' })}">Ver el uso y el tope de IA</a></p></div></div>`
+      : st.tone === 'warn' ? `<div class="note note-warn" style="margin-bottom:var(--sp-4)">${L.icon('alert', 16)}<p>Ya usaste el ${L.pct(st.pct)} del presupuesto de IA del mes (${L.usd(st.spent)} de ${L.usd(st.budget)}).</p></div>` : '';
+    document.getElementById('chat-h').innerHTML = `<span class="as-ic" style="background:var(--brand);color:#fff">${L.icon(A[cur].icon, 16)}</span><h3 id="chat-t">Asistente de ${L.esc(A[cur].name)}</h3>${L.cap('propuesto')} ${L.ai()} ${L.sim('Respuestas simuladas')}<span class="spacer"></span>
+      <label class="row" style="gap:6px"><span class="lbl">Obra</span><select class="select input-sm" id="obra" style="width:auto">${S().projects.map(p => `<option value="${p.id}"${p.id === pidSel ? ' selected' : ''}>${L.esc(short(p.id))}</option>`).join('')}</select></label>
+      ${conv(cur).length ? `<button class="btn btn-ghost btn-sm" data-clear>${L.icon('trash', 13)}Borrar conversación</button>` : ''}`;
+    const msgs = conv(cur);
+    logEl.innerHTML = msgs.length ? msgs.map((m, i) => msgHtml(m, i)).join('') : L.empty({ icon: 'sparkles', title: 'Preguntale al asistente de ' + A[cur].name, text: 'Responde con los datos de tus obras, cita de dónde sale cada número y, si propone un cambio, lo aplicás vos.' });
+    const off = unavailable || blocked;
+    suggEl.innerHTML = '<span class="eyebrow" style="width:100%">Preguntas sugeridas</span>' + INTENTS.filter(it => it.a === cur).map(it => `<button type="button" class="chip" data-q="${L.esc(it.q(c))}" data-intent="${it.id}"${off ? ' disabled' : ''}>${L.esc(it.q(c))} <small>≈ ${L.usd(it.cost)}</small></button>`).join('');
+    const input = document.getElementById('q'), send = document.getElementById('send');
+    input.disabled = off; send.disabled = off;
+    document.getElementById('q-hint').innerHTML = off ? (unavailable ? 'El asistente vuelve cuando el servicio responda.' : 'En pausa por el tope de IA.') : 'Cada respuesta cuesta entre USD 0,01 y USD 0,05 y se descuenta del presupuesto de IA del mes. Enter pregunta, Shift+Enter baja de línea.';
+    sideEl.innerHTML = `
+      <div class="card"><div class="card-h"><h3>Presupuesto de IA</h3>${L.cap('planificado')}</div><div class="card-b">
+        <div class="row"><strong class="num" style="font-size:var(--fs-lg)">${L.usd(st.spent)}</strong><span class="muted">de ${L.usd(st.budget)} este mes</span></div>
+        <div class="meter ${st.tone}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(Math.min(100, st.pct))}" aria-label="Presupuesto de IA usado"><i style="width:${Math.min(100, st.pct)}%"></i></div>
+        <small class="muted">${L.pct(st.pct)} usado · aviso al ${S().ai.alertAtPct} % · ${S().ai.hardLimit ? 'tope duro: al llegar se pausan los asistentes' : 'sin tope duro'}. Consultas de asistentes este mes: ${L.usd(S().ai.ledger.filter(e => e.kind === 'Asistente' && e.at.slice(0, 7) === TODAY.slice(0, 7)).reduce((x, e) => x + e.usd, 0))}.</small>
+        <a class="btn btn-secondary btn-sm" href="${L.link('d-cuenta.html', { tab: 'ia' })}">${L.icon('chart', 13)}Ver uso de IA</a></div></div>
+      <div class="card"><div class="card-h"><h3>Qué mira este asistente</h3></div><div class="card-b"><p class="muted" style="margin:0">Lee ${L.esc(A[cur].reads)} de tus obras. No inventa códigos ni precios: si el dato no está, lo dice.</p>
+        <p class="muted" style="margin:0">Propone; no cambia nada sin que confirmes. Cada cambio queda en la actividad de la obra.</p></div></div>
+      <div class="card"><div class="card-h"><h3>Camino manual</h3>${L.cap('existe')}</div><div class="list">${A[cur].manual(c.pid, c.rid).map(([h, t]) => `<a class="list-i" href="${h}">${L.icon('arrowr', 15)}<span class="grow">${L.esc(t)}</span></a>`).join('')}</div></div>`;
+  }
+  function msgHtml(m, i) {
+    if (m.role === 'user') return `<div class="msg-u"><span>${L.esc(m.text)}</span><small>Lucía · ${L.time(m.at)}</small></div>`;
+    const warn = m.kind !== 'answer';
+    return `<article class="msg-a${warn ? ' m-warn' : ''}" data-i="${i}">
+      <div class="msg-h">${L.ai(A[cur].name)} ${L.sim(m.kind === 'answer' ? 'Respuesta simulada' : 'Sin respuesta')}<span class="spacer"></span><span class="cost" title="Costo de esta respuesta">${m.cost ? L.usd(m.cost) : 'sin costo'}</span><small class="muted">${L.time(m.at)}</small></div>
+      ${m.html}
+      ${m.kind === 'unknown' ? `<div class="row" style="margin-top:6px">${INTENTS.filter(it => it.a === cur).map(it => `<button class="chip" data-q="${L.esc(it.q(ctxNow()))}"${unavailable || blockedByBudget() ? ' disabled' : ''}>${L.esc(it.q(ctxNow()))}</button>`).join('')}</div>` : ''}
+      ${m.kind === 'redirect' ? `<button class="btn btn-secondary btn-sm" data-redirect="${m.to}" data-text="${L.esc(m.question)}">${L.icon('arrowr', 13)}Preguntarle a ${L.esc(A[m.to].name)}</button>` : ''}
+      ${m.kind === 'refusal' ? `<p>${A[cur].manual(pidSel, ctxNow().rid).map(([h, t]) => `<a href="${h}">${L.esc(t)}</a>`).join(' · ')}</p>` : ''}
+      ${(m.actions || []).length ? `<div class="msg-act"><span class="eyebrow">Propuestas · requieren tu confirmación</span>${m.actions.map((a, j) => actHtml(a, i, j)).join('')}</div>` : ''}
+      ${(m.sources || []).length ? `<div class="msg-src"><span class="eyebrow">Fuentes</span>${m.sources.map(s => `<a href="${s.href}">${L.icon(s.icon, 12)}${L.esc(s.label)}</a>`).join('')}</div>` : ''}
+    </article>`;
+  }
+  function actHtml(a, i, j) {
+    if (a.status === 'hecha') return `<div class="act done">${L.icon('check', 16)}<div class="grow"><strong>${L.esc(a.label)}</strong><small>Aplicada por ${L.esc(L.who(a.by))} · ${L.dateShort(a.doneAt)} ${L.time(a.doneAt)}</small></div>${L.badge('Aplicada', 'ok')}</div>`;
+    if (a.status === 'descartada' || a.status === 'caducada') return `<div class="act gone">${L.icon(a.status === 'descartada' ? 'x' : 'clock', 16)}<div class="grow"><strong>${L.esc(a.label)}</strong><small>${a.status === 'descartada' ? 'Descartada: no se cambió nada.' : 'Ya no aplica: ' + L.esc(a.why || '')}</small></div>${L.badge(a.status === 'descartada' ? 'Descartada' : 'Ya no aplica', 'muted')}</div>`;
+    return `<div class="act">${L.icon('wand', 16)}<div class="grow"><strong>${L.esc(a.label)}</strong><small>${L.esc(a.detail)}</small></div>
+      <button class="btn btn-primary btn-sm" data-act="${i}:${j}">Revisar y aplicar</button><button class="btn btn-ghost btn-sm" data-skip="${i}:${j}">Descartar</button></div>`;
+  }
+  const setAct = (i, j, patch) => L.store.update(s => Object.assign(s.ui.asist[cur][i].actions[j], patch));
+  async function runAction(i, j) {
+    const m = conv(cur)[i]; const a = m.actions[j]; const def = ACTIONS[a.kind];
+    const why = def.check(a.args); if (why) { setAct(i, j, { status: 'caducada', why }); L.toast('Esta propuesta ya no aplica', { kind: 'warn', detail: why }); return; }
+    const ok = await L.confirm(a.confirm.title, a.confirm.text, a.confirm.label); if (!ok) return;
+    const why2 = def.check(a.args); if (why2) { setAct(i, j, { status: 'caducada', why: why2 }); L.toast('Esta propuesta ya no aplica', { kind: 'warn', detail: why2 }); return; }
+    def.run(a.args);
+    L.store.update(s => { Object.assign(s.ui.asist[cur][i].actions[j], { status: 'hecha', doneAt: L.now(), by: s.session.userId }); L._log(s, a.args.pid || m.pid, s.session.userId, 'Aplicó una propuesta del asistente de ' + A[cur].name + ': ' + a.label + '.'); });
+    L.toast(def.done, { detail: a.label });
+  }
+
+  /* ─── Eventos ─── */
+  document.getElementById('page').addEventListener('click', async e => {
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.a) { cur = t.dataset.a; L.pref('asistentes:a', cur); L.setParam('a', cur); render(); document.getElementById('tab-' + cur).focus(); return; }
+    if (t.dataset.q != null && !t.disabled) { ask(cur, t.dataset.q); reveal(); return; }
+    if (t.dataset.redirect) { cur = t.dataset.redirect; L.setParam('a', cur); render(); ask(cur, t.dataset.text); return; }
+    if (t.dataset.act) { const [i, j] = t.dataset.act.split(':').map(Number); runAction(i, j); return; }
+    if (t.dataset.skip) { const [i, j] = t.dataset.skip.split(':').map(Number); setAct(i, j, { status: 'descartada' }); return; }
+    if (t.hasAttribute('data-clear')) { if (await L.confirm('Borrar la conversación', 'Se borran las preguntas y respuestas del asistente de ' + A[cur].name + '. Los cambios que aplicaste quedan hechos y el costo ya consumido no se devuelve.', 'Borrar', 'danger')) L.store.update(s => { s.ui.asist[cur] = []; }); return; }
+    if (t.hasAttribute('data-retry')) { L.setParam('estado', null); location.reload(); }
+  });
+  tabsEl.addEventListener('keydown', e => { if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return; const k = AKEYS[(AKEYS.indexOf(cur) + (e.key === 'ArrowRight' ? 1 : AKEYS.length - 1)) % AKEYS.length]; cur = k; L.setParam('a', k); render(); document.getElementById('tab-' + k).focus(); });
+  document.getElementById('page').addEventListener('change', e => { if (e.target.id === 'obra') { pidSel = e.target.value; L.store.update(s => { s.session.lastProjectId = pidSel; }); } });
+  document.getElementById('ask').onsubmit = e => { e.preventDefault(); const input = document.getElementById('q'); const had = input.value.trim(); ask(cur, input.value); if (had) { input.value = ''; reveal(); } };
+  document.getElementById('q').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); document.getElementById('ask').requestSubmit(); } });
+
+  L.store.subscribe(render);
+  render();
+  /* ?q=<intent> hace esa pregunta sugerida una sola vez (para la galería): si ya está en la conversación, no se repite ni se cobra. */
+  const qi = INTENTS.find(it => it.id === L.param('q') && it.a === cur);
+  if (qi && !unavailable) { const text = qi.q(ctxNow()); if (!conv(cur).some(m => m.role === 'user' && m.text === text)) ask(cur, text); }
+});
+</script>
+</body>
+</html>

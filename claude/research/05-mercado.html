@@ -1,0 +1,494 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 05 - Market, competitors and pricing (LIARD)</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="../estrategia/01-estrategia.html" class="">01 · Estrategia de liard</a><a href="../estrategia/02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="../estrategia/03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="../estrategia/04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="05-mercado.html" class="on">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>05 - Market, competitors and pricing (LIARD)</h1>
+<p>Research date: 2026-09-30. Desk research only (web search plus LIARD&#39;s own discovery interviews in
+<code>lab3-liard/documentacion/Entrevistas de discovery.md</code>). Nothing was signed up for, submitted or bought.</p>
+<p>How to read the numbers:</p>
+<ul>
+<li><strong>[S]</strong> a figure published by the named source (still a third-party claim, not audited by me).</li>
+<li><strong>[E]</strong> my own estimate or arithmetic from sourced inputs. Treat as a hypothesis.</li>
+<li><strong>[D]</strong> from LIARD&#39;s discovery interviews (7 companies, not a representative sample).</li>
+</ul>
+<hr>
+<h2>1. Market size and structure</h2>
+<h3>1.1 Switchgear / panel building</h3>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Global LV switchgear 2025</td>
+<td>USD 33B to 94B depending on the firm&#39;s definition (The Business Research Co. 33.0B; MarketGenics 66.4B; Fortune BI 94.2B)</td>
+<td>[S] <a href="https://www.researchandmarkets.com/reports/5939740/low-voltage-switchgear-global-market-report">ResearchAndMarkets</a>, <a href="https://switchgear-magazine.com/news/business/low-voltage-switchgear-market-to-reach-115-6-b-by-2035/">Switchgear Magazine, Apr 2026</a>, <a href="https://www.fortunebusinessinsights.com/industry-reports/low-voltage-switchgear-market-100924">Fortune BI</a></td>
+</tr>
+<tr>
+<td>Global switchgear, all voltages, 2025</td>
+<td>USD 103.7B (to 136.7B in 2030, 5.7% CAGR)</td>
+<td>[S] <a href="https://www.marketsandmarkets.com/Market-Reports/switchgear-market-1162268.html">MarketsandMarkets</a></td>
+</tr>
+<tr>
+<td>Latin America share of LV switchgear</td>
+<td>3.6% in 2022, fastest-growing region (4.6% CAGR 2022-28)</td>
+<td>[S] <a href="https://store.frost.com/low-voltage-switchgear-growth-opportunities.html">Frost &amp; Sullivan</a></td>
+</tr>
+<tr>
+<td>Latin America LV switchgear, USD</td>
+<td>~1.5B to 2.8B (3.6% x the global range)</td>
+<td>[E]</td>
+</tr>
+<tr>
+<td>South America switchgear (all)</td>
+<td>&gt; USD 2.77B by 2031</td>
+<td>[S] <a href="https://www.bonafideresearch.com/product/231069785/south-america-switchgear-market">Bonafide Research</a></td>
+</tr>
+<tr>
+<td>Argentina circuit breakers &amp; fuses 2025</td>
+<td>USD 141.7M, to 180.0M by 2030 (4.9% CAGR)</td>
+<td>[S] <a href="https://www.marketsandmarkets.com/Market-Reports/geography/circuit-breaker-and-fuse-market/argentina">MarketsandMarkets</a></td>
+</tr>
+<tr>
+<td>Argentina LV switchgear</td>
+<td>Not public. Order of magnitude USD 150M to 350M (breakers are a large share of a board&#39;s bill of materials)</td>
+<td>[E], unverified</td>
+</tr>
+<tr>
+<td>US control panel market</td>
+<td>USD 4.8B to 5.5B, of which 60-65% is standard / configure-to-order</td>
+<td>[S] <a href="https://www.drivesandsystems.com/custom-vs-standard-part-3-how-much-of-the-us-control-panel-market-is-custom-vs-standard/">Drives &amp; Systems, 2026 blog</a></td>
+</tr>
+</tbody></table>
+<p>Structure. Five OEMs (ABB, Schneider, Siemens, Eaton, plus Mitsubishi/Chint/Legrand by region) make the devices.
+Panel builders (tableristas) assemble and certify (IEC 61439). Distributors sit in between. In Chile about 60% of
+panels are said to go through distributors on large projects ([S] <a href="https://www.emb.cl/electroindustria/articulo.mvc?act=3&srch=&xid=251">ElectroIndustria, Chile</a>);
+no equivalent figure was found for Argentina. Schneider appears in &quot;a very high proportion&quot; of boards ([D] Nisamat).</p>
+<h3>1.2 Number of panel builders</h3>
+<p>No census exists anywhere I could find.</p>
+<ul>
+<li><strong>Argentina:</strong> no public count. Visible firms include Stymel (1983), Tecniark (1997), Ladmill (1999), Servinel,
+EMEVE. ABB Argentina runs a dedicated &quot;Integradores &amp; Tableristas&quot; program (<a href="https://new.abb.com/south-america/argentina/integradores-tableristas">ABB AR</a>).
+My working range: <strong>300 to 1,500 firms that quote LV boards regularly</strong> [E, unverified]. Meaningful for a pilot, small for a
+SaaS-only business.</li>
+<li><strong>Global proxies:</strong> Schneider EcoXpert has ~4,000-5,000 partners in 74-120+ countries, all partner types, not only
+panel builders ([S] <a href="https://www.se.com/uk/en/partners/ecoxpert/">Schneider UK EcoXpert</a>). EPLAN reports 68,000 customers and
+525,000+ users (machine builders, engineering firms and panel shops together) ([S] <a href="https://www.eplan.com/de-en/">EPLAN</a>).
+UL&#39;s directory showed &quot;434 pages&quot; of listed US panel shops about 13 years ago ([S] <a href="https://forums.mikeholt.com/threads/database-of-ul-listed-panel-shops.104807/">Mike Holt forum</a>).
+Many panel shops are in-house departments: 78% of the 12 firms in the ISW &quot;Schaltschrankbau 4.0&quot; study build in-house.</li>
+</ul>
+<h3>1.3 Electrical wholesale distribution</h3>
+<table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Global electrical wholesale 2025</td>
+<td>~USD 481B (2.3% CAGR to 2035); original firm unidentified, weak source</td>
+<td>[S] <a href="https://www.prtimes.org/news/16375">prtimes.org</a></td>
+</tr>
+<tr>
+<td>Sonepar 2025</td>
+<td>USD 37.9B sales; digital USD 13.9B (~37%)</td>
+<td>[S] <a href="https://www.digitalcommerce360.com/2026/03/24/sonepar-digital-sales-2025/">Digital Commerce 360, Mar 2026</a></td>
+</tr>
+<tr>
+<td>Rexel 2025</td>
+<td>EUR 19.4B sales; digital 34% of group (44% Europe, 25% N. America)</td>
+<td>[S] <a href="https://www.rexel.com/en/q4-sales-fy-2025-results">Rexel FY2025</a></td>
+</tr>
+<tr>
+<td>Graybar 2025</td>
+<td>USD 12.9B, +10.6%</td>
+<td>[S] <a href="https://finance.yahoo.com/news/graybar-announces-2025-financial-results-204900699.html">Yahoo Finance</a></td>
+</tr>
+<tr>
+<td>Spain (reference market)</td>
+<td>397 distributors, 1,470 points of sale, EUR 6.0B, +6.7% (ADIME 2025)</td>
+<td>[S] <a href="https://www.irehabitae.es/la-distribucion-de-material-electrico-crecio-un-67-en-2025-segun-se-destaco-en-el-ix-encuentro-adime/">iRehabitae</a></td>
+</tr>
+<tr>
+<td>Argentina</td>
+<td>No sector revenue published. CADIME (distributors&#39; chamber, 1971) is the entry point; CAME retail proxy for &quot;ferretería y materiales eléctricos&quot;: +0.3% y/y Aug 2026</td>
+<td>[S] <a href="https://www.cadime.org.ar/">CADIME</a></td>
+</tr>
+</tbody></table>
+<h3>1.4 Margins</h3>
+<table>
+<thead>
+<tr>
+<th>Actor</th>
+<th>Gross margin</th>
+<th>Net / operating</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Wesco (FY2025)</td>
+<td>21.1%</td>
+<td>-</td>
+<td>[S] <a href="https://investors.wesco.com/news-releases/news-release-details/wesco-international-reports-fourth-quarter-and-full-year-2025">Wesco FY2025</a></td>
+</tr>
+<tr>
+<td>Rexel (FY2025)</td>
+<td>~25.2% (10-yr median 24.9%)</td>
+<td>adj. EBITA 6.0%</td>
+<td>[S] <a href="https://www.rexel.com/en/q4-sales-fy-2025-results">Rexel</a>, <a href="https://www.gurufocus.com/term/gross-margin/RXEEY">GuruFocus</a></td>
+</tr>
+<tr>
+<td>Typical US electrical distributor</td>
+<td>~21-22%</td>
+<td>~3% pretax (NAED 2018: 3.7% net)</td>
+<td>[S] <a href="https://www.ewweb.com/news/article/20921461/the-biggest-profit-secrets-for-electrical-distributors">EW model</a>, <a href="https://blog.naed.org/the-naed-par-report-is-now-available">NAED</a></td>
+</tr>
+<tr>
+<td>US panel builders, standard / OEM</td>
+<td>15-25%</td>
+<td>-</td>
+<td>[S] <a href="https://www.drivesandsystems.com/custom-vs-standard-control-panel-profit-margins/">Drives &amp; Systems</a> (blog, cites CSIA)</td>
+</tr>
+<tr>
+<td>US panel builders, custom engineer-to-order</td>
+<td>35-50%</td>
+<td>-</td>
+<td>same</td>
+</tr>
+</tbody></table>
+<p>Implication [E]: distributors live on ~3% net, so a take rate above ~1-2% of GMV would eat half of their profit on
+that order. That caps what LIARD can charge the supply side per transaction.</p>
+<h3>1.5 How estimating is done today</h3>
+<table>
+<thead>
+<tr>
+<th>Evidence</th>
+<th>Figure</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Counting a 40-board job</td>
+<td>~1.5 days; a complex board can take a full day</td>
+<td>[D] EMEVE</td>
+</tr>
+<tr>
+<td>Quote volume</td>
+<td>Meco 35-40/week (5 people); César Braña 11 people quoting daily; Nisamat 15-20/day per salesperson; GRAMONT ~300/year</td>
+<td>[D]</td>
+</tr>
+<tr>
+<td>Win rate</td>
+<td>GRAMONT 10-15% [D]; electrical contractors 18-25% average, &gt;40% suggests underpricing</td>
+<td>[S] <a href="https://www.simprogroup.com/blog/how-to-bid-estimate-electrical-jobs">Simpro</a> (vendor blog)</td>
+</tr>
+<tr>
+<td>Supplier response time</td>
+<td>2-3 h per quote, more for unusual items</td>
+<td>[D] Nisamat</td>
+</tr>
+<tr>
+<td>Suppliers asked per job</td>
+<td>at least 2-3</td>
+<td>[D] EMEVE</td>
+</tr>
+<tr>
+<td>First responder advantage (manufacturing RFQs)</td>
+<td>first quote wins 42%, second 23%, third 12% (PMPA 2023, reported second-hand)</td>
+<td>[S] <a href="https://triballogix.com/blog/rfq-response-time-wins-cnc-contracts">TribalLogix</a>, unverified primary</td>
+</tr>
+<tr>
+<td>Estimating errors</td>
+<td>&quot;&gt;65% of electrical cost overruns trace to estimating errors&quot;</td>
+<td>[S] <a href="https://constructem.com/top-10-electrical-estimating-mistakes-contractors-make-in-2026/">Constructem</a>, unnamed studies, weak</td>
+</tr>
+<tr>
+<td>Tools in use</td>
+<td>Excel, macros, in-house tools, one paid AI that hallucinated (EMEVE), EPLAN (GRAMONT), Electrobase/Odoo ERPs (Nisamat)</td>
+<td>[D]</td>
+</tr>
+</tbody></table>
+<p>No industry survey (NECA, ELECTRI, CFMA, CSIA) with hours-per-quote for <strong>panel</strong> quoting was found publicly.</p>
+<hr>
+<h2>2. Competitors and adjacent tools</h2>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>What it does</th>
+<th>Public price</th>
+<th>Gap vs LIARD</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>EPLAN Electric P8 + Pro Panel</strong></td>
+<td>Electrical CAD, 3D panel layout, wiring and manufacturing data</td>
+<td>Not published. Capterra lists P8 at ~USD 1,990/user/yr; Pro Panel is an add-on on top (<a href="https://www.capterra.com/p/152595/Electric-P8/">Capterra</a>, <a href="https://blog.eplan.co.uk/how-much-does-eplan-cost">EPLAN UK</a>)</td>
+<td>Design tool for firms that <strong>author</strong> the drawing. Does not read a third-party DXF/PDF, does not quote across distributors.</td>
+</tr>
+<tr>
+<td><strong>EPLAN eBUILD</strong></td>
+<td>Cloud rule-based schematic generation (Project Builder); free tier exists</td>
+<td>Free tier; full version via sales (<a href="https://www.eplan.com/int/en/support/ebuild.html">EPLAN FAQ</a>)</td>
+<td>Generates new designs from rules; no plan reading, no marketplace.</td>
+</tr>
+<tr>
+<td><strong>Schneider EcoStruxure Power Build (Rapsody)</strong> / <strong>EcoSet Config</strong> (Argentina)</td>
+<td>Configure and quote switchboards from an SLD with Schneider parts; BOM, layout, proposal; EcoSet Config is online, 3D, &quot;diseñar y cotizar tableros&quot;</td>
+<td>Free (historically freeware; EcoSet described as free by users) (<a href="https://www.se.com/eg/en/download/document/EcoStruxure_Power_Build/">SE download</a>, <a href="https://www.se.com/ar/es/product-range/345630198-ecoset-config/">SE AR EcoSet</a>)</td>
+<td>Single-brand, user re-enters the diagram. LIARD&#39;s multi-brand equivalence and reading of the customer&#39;s plan is the gap. <strong>Free OEM configurators set the price anchor to zero for &quot;BOM from a known design&quot;.</strong></td>
+</tr>
+<tr>
+<td><strong>ABB e-Design</strong></td>
+<td>Suite: calculation (DOC), product selection and quotation (CAT), switchboard design; import BOM from SLD</td>
+<td>Freeware (<a href="https://new.abb.com/low-voltage/support/software/e-design/download">ABB</a>)</td>
+<td>Same as Schneider: single-brand, manual entry.</td>
+</tr>
+<tr>
+<td><strong>Siemens SIMARIS configuration / create</strong></td>
+<td>Configure ALPHA/SIVACON boards, pricing, power loss, BOM, one-click ordering</td>
+<td>Registration-based; price of configuration not confirmed (<a href="https://www.siemens.com/en-us/products/simaris/create/">Siemens</a>)</td>
+<td>Single-brand.</td>
+</tr>
+<tr>
+<td><strong>Trimble Accubid</strong></td>
+<td>Electrical contractor estimating (labor units, assemblies)</td>
+<td>Not published; third parties: USD 3,000-15,000+/user/yr</td>
+<td>US contractor workflow, manual or semi-manual takeoff, no panel device detection, no LatAm catalogs.</td>
+</tr>
+<tr>
+<td><strong>ConEst IntelliBid</strong></td>
+<td>Electrical estimating</td>
+<td>~USD 115-200+/user/month (third party)</td>
+<td>Same.</td>
+</tr>
+<tr>
+<td><strong>McCormick</strong></td>
+<td>Electrical estimating</td>
+<td>From USD 300/user/month (Software Advice) (<a href="https://www.softwareadvice.com/construction/mccormick-electrical-estimating-profile/">link</a>)</td>
+<td>Same.</td>
+</tr>
+<tr>
+<td><strong>Togal.AI</strong></td>
+<td>AI takeoff on architectural plans (areas, lengths, symbol search)</td>
+<td>USD 299/user/month billed yearly (<a href="https://www.togal.ai/pricing">Togal pricing</a>)</td>
+<td>Floor plans, not unifilares; no electrical attribute extraction, no supplier matching.</td>
+</tr>
+<tr>
+<td><strong>Kreo</strong></td>
+<td>2D takeoff with AI tier</td>
+<td>USD 35-175/user/month (<a href="https://softwarefinder.com/construction/kreo-software">Software Finder</a>)</td>
+<td>Same.</td>
+</tr>
+<tr>
+<td><strong>Drawer AI</strong></td>
+<td>Electrical-specific AI takeoff (devices, fixtures, branch routing); has a &quot;Supplier&quot; plan</td>
+<td>Subscriptions via sales; concierge per project from USD 22.20 min, e.g. 400 devices USD 88.80 (<a href="https://drawer.ai/pricing">Drawer pricing</a>, <a href="https://drawer.ai/takeoff-concierge-service">concierge</a>)</td>
+<td><strong>Closest AI analogue</strong>, but building wiring plans in the US, not switchboard SLDs; per-quantity pricing is a useful model.</td>
+</tr>
+<tr>
+<td><strong>Switchonomy</strong> (India)</td>
+<td>AI reads image/PDF SLD, builds BOM, applies 12,000+ live prices, generates quote</td>
+<td>Free trial; price not found (<a href="https://switchonomy.com/">Switchonomy</a>)</td>
+<td><strong>Most direct competitor found.</strong> Needs verification of accuracy, catalogs and whether it has any LatAm presence (none seen).</td>
+</tr>
+<tr>
+<td><strong>OpenDrawing</strong></td>
+<td>AI BOM from single-line diagrams for switchgear/panelboard makers</td>
+<td>Not found (<a href="https://opendrawing.ai/blog/?view=announcement">OpenDrawing</a>)</td>
+<td>Direct competitor on detection; no marketplace seen.</td>
+</tr>
+<tr>
+<td><strong>Amazon Business / Zoro</strong></td>
+<td>MRO marketplaces; Amazon referral 6-15% tiered by price; Zoro negotiates per partner</td>
+<td>(<a href="https://distributionstrategy.com/2022/04/how-zoro-is-building-real-partnerships-with-distributors-with-no-competitive-risk/">Distribution Strategy</a>)</td>
+<td>Catalog commerce, no project BOM, no technical equivalences; not in Argentina.</td>
+</tr>
+<tr>
+<td><strong>Rexel / Sonepar / Graybar digital</strong></td>
+<td>Distributor webshops, EDI, Sonepar &quot;Spark&quot; and Digital Job Center (&gt; USD 2B)</td>
+<td>n/a</td>
+<td>Each is one distributor&#39;s catalog; LIARD compares several. They are potential <strong>customers or partners</strong>, and also the incumbents that could copy the matching layer.</td>
+</tr>
+<tr>
+<td><strong>Mercado Libre (Argentina)</strong></td>
+<td>Retail/SMB marketplace, &quot;Industrias y Oficinas&quot;, tools/construction</td>
+<td>Sale charge ~11-17% plus fixed fee below ARS 33,000 (third-party tables; changed 1 Sep 2026) (<a href="https://digitalsellers.com.ar/blog/comisiones-mercado-libre/">Digital Sellers</a>)</td>
+<td>Unit retail purchases; not project quoting. Shows that Argentine sellers already accept double-digit take rates <strong>for retail demand</strong>, not for B2B project orders.</td>
+</tr>
+<tr>
+<td><strong>ElectroNorte (electronorte.com.ar)</strong></td>
+<td>Argentine distributor since 1972, &gt;1,000 catalog items, &gt;60 client companies (its own site)</td>
+<td>n/a</td>
+<td>Verified as a distributor (not &quot;Electro Norte Outlet&quot;, a home appliance store). A prospective supply-side user, not a competitor.</td>
+</tr>
+<tr>
+<td><strong>Legrand XL PRO³, IDE CEC, EleCalculador</strong></td>
+<td>Free panel design tools (Legrand LatAm), Argentine free calculators (AEA 90364)</td>
+<td>Free</td>
+<td>Anchor the free end of the market.</td>
+</tr>
+<tr>
+<td><strong>TRA-SER (Trade Service)</strong></td>
+<td>US electrical price database fed into estimating systems</td>
+<td>USD 1,260/user/yr (<a href="https://www.tradeservice.com/products/pricing-products/tra-ser-contractors/tra-ser-electrical-contractors">Trade Service</a>)</td>
+<td>Price-data product benchmark; no equivalent found for Argentina.</td>
+</tr>
+</tbody></table>
+<p><strong>Positioning gap [E]:</strong> no tool found combines (a) reading a third party&#39;s DXF/PDF switchboard plan, (b) multi-brand
+attribute equivalence, and (c) comparing several distributors&#39; prices and emitting purchase orders. OEM tools are free but
+single-brand and need re-entry; US estimating tools are paid but manual and US-centric; AI takeoff tools read floor plans,
+not unifilares; Switchonomy and OpenDrawing are the only ones reading SLDs and must be tracked.</p>
+<hr>
+<h2>3. Willingness to pay and pricing models</h2>
+<p>Discovery status: <strong>monetization, commission and WTP were never asked in the interviews</strong> [D]. Suppliers explicitly
+rejected handling payments on-platform and said the shown price is only a reference [D].</p>
+<h3>3.1 Benchmarks</h3>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Benchmark</th>
+<th>Source</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>SaaS per seat, AI takeoff</td>
+<td>Togal USD 299/user/month; Kreo USD 35-175</td>
+<td>above</td>
+</tr>
+<tr>
+<td>SaaS per seat, electrical estimating</td>
+<td>IntelliBid ~115-200; McCormick from 300; Accubid 3k-15k/yr</td>
+<td>above</td>
+</tr>
+<tr>
+<td>Per plan / per quantity</td>
+<td>Drawer concierge: min USD 22.20 per detection, ~USD 0.22 per device at 400 devices</td>
+<td><a href="https://drawer.ai/takeoff-concierge-service">Drawer</a></td>
+</tr>
+<tr>
+<td>Lead / project data subscription</td>
+<td>ConstructConnect USD 129-199/month per market (list), 3,200-7,200/yr reported</td>
+<td><a href="https://www.constructconnect.com/pricing">ConstructConnect</a>, <a href="https://downtobid.com/blog/is-constructconnect-worth-it">downtobid</a></td>
+</tr>
+<tr>
+<td>Price-intelligence data</td>
+<td>TRA-SER USD 1,260/user/yr</td>
+<td>above</td>
+</tr>
+<tr>
+<td>B2B marketplace take rate</td>
+<td>typically 3-15% (Multiples.vc), 2-10% for bulk goods (Shipturtle)</td>
+<td><a href="https://multiples.vc/coverage/b2b-marketplaces">Multiples.vc</a>, <a href="https://www.shipturtle.com/blog/marketplace-commission-charges-industry-vendors-shipturtle-2026">Shipturtle</a></td>
+</tr>
+<tr>
+<td>Independent manufacturer reps</td>
+<td>8-16% of net sales, 10-12% for electromechanical lines</td>
+<td><a href="https://blog.salescookie.com/2026/05/01/sales-commission-rates-by-industry-2026/">SalesCookie 2026</a></td>
+</tr>
+<tr>
+<td>Amazon referral fee</td>
+<td>15% up to USD 250, 10% to 1,000, 6% above (older schedule)</td>
+<td><a href="https://www.zentail.com/blog/marketplace-commission-rates-comparison-jet-com-walmart-amazon-ebay">Zentail</a></td>
+</tr>
+<tr>
+<td>Mercado Libre AR</td>
+<td>~11-17% + fixed fee</td>
+<td>above</td>
+</tr>
+</tbody></table>
+<h3>3.2 Value-based ceiling for the buyer side [E]</h3>
+<p>EMEVE: 40 boards ~ 1.5 working days ~ 12 engineer-hours ~ <strong>18 min per board</strong> just counting. Loaded engineer cost in
+Argentina is not verified; at an assumed USD 15-30/h, counting costs <strong>USD 4.5-9 per board</strong> (USD 180-360 per 40-board
+job). A 60-75% saving (Togal&#39;s peer-reviewed figure is ~70%, see §4) is worth roughly <strong>USD 3-7 per board</strong>. Capturing a
+third to half of that gives <strong>USD 1-3.5 per board processed</strong>. A firm doing Meco&#39;s volume (35-40 quotes/week, board count
+per quote unknown) could plausibly justify USD 100-400/month. Every input here except EMEVE&#39;s hours is assumed.</p>
+<h3>3.3 Pricing hypotheses to test</h3>
+<ol>
+<li><strong>Tablerista: firm subscription with a plan quota, not per seat.</strong> Tiers around USD 60 / 150 / 400 per month (ARS
+billing, indexed monthly) with ~N boards included and a per-board overage around USD 1.5-3. Per seat punishes the
+&quot;11 people quoting&quot; shape and invites login sharing. Anchor below Togal&#39;s USD 299/user because OEM configurators are free.</li>
+<li><strong>Per-plan pay-as-you-go</strong> for occasional users (the GRAMONT shape: ~300 quotes/year), e.g. USD 5-15 per plan
+depending on size, mirroring Drawer&#39;s per-quantity concierge.</li>
+<li><strong>Supplier side: subscription for structured RFQs, not a transaction fee.</strong> A distributor answering 15-20 quotes/day
+per salesperson at 2-3 h each values receiving a clean, already-interpreted BOM. Hypothesis: USD 100-300/month per
+branch, or a per-qualified-RFQ fee (USD 2-10). Suppliers asked for efficiency and order, &quot;not necessarily more volume&quot; [D].</li>
+<li><strong>Take rate only as a later, optional layer:</strong> 0.5-1.5% of the PO value, charged to the supplier on POs issued through
+LIARD. Justification: distributor net margin ~3%, so 2-10% marketplace norms do not transfer to project orders; and with
+payments off-platform the fee is invoice-based and easy to route around. Rep commissions (8-16%) show OEMs pay for demand,
+so an <strong>OEM-funded</strong> fee (Schneider/ABB/Chint paying for specification share) may be more robust than a distributor fee.</li>
+<li><strong>Data product:</strong> anonymised price-and-lead-time index per canonical component, sold to distributors and OEMs.
+Benchmark TRA-SER USD 1,260/user/yr. Needs enough quote volume first, and suppliers&#39; consent: they warned listed prices
+are only references to negotiated prices [D].</li>
+</ol>
+<hr>
+<h2>4. Differentiators to validate: metric and threshold</h2>
+<table>
+<thead>
+<tr>
+<th>Claim</th>
+<th>External evidence</th>
+<th>Metric for LIARD</th>
+<th>Threshold to call it validated</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>AI detection saves engineer time</strong></td>
+<td>Togal vs On-Screen Takeoff, Univ. of Kansas: ~70% time saved within 5% accuracy (one first-time user, one case) (<a href="https://www.togal.ai/case-study/peer-reviewed-study-togal-ai-vs-on-screen-takeoff">Togal case</a>); EMEVE&#39;s earlier AI failed on hallucinations [D]</td>
+<td>End-to-end minutes per board <strong>including human review</strong>, vs the firm&#39;s own manual baseline, on 5+ real plans per firm</td>
+<td>&gt;= 60% less time per board, and missing essential items &lt;= 1 per board (recall &gt;= 95% on items that carry price)</td>
+</tr>
+<tr>
+<td><strong>Trust in the BOM</strong></td>
+<td>Vision document target: 90% on complex boards [D, unvalidated]</td>
+<td>Share of lines the engineer accepts without edit</td>
+<td>&gt;= 90% on simple boards, &gt;= 80% on complex; at least 3 of 5 pilot firms keep using it after week 4</td>
+</tr>
+<tr>
+<td><strong>Faster supplier answer wins jobs</strong></td>
+<td>First responder wins 42% of RFQs (PMPA, second-hand)</td>
+<td>Supplier time from RFQ to priced answer</td>
+<td>Median &lt; 30 min vs today&#39;s 2-3 h [D]; &gt;= 50% of RFQs answered in-platform</td>
+</tr>
+<tr>
+<td><strong>FX / inflation handling is a reason to buy</strong></td>
+<td>Argentina CPI 1.7% m/m, 33.5% y/y (Aug 2026); wholesale USD ARS 1,522, +4.6% YTD, far below inflation (<a href="https://www.indec.gob.ar/uploads/informesdeprensa/ipc_09_26A1BE2DC4CD.pdf">INDEC</a>, <a href="https://www.infobae.com/economia/2026/09/29/el-dolar-volvio-a-ceder-y-se-encamina-a-quedar-por-debajo-de-la-inflacion-en-septiembre/">Infobae 29-09-2026</a>); payment terms change the price [D]</td>
+<td>(a) share of accepted quotes repriced before the PO; (b) catalog age: share of lines refreshed in the last 7 days; (c) WTP for automatic re-quote in USD/ARS</td>
+<td>(a) measured baseline first, then a &gt;= 50% reduction in manual repricing; (b) &gt;= 80% of lines &lt; 7 days old for active suppliers; (c) &gt;= 40% of pilot firms say they would pay extra for it</td>
+</tr>
+<tr>
+<td><strong>3D / visual layout adds value at quote stage</strong></td>
+<td>ISW &quot;Schaltschrankbau 4.0&quot; (12 firms, 2017, sponsored by EPLAN): 3D design saves up to 35% of engineering and 22% of manufacturing time; wiring is 49% of build time (<a href="https://www.all-electronics.de/elektronik-entwicklung/isw-studie-deckt-die-zeit-und-kostenfresser-auf/795086">all-electronics</a>). Those savings are in <strong>manufacturing</strong>, after the quote is won. EMEVE&#39;s &quot;zona gris&quot; (enclosure size, ventilation, DIN rail, ducts) is a quote-stage pain [D]</td>
+<td>Error on enclosure / accessory lines between quote and as-built</td>
+<td>Build only if accessories and enclosure explain &gt;= 15% of the quote-vs-actual cost gap, or &gt;= 2 of 5 pilots ask for it unprompted. Otherwise a rule-derived accessory list (EMEVE&#39;s approach) is cheaper than 3D</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>5. What could NOT be verified</h2>
+<ul>
+<li>Number of panel builders in Argentina, LatAm or worldwide (no census; CADIME, CADIEEL or a Google Maps / AFIP-activity scrape would be needed).</li>
+<li>Argentina LV switchgear and electrical distribution market size (only paid reports: Bonafide, 6Wresearch, Polaris).</li>
+<li>The global electrical wholesale figure (~USD 481B) comes from an unidentified firm via a press site.</li>
+<li>Argentine panel builders&#39; and distributors&#39; margins; loaded engineer cost per hour in Argentina.</li>
+<li>Hours per quote and win rates from any primary survey (only vendor blogs and LIARD&#39;s interviews).</li>
+<li>EPLAN Pro Panel/eBUILD, Accubid, McCormick and Siemens SIMARIS configuration current prices (not published).</li>
+<li>Current pricing of Schneider EcoSet Config and Rapsody (free status is from old or third-party sources).</li>
+<li>Switchonomy and OpenDrawing accuracy, pricing, customer count, and whether they target LatAm.</li>
+<li>The PMPA first-responder study and the &quot;&gt;65% of overruns&quot; error statistic (primary sources not found).</li>
+<li>Mercado Libre&#39;s exact post-Sept-2026 commission for industrial categories in Argentina.</li>
+<li>Any willingness-to-pay figure from Argentine tableristas or suppliers: never asked in discovery.</li>
+</ul>
+</article></body></html>

@@ -1,0 +1,1321 @@
+PAGE 1
+18/09/2026 · métricas medidas sobre corridas locales
+1
+INFORME DE DECISIÓN
+Gemini + YOLO para extracción
+de BOM
+Precisión separada por capa, comparación contra el Excel verdadero, tiempos,
+tokens, costos y efecto de la revisión manual.
+ 3.1 LITE
+ 50,5%
+ US$ 0,00064
+ 6
+ MEJOR COSTO Y TIEMPO
+ PRECISIÓN · CAJAS YOLO
+ COSTO / CROP · 3.1
+ NO IDENTIFICADOS · A/B
+Resultado principal: sobre exactamente las mismas 99 cajas de YOLO, Gemini 3.1
+Flash-Lite obtiene 50,5% de precisión entre los símbolos que acepta, frente a 51,1% de
+Gemini 3.8 default. Cuesta 7,3 veces menos, pero es más permisivo: no descarta
+ninguna caja y deja pasar más conexiones y marcas estructurales al BOM.
+Modelos
+gemini-3.8-flash y gemini-3.1-flash-lite · media_resolution=high · precios estándar medidos. Flash-Lite: US$0,25/M
+tokens de entrada y US$1,50/M de salida, incluyendo thinking.
+Alcance
+Benchmark original: TSA-CT, TS-BIO/EST y TS-SS. Actualización Flash-Lite: TSA-CT, TS-BIO/EST y
+TS-CO/COM. Los 12 símbolos no identificados de la actualización todavía no fueron resueltos.
+Lectura
+El informe distingue: 1) propuestas de YOLO, 2) clasificación de Gemini, 3) exactitud del BOM final y 4) completitud
+respecto del listado de compra.
+
+
+PAGE 2
+1 · Los cuatro tableros
+Los cuatro planos son uniﬁlares del mismo proyecto y diﬁeren sobre todo en cantidad de símbolos, que es lo que termina gobernando el costo
+en los dos pipelines. TSA-CT es el chico: un interruptor general, un diferencial y tres salidas. TS-SS es el grande, con las tres barras —
+emergencia, normal y estabilizada— y más de doscientos símbolos. TS-CO/COM solo se midió por tileo.
+Un uniﬁlar de tablero es un dibujo donde cada símbolo representa un elemento real que después hay que comprar: un interruptor
+termomagnético, un diferencial, una bornera, un contactor. Extraer el BOM es justamente convertir esos símbolos en una lista de materiales
+con su especiﬁcación. Por eso la cantidad de símbolos es la variable que manda: es la cantidad de cosas que hay que reconocer, y en el
+pipeline de YOLO es literalmente la cantidad de llamadas al modelo.
+De cada tablero se muestran dos imágenes. La primera es el render que produce el servicio a partir del DXF —no una captura de pantalla, sino
+exactamente el PNG que después se le muestra al modelo—. La segunda, cuando existe, es ese mismo render con las cajas que propuso
+YOLO dibujadas encima: cada rectángulo es un recorte que se va a enviar en su propia llamada. Comparar las dos deja ver de un vistazo qué
+partes del plano el detector consideró símbolos y cuáles ignoró.
+TSA-CTTablero Serv. Aux. CT 51cd5360 · 73 KB
+Render del uniﬁlar, tal como lo ve el detector. Tileo: 2 tiles (2 analizados), 141,0 s,
+$0,2101. YOLO high: 14 recortes, 61 s, $0,1725. YOLO low: 20 s, $0,0263.
+El mismo tablero con las 14 cajas que propone YOLO. Cada caja es una llamada
+independiente a Gemini.
+
+PAGE 3
+TS-CO/COMTablero seccional Cocina/Comedor 49312a92 · 2,27 MB
+Render del uniﬁlar, tal como lo ve el detector. Tileo: 8 tiles (7 analizados), 230,0 s, $0,5422. Sin corrida YOLO: este tablero solo se midió por tileo.
+TS-BIO/ESTTablero seccional Salas Bioingeniería y Esteril. 537efc21 · 2,29 MB
+Render del uniﬁlar, tal como lo ve el detector. Tileo: 8 tiles (8 analizados), 244,1 s, $0,6999. YOLO high: 109 recortes, 308 s, $1,1688. YOLO low: 74 s, $0,2135.
+El mismo tablero con las 109 cajas que propone YOLO. Cada caja es una llamada independiente a Gemini.
+
+PAGE 4
+TS-SSTablero seccional Subsuelo 51ee45dd · 2,58 MB
+Render del uniﬁlar, tal como lo ve el detector. Tileo: 6 tiles (5 analizados), 233,4 s, $0,5256. YOLO high: 214 recortes, 378 s, $2,6159. YOLO low: 219 s, $0,5909.
+El mismo tablero con las 214 cajas que propone YOLO. Cada caja es una llamada independiente a Gemini.
+
+PAGE 5
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+2
+1 · Decisión ejecutiva · benchmark Gemini 3.8
+La conclusión vigente, incorporando Gemini 3.1 Flash-Lite, está al final del informe.
+Configuración
+Precisión
+Recall
+F1
+Tiempo
+Costo
+Costo / acierto
+YOLO + Gemini low
+54,3%
+73,9%
+62,6%
+94,7 s
+US$ 0,240
+US$ 0,0047
+YOLO + Gemini default
+51,1%
+68,1%
+58,4%
+132,9 s
+US$ 0,459
+US$ 0,0098
+YOLO + Gemini high
+56,9%
+59,4%
+58,2%
+368,2 s
+US$ 1,341
+US$ 0,0327
+Comparación sobre TSA-CT + TS-BIO/EST. Low y high recibieron exactamente las mismas 123 cajas de YOLO. Default no es
+completamente controlado porque TS-BIO/EST usó otra escala y produjo 85 cajas en lugar de 109.
+High no conviene para este flujo: frente a low aporta apenas +2,6 puntos de precisión,
+pierde 14,5 puntos de recall, tarda 3,9 veces más y cuesta 5,6 veces más.
+Recomendación
+●  Adoptar thinking low como baseline productivo y de experimentación.
+●  Mejorar primero el filtrado/deduplicación de YOLO y las reglas de cantidades antes de pagar más thinking.
+●  Mantener revisión humana: Gemini reconoce todas las familias requeridas, pero todavía sobrecuenta y omite
+especificaciones de compra.
+●  Activar y medir caché únicamente sobre el prefijo compartido; las corridas analizadas tuvieron cero hits de
+caché.
+Contexto del benchmark anterior
+En los tres tableros comunes, tileo con high costó US$1,44; YOLO high US$3,96; YOLO low US$0,83. Low redujo
+el costo 4,8 veces respecto de high y el reloj de 747 s a 314 s.
+
+
+PAGE 6
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+3
+2 · Método de precisión
+La métrica es funcional y está normalizada; no reemplaza una validación de compra exacta.
+Verdad de referencia
+Se tomaron las cantidades no nulas de la hoja SS: TSA-CT (B38:C46), TS-BIO/EST (B72:C92) y TS-SS (B20:C36).
+Para la métrica de símbolos se excluyeron barras, gabinete y materiales menores, porque no son objetivos
+equivalentes a una caja individual detectada por YOLO.
+Tablero
+Unidades eléctricas
+Familias
+Otros ítems con cantidad
+TSA-CT
+9
+5
+barra 1 · gabinete 1 · menores 1
+TS-BIO/EST
+60
+12
+barra 1 · gabinete 1 · menores 1
+TS-SS
+147
+10
+barra 1
+Normalización
+●  Se unificaron mayúsculas, acentos y alias: ojo de buey/testigo, diferencial/ID, termomagnético/ITM, etc.
+●  TP por familia = mínimo entre cantidad predicha y cantidad verdadera. El exceso cuenta como FP y el faltante
+como FN.
+●  'Fuera de catálogo' se considera revisión, no una línea comprable.
+●  La métrica conserva calibre o rating cuando está disponible, pero los resultados del modelo no incluyen polos de
+forma sistemática.
+Advertencia: 33 de las 69 unidades verdaderas de TSA-CT + TS-BIO/EST requieren
+distinguir polos. Por eso la precisión funcional publicada es más optimista que una
+precisión de compra exacta.
+Granularidad
+Un símbolo multipolar puede equivaler a varias unidades comerciales en el Excel. Por ejemplo, un único símbolo
+SPM/3P puede representar tres fusibles/portafusibles. Sin una regla explícita de expansión, parte del faltante por
+cantidad no prueba que Gemini haya interpretado mal el símbolo.
+
+
+PAGE 7
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+4
+3 · Precisión final contra Excel
+Resultado funcional antes de las adiciones manuales no presentes en la planilla.
+Tablero
+Thinking
+Verdad
+Predicho
+TP
+FP
+FN
+Precisión
+Recall
+F1
+TSA-CT
+low
+9
+12
+5
+7
+4
+41,7%
+55,6%
+47,6%
+TSA-CT
+default
+9
+12
+5
+7
+4
+41,7%
+55,6%
+47,6%
+TSA-CT
+high
+9
+12
+5
+7
+4
+41,7%
+55,6%
+47,6%
+TS-BIO/EST
+low
+60
+82
+46
+36
+14
+56,1%
+76,7%
+64,8%
+TS-BIO/EST
+default
+60
+80
+42
+38
+18
+52,5%
+70,0%
+60,0%
+TS-BIO/EST
+high
+60
+60
+36
+24
+24
+60,0%
+60,0%
+60,0%
+TS-SS
+low
+147
+212
+141
+71
+6
+66,5%
+95,9%
+78,6%
+TS-SS
+high*
+147
+155
+140
+15
+7
+90,3%
+95,2%
+92,7%
+* TS-SS high y low no son un A/B de thinking: cambiaron el archivo/escala y las propuestas de YOLO.
+ 27/27
+ 88,9%
+ 62,7%
+ 73,6%
+ FAMILIAS CUBIERTAS POR
+ LOW
+ RECALL LOW · 3 TABLEROS
+ PRECISIÓN LOW · 3
+ TABLEROS
+ F1 LOW · 3 TABLEROS
+Lectura
+●  Gemini low encontró al menos una instancia de todas las familias eléctricas requeridas: la cobertura semántica
+es fuerte.
+●  La precisión de cantidades es moderada por sobreconteo de diferenciales, ITM y elementos estructurales.
+●  Default no supera a low en ninguno de los dos tableros procesados.
+●  High solo muestra una ventaja grande en TS-SS, donde también cambió YOLO; no se puede atribuir esa mejora
+exclusivamente al thinking.
+
+
+PAGE 8
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+5
+4 · Detección de YOLO
+Qué sabemos y qué no puede inferirse sin cajas verdaderas anotadas.
+Tablero
+Thinking
+Cajas YOLO
+Verdad eléctrica
+Cajas / verdad
+Aceptadas Gemini
+TP / caja
+TSA-CT
+low
+14
+9
+1,56×
+12
+35,7%
+TSA-CT
+default
+14
+9
+1,56×
+12
+35,7%
+TSA-CT
+high
+14
+9
+1,56×
+12
+35,7%
+TS-BIO/EST
+low
+109
+60
+1,82×
+82
+42,2%
+TS-BIO/EST
+default
+85
+60
+1,42×
+80
+49,4%
+TS-BIO/EST
+high
+109
+60
+1,82×
+60
+33,0%
+TS-SS
+low
+302
+147
+2,05×
+212
+46,7%
+TS-SS
+high
+214
+147
+1,46×
+155
+65,4%
+TP/caja es una eficiencia end-to-end, no una precisión pura de YOLO: depende también de la clasificación posterior de Gemini.
+En TS-SS, low encontró 141 unidades correctas frente a 140 de high, pero necesitó 302
+propuestas contra 214. Las 88 cajas adicionales explican gran parte del deterioro de
+precisión.
+Comparaciones controladas
+●  TSA-CT: las 14 cajas y sus coordenadas son idénticas en low, default y high.
+●  TS-BIO/EST: las 109 cajas son idénticas en low y high. Default usó 85 cajas distintas.
+●  TS-SS: no hay intersección exacta entre los conjuntos de cajas low y high; cambió la entrada del detector.
+Límite de medición
+El Excel informa cantidades por material, pero no contiene coordenadas de símbolos. Para calcular precision/recall
+propios de YOLO se necesita un dataset con cada símbolo dibujado mediante bounding box y clase. Hasta
+entonces, un faltante final no puede asignarse de forma concluyente a YOLO o Gemini.
+
+
+PAGE 9
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+6
+5 · Precisión de Gemini sobre propuestas
+controladas
+Low y high reciben exactamente las mismas cajas en TSA-CT y TS-BIO/EST.
+Thinking
+Cajas
+Aceptadas
+TP
+FP
+FN
+Precisión
+Recall
+F1
+low
+123
+94
+51
+43
+18
+54,3%
+73,9%
+62,6%
+high
+123
+72
+41
+31
+28
+56,9%
+59,4%
+58,2%
+default*
+99
+92
+47
+45
+22
+51,1%
+68,1%
+58,4%
+* Default no comparte el mismo conjunto de cajas de TS-BIO/EST; se incluye como condición observada, no como A/B puro.
+Diagnóstico
+●  High es más conservador: acepta 72 resultados frente a 94 de low y mejora 2,6 puntos de precisión.
+●  Ese filtro también elimina verdaderos: high pierde 10 TP y suma 10 FN adicionales.
+●  Low gana 14,5 puntos de recall y 4,4 puntos de F1 sobre las mismas cajas.
+●  Default acepta 92 de 99 propuestas; ese comportamiento explica los falsos positivos de conexiones, circuitos e
+ITM sin calibre.
+Gemini es bueno para reconocer el vocabulario del tablero: low/default cubren el 100%
+de las familias esperadas. No es todavía suficientemente preciso para emitir una orden
+de compra sin normalización, reglas de cantidad y revisión.
+Errores dominantes
+●  Cantidad: exceso de diferenciales e interruptores en tableros grandes.
+●  Rechazo: conexiones y trazos aceptados como materiales porque forman parte del catálogo permitido.
+●  Especificación: ausencia de polos y, en algunos casos, calibre incompleto.
+●  Expansión: símbolos multipolares sin regla para convertir símbolo visual en unidades comerciales.
+
+
+PAGE 10
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+7
+6 · Qué faltó y qué sobró frente al Excel
+Desglose centrado en las configuraciones low y default.
+TSA-CT · low y default
+Faltó
+Cantidad
+Sobró / fuera del listado
+Cantidad
+Ojo de buey / testigo
+2
+INS 40 A
+1
+Portafusible y fusible
+2
+ITM sin calibre
+2
+Barra
+1
+Conexión
+3
+Gabinete
+1
+Circuito
+1
+Materiales menores
+1
+Bornera manual en default
+2
+TS-BIO/EST
+Condición
+Faltantes eléctricos
+Excesos principales
+low
+Testigos 6 · fusibles 6 · ITM 63 A 2
+ID 25 A +7 · ID 63 A +2 · contactor 12 A +7 · ITM incompleto 11 ·
+conexiones/circuitos 8 · RES 1 · bornera manual 2
+default
+Testigos 5 · fusibles 7 · ITM 16 A 3 · ITM 63 A 3
+ID 25 A +4 · ID 63 A +2 · contactor 12 A +5 · ITM incompleto 8 ·
+conexiones/circuitos 18 · protección instantánea 1
+Ambas condiciones omiten además barra/repartidor 1, gabinete 1 y materiales menores 1.
+TS-SS · low
+Faltó
+Cantidad
+Sobró / fuera del listado
+Cantidad
+Testigo
+3
+ID 25 A
+33
+Portafusible/fusible
+3
+ITM 10 A / 16 A / 20 A
+3 / 11 / 2
+-
+-
+ITM sin calibre
+11
+-
+-
+Conexiones + circuito
+10
+-
+-
+Borneras manuales
+25
+La barra faltante quedó correctamente materializada durante la revisión.
+
+
+PAGE 11
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+8
+7 · Símbolos no identificados y revisión manual
+Estado final consultado en Postgres después de la resolución.
+ 5
+ 0
+ 0
+ 26
+ PENDIENTES LOW AL
+ SNAPSHOT
+ PENDIENTES LOW AHORA
+ PENDIENTES DEFAULT
+ AHORA
+ UNIDADES MATERIALIZADAS
+ EN TS-SS
+Proyecto
+Tablero
+Acción observada
+Efecto contra Excel
+low
+TS-SS
+3 filas de bornera → 25 unidades
+No figuran en la referencia; agregan FP si se
+evalúa el BOM completo
+low
+TS-SS
+barra → 1 unidad
+Correcta; completa el ítem de barras
+low
+TSA-CT
+flecha de acometida descartada
+Correcto: no agrega una línea espuria
+low
+TS-BIO/EST
+bornera → 2 unidades
+No figura en el Excel
+default
+TSA-CT
+bornera → 2 unidades
+No figura en el Excel
+Impacto cuantitativo
+●  En alcance eléctrico, la revisión no corrige los faltantes de testigos, fusibles o calibres: las métricas principales
+permanecen iguales.
+●  En TS-SS, incorporar la barra eleva el recall del BOM completo aproximadamente de 95,3% a 95,9%.
+●  Las 25 borneras no respaldadas por el Excel reducen la precisión del BOM completo de 66,5% a 59,7%.
+●  Esto no prueba que las borneras no existan en el plano; prueba que no forman parte de la verdad de referencia
+entregada.
+La revisión manual cerró todos los pendientes, pero el aumento de precisión contra
+Excel es prácticamente nulo. Su mayor valor fue completar/descartar excepciones, no
+corregir el conteo principal.
+
+
+PAGE 12
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+9
+8 · Tiempo y costo
+El costo se calcula con los tokens medidos en cada corrida, no con una estimación por imagen.
+Thinking
+Tablero
+YOLO
+Gemini
+Total
+Costo
+low
+TSA-CT
+8,5 s
+11,7 s
+20,2 s
+US$ 0,0263
+low
+TS-BIO/EST
+25,3 s
+49,2 s
+74,5 s
+US$ 0,2135
+low
+TS-SS
+68,6 s
+150,3 s
+218,9 s
+US$ 0,5909
+default
+TSA-CT
+9,7 s
+43,5 s
+53,2 s
+US$ 0,1237
+default
+TS-BIO/EST
+20,2 s
+59,6 s
+79,7 s
+US$ 0,3353
+high
+TSA-CT prom.
+8,7 s
+51,9 s
+60,6 s
+US$ 0,1725
+high
+TS-BIO/EST
+31,6 s
+276,0 s
+307,6 s
+US$ 1,1688
+high
+TS-SS prom.
+31,3 s
+347,1 s
+378,4 s
+US$ 2,6159
+High usa promedio de 2 corridas en TSA-CT y 3 en TS-SS; TS-BIO/EST tiene una corrida.
+Totales por conjunto
+Conjunto
+Low
+Default
+High
+Lectura
+TSA + BIO
+94,7 s · US$0,240
+132,9 s · US$0,459
+368,2 s · US$1,341
+Low gana en tiempo, costo y F1
+3 tableros
+313,6 s · US$0,831
+No se corrió TS-SS
+746,5 s · US$3,957
+High: 2,4× tiempo y 4,8× costo
+El cuello de botella de high es Gemini, no YOLO: en TS-BIO/EST la clasificación sube
+de 49,2 s en low a 276,0 s en high; en TS-SS ronda 347 s.
+
+
+PAGE 13
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+10
+9 · Tokens y estructura del costo
+Salida incluye tokens visibles y tokens de thinking facturables.
+Thinking
+Tablero
+Input
+Output total
+Visible
+Thinking
+Costo
+low
+TSA-CT
+31.836
+639
+n/d
+n/d
+US$ 0,0263
+low
+TS-BIO/EST
+247.866
+7.366
+n/d
+n/d
+US$ 0,2135
+low
+TS-SS
+683.426
+20.888
+n/d
+n/d
+US$ 0,5909
+default
+TSA-CT
+32.781
+26.437
+988
+25.449
+US$ 0,1237
+default
+TS-BIO/EST
+193.028
+50.814
+4.033
+46.781
+US$ 0,3353
+high
+TSA prom.
+25.270
+40.936
+n/d
+incluido
+US$ 0,1725
+high
+BIO
+198.440
+271.998
+n/d
+incluido
+US$ 1,1688
+high
+SS prom.
+442.323
+609.107
+n/d
+incluido
+US$ 2,6159
+Los logs antiguos de low/high guardaron output facturable total, pero no separaron respuesta visible de thinking. Default sí instrumentó
+ambas partes.
+Totales
+Thinking
+Cobertura
+Input
+Output
+Costo input
+Costo output
+Total
+low
+3 tableros
+963.128
+28.893
+US$ 0,722
+US$ 0,108
+US$ 0,831
+default
+2 tableros
+225.809
+77.251
+US$ 0,169
+US$ 0,290
+US$ 0,459
+high
+3 tableros prom.
+666.033
+922.041
+US$ 0,500
+US$ 3,458
+US$ 3,957
+En default, 72.230 de 77.251 tokens de salida fueron thinking: 93,5% del output y
+aproximadamente 59% del costo total. En high, el output masivo domina el costo; una
+caché de input no resuelve ese problema.
+Tarifa aplicada
+Gemini 3.8 Flash estándar: US$0,75 por millón de tokens de entrada y US$3,75 por millón de tokens de salida,
+incluyendo thinking, vigente hasta el 31/12/2026 según la documentación oficial de Google.
+
+
+PAGE 14
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+11
+10 · Caché de contexto
+Las corridas medidas no utilizaron caché: prompt_cache=false, cache_read=0 y cache_written=0.
+ 0
+ US$ 0,075/M
+ 90%
+ 4.096
+ TOKENS LEÍDOS DE CACHÉ
+ INPUT CACHEADO
+ DESCUENTO VS INPUT
+ NORMAL
+ MÍNIMO DE TOKENS
+Dónde puede ayudar
+●  System prompt, imagen de tabla de referencia y catálogo de materiales se repiten entre recortes del mismo
+tablero.
+●  En low el input representa US$0,722 de US$0,831: es el escenario con mayor potencial relativo de ahorro.
+●  La parte única de cada llamada -el recorte del símbolo- seguirá pagando tarifa normal.
+●  La caché explícita también cobra almacenamiento: US$0,50 por millón de tokens-hora en la tarifa vigente.
+Techo teórico de ahorro
+Thinking
+Costo medido
+Ahorro máximo si 100% input cacheable
+Piso teórico*
+low · 3 tableros
+US$ 0,831
+US$ 0,650
+US$ 0,181
+default · 2 tableros
+US$ 0,459
+US$ 0,152
+US$ 0,307
+high · 3 tableros
+US$ 3,957
+US$ 0,450
+US$ 3,508
+* Límite imposible en la práctica: no descuenta almacenamiento y asume que todo el input es reutilizable. Sirve solo para mostrar que la
+caché puede potenciar low, pero no rescata high porque allí domina el output de thinking.
+Recomendación de caché: implementarla como experimento separado sobre low,
+medir cached_tokens por llamada y exigir ahorro real. No mezclar su evaluación con
+cambios de escala, modelo o thinking.
+Prueba mínima
+●  Crear una caché por tabla de referencia/proyecto con TTL corto.
+●  Guardar system prompt + catálogo + imagen de referencia; enviar cada crop fuera de la caché.
+●  Registrar input normal, cached input, output, storage, costo y latencia por tablero.
+●  Comparar dos corridas del mismo tablero con cajas idénticas.
+
+
+PAGE 15
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+12
+11 · Recomendación previa · Gemini 3.8
+Conclusión del benchmark original, preservada para trazabilidad.
+Adoptar low como candidato
+Es la configuración con mejor F1 en la comparación controlada, mayor recall, menor tiempo y menor costo por
+acierto. Default resulta más caro y menos preciso; high queda descartado para operación normal por tiempo y
+costo.
+Prioridad 1 · Reducir falsos positivos de YOLO
+●  Recalibrar umbral/NMS y mantener fija la escala de render.
+●  Medir TS-SS nuevamente con exactamente el mismo DXF y las mismas cajas para low/default.
+●  Crear un pequeño ground truth de bounding boxes para separar por fin precisión/recall de YOLO y Gemini.
+Prioridad 2 · Endurecer la salida de Gemini
+●  Sacar Conexión/Circuito del catálogo comprable o tratarlos como geometría, no materiales.
+●  Exigir polos y calibre en el schema; mandar a revisión cuando falten.
+●  Aplicar reglas de expansión para fusibles/portafusibles multipolares.
+●  Agregar deduplicación espacial y límites por familia para contener sobreconteos.
+Prioridad 3 · Optimizar costo
+●  Implementar caché solo después de fijar la calidad del pipeline low.
+●  Trackear por tablero: cajas YOLO, TP/FP/FN, tokens input/output/thinking/cache, costo y tiempo.
+●  Usar costo por unidad correcta como KPI principal, no costo total aislado.
+“Low ya es el mejor punto de partida. La mejora siguiente no está en
+ pagar más razonamiento: está en proponer menos cajas
+equivocadas y convertir correctamente cada símbolo en cantidades
+ y especificaciones de compra.”
+
+
+PAGE 16
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+13
+12 · Fuentes, corridas y límites
+Trazabilidad del análisis.
+Fuentes de verdad
+●  Fundaleu 20260821 Desarrollo de materiales (1).xlsx · hoja SS · rangos B20:C36, B38:C46 y B72:C92.
+●  Informe anterior: informe-gemini-tileo-yolo-high-low.pdf.
+●  Postgres local: BOM final y UnidentifiedElectricalComponent después de la revisión manual.
+Corridas principales
+Thinking
+TSA-CT
+TS-BIO/EST
+TS-SS
+low
+718898a03fca
+607ab3097332
+16993d5fb21b
+default
+465491baa5a1
+c0690d2004da
+no corrida
+high
+9d6475298e11 + de9ee838c3a2
+1b82edf069ee
+1571649f7c70 + b54cbb1550a8 + dfd60417246c
+Corridas Flash-Lite: TS-BIO/EST 5e1f38065416 · TSA-CT 19c1e7ad9fc0 · TSA-CO/COM e38f0e23f61f.
+Precio oficial
+Google AI for Developers, Gemini Developer API pricing: https://ai.google.dev/gemini-api/docs/pricing. Tarifa
+estándar de Gemini 3.8 Flash vigente hasta el 31/12/2026: US$0,75/M input, US$3,75/M output, US$0,075/M
+cached input y US$0,50/M tokens-hora de almacenamiento.
+Limitaciones
+●  El Excel no incluye bounding boxes, por lo que no existe una métrica pura de YOLO.
+●  Las comparaciones de TS-SS entre low y high mezclan cambios de DXF/escala con cambios de thinking.
+●  La normalización funcional no valida marca, curva completa, poder de corte ni polos cuando el modelo no los
+devuelve.
+●  Las borneras agregadas manualmente pueden ser válidas en el plano, pero no están respaldadas por el Excel
+usado como verdad.
+●  Costos en USD, sin impuestos, redondeados; los tokens y tiempos son los registrados por las corridas locales.
+El análisis continúa en la actualización de Gemini 3.1 Flash-Lite. Sus resultados son
+preliminares hasta resolver los 12 símbolos no identificados.
+
+
+PAGE 17
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+14
+13 · Precisión de Gemini sobre los símbolos
+recibidos de YOLO
+Métrica principal: solo evalúa las cajas que YOLO entregó al clasificador. Los símbolos que YOLO no propuso no reducen esta precisión.
+ 54,3%
+ 51,1%
+ 50,5%
+ 99
+ 3.8 LOW · PRECISIÓN
+ 3.8 DEFAULT · PRECISIÓN
+ 3.1 LITE · PRECISIÓN
+ CAJAS · A/B CONTROLADO
+Modelo
+Cajas
+YOLO
+Aceptadas
+No identificadas
+Descartadas
+TP
+FP
+Precisión
+Abst.
+Gemini 3.8 Flash · low
+123
+94
+2
+27
+51
+43
+54,3%
+23,6%
+Gemini 3.8 Flash · default
+99
+92
+2
+5
+47
+45
+51,1%
+7,1%
+Gemini 3.1 Flash-Lite · default
+99
+93
+6
+0
+47
+46
+50,5%
+6,1%
+Precisión = TP / (TP + FP) entre las cajas aceptadas automáticamente. No identificadas y descartadas son abstenciones: no se cuentan
+como FP mientras no entren al BOM. Low no es un A/B puro contra los otros modelos porque YOLO produjo 109 cajas en TS-BIO/EST,
+frente a 85.
+Qué mide cada resultado
+●  TP: caja aceptada cuya familia y cantidad puede imputarse a una unidad requerida por el Excel.
+●  FP: caja aceptada que excede la cantidad del Excel, pertenece a otra familia o produce una salida estructural sin
+renglón de compra.
+●  No identificado: Gemini reconoce incertidumbre y deriva la caja a revisión; es la salida esperada ante un
+candidato dudoso de YOLO.
+●  Descartado: Gemini afirma que la caja no es un componente. También evita contaminar el BOM.
+Sobre las mismas cajas, 3.1 Lite no mejora la precisión de clasificación: queda 0,6
+puntos debajo de 3.8 default. Su ventaja es económica; su riesgo es que descarta
+menos y deja pasar al BOM más candidatos estructurales.
+
+
+PAGE 18
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+15
+14 · Comparación por tablero · cajas recibidas de
+YOLO
+TSA-CT y TS-BIO/EST muestran la precisión selectiva de cada configuración antes de resolver símbolos no identificados.
+Modelo
+Tablero
+YOLO
+Acept.
+No ident.
+Desc.
+TP
+FP
+Prec.
+3.8 low
+TSA-CT
+14
+12
+1
+1
+5
+7
+41,7%
+3.8 low
+TS-BIO/EST
+109
+82
+1
+26
+46
+36
+56,1%
+3.8 default
+TSA-CT
+14
+12
+1
+1
+5
+7
+41,7%
+3.8 default
+TS-BIO/EST
+85
+80
+1
+4
+42
+38
+52,5%
+3.1 Lite default
+TSA-CT
+14
+12
+2
+0
+6
+6
+50,0%
+3.1 Lite default
+TS-BIO/EST
+85
+81
+4
+0
+41
+40
+50,6%
+En TSA-CT, 3.1 gana una unidad correcta y reduce un FP. En TS-BIO/EST ocurre lo contrario: pierde un TP y suma dos FP frente a 3.8
+default. El agregado queda prácticamente empatado.
+A/B limpio: 3.8 default frente a 3.1 Lite
+Modelo
+Aceptadas
+No identificadas
+Descartadas
+Conexión/circuito
+aceptado
+% estructural /
+aceptadas
+3.8 Flash · default
+92
+2
+5
+22
+23,9%
+3.1 Flash-Lite · default
+93
+6
+0
+27
+29,0%
+'Conexión/circuito' identifica salidas estructurales sin renglón equivalente en el Excel. No todas son falsos positivos visuales: varias son
+bornes X2/X4 reales. Por eso se reportan aparte y no se atribuyen automáticamente a YOLO.
+Entre las mismas 99 cajas, 3.1 convierte en componentes las siete cajas que 3.8 había
+descartado o dejado pendientes: cinco pasan a Conexión, una a Sistema de Control de
+Iluminación y otra a Testigo de Tensión. A la vez, envía seis cajas antes aceptadas a
+no identificados.
+
+
+PAGE 19
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+16
+15 · Qué símbolo llamó “Conexión”
+Revisión visual de las salidas que más afectan la precisión contra el Excel.
+Borne X2/X4
+Cruz sobre cableado
+Trazos sobre una línea
+Símbolo real de borne o punto de conexión; no
+figura como material individual en el Excel.
+Candidato dudoso que 3.8 descartó y 3.1 aceptó
+como Conexión.
+Marca gráfica aceptada por ambos modelos; 3.8
+la llamó Circuito y 3.1 Conexión.
+Tablero · 3.1 Lite
+Conexiones
+Lectura visual / semántica
+TSA-CT
+4
+Tres bornes X2 y un símbolo triangular sobre conductor.
+TS-BIO/EST
+21
+Dieciocho bornes X2/X4, una bornera/salida a tierra y dos marcas de línea.
+TSA-CO/COM
+22
+Veinte bornes X2/X4 y dos símbolos interpretados como tierra/conexión.
+Las cantidades anteriores provienen de components.json; la agrupación visual se verificó sobre los crops. La categoría Conexión mezcla
+bornes potencialmente válidos con marcas que deberían descartarse o ir a no identificados.
+Regla recomendada: no incorporar Conexión o Circuito directamente al BOM de
+compra. Enviar esas cajas a no identificados salvo que una regla de negocio las
+convierta explícitamente en una bornera o terminal requerido por el Excel.
+
+
+PAGE 20
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+17
+16 · Tiempo y costo por crop clasificado
+Un crop es la imagen recortada de una caja de YOLO que se envía una vez a Gemini. No es el tile interno usado por YOLO para recorrer el
+plano.
+Modelo / alcance
+Crops
+Costo total
+Costo / crop
+Tiempo total
+Tiempo Gemini
+Gemini
+s/crop
+3.8 Flash · low · TSA+BIO
+123
+US$ 0,2398
+US$ 0,001950
+94,7 s
+60,9 s
+0,495 s
+3.8 Flash · default · TSA+BIO
+99
+US$ 0,4590
+US$ 0,004637
+132,9 s
+103,1 s
+1,041 s
+3.1 Lite · default · TSA+BIO
+99
+US$ 0,0633
+US$ 0,000639
+65,3 s
+39,7 s
+0,401 s
+3.1 Lite · default · 3 tableros
+176
+US$ 0,1121
+US$ 0,000637
+120,7 s
+77,7 s
+0,441 s
+Costo/crop = costo Gemini registrado / cantidad de cajas recibidas. El tiempo total incluye detección YOLO y clasificación Gemini; Gemini
+s/crop divide solo el tiempo de clasificación. La ejecución es concurrente, por lo que no equivale a la latencia individual observada de cada
+request.
+Detalle por tablero
+Modelo
+Tablero
+Crops
+Costo
+Costo / crop
+3.8 low
+TSA-CT
+14
+US$ 0,02627
+US$ 0,001877
+3.8 low
+TS-BIO/EST
+109
+US$ 0,21352
+US$ 0,001959
+3.8 default
+TSA-CT
+14
+US$ 0,12372
+US$ 0,008837
+3.8 default
+TS-BIO/EST
+85
+US$ 0,33532
+US$ 0,003945
+3.1 Lite
+TSA-CT
+14
+US$ 0,00948
+US$ 0,000677
+3.1 Lite
+TS-BIO/EST
+85
+US$ 0,05380
+US$ 0,000633
+3.1 Lite
+TSA-CO/COM
+77
+US$ 0,04882
+US$ 0,000634
+Escala proyectada · 50 / 100 / 200 crops
+Modelo
+50 crops
+100 crops
+200 crops
+T. Gemini 50
+T. 100
+T. 200
+3.8 Flash · low
+US$ 0,0975
+US$ 0,1950
+US$ 0,3899
+24,8 s
+49,5 s
+99,0 s
+3.8 Flash · default
+US$ 0,2318
+US$ 0,4637
+US$ 0,9274
+52,1 s
+104,1 s
+208,2 s
+3.1 Flash-Lite · default
+US$ 0,0318
+US$ 0,0637
+US$ 0,1274
+22,1 s
+44,1 s
+88,2 s
+Costo proyectado = crops × costo medio observado por crop: US$0,001950 para 3.8 low, US$0,004637 para 3.8 default y US$0,000637 para
+3.1 Lite. El tiempo usa los segundos Gemini/crop observados y supone la misma concurrencia y tamaño de imagen; es una estimación, no un
+SLA.
+En el A/B de 99 crops, 3.1 Lite cuesta 86,2% menos por crop y reduce 61,5% el tiempo
+de clasificación por crop frente a 3.8 default, con una pérdida de apenas 0,6 puntos de
+precisión.
+
+
+PAGE 21
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+18
+17 · Gemini 3.1 Flash-Lite · tres tableros
+Resultado preliminar sobre todas las cajas de YOLO; recall y F1 se muestran como validación secundaria contra el Excel.
+Tablero
+Excel
+YOLO
+Acept.
+No ident.
+Desc.
+TP
+FP
+Prec.
+Recall
+F1
+TS-BIO/EST
+60
+85
+81
+4
+0
+41
+40
+50,6%
+68,3%
+58,2%
+TSA-CT
+9
+14
+12
+2
+0
+6
+6
+50,0%
+66,7%
+57,1%
+TSA-CO/COM
+54
+77
+69
+6
+2
+34
+35
+49,3%
+63,0%
+55,3%
+Total
+123
+176
+162
+12
+2
+81
+81
+50,0%
+65,9%
+56,8%
+Los 12 no identificados quedan fuera de TP/FP hasta su resolución. Recall = TP / unidades del Excel: es end-to-end y puede caer por un
+error de Gemini o porque YOLO nunca propuso el símbolo. Por eso no se usa como medida principal de clasificación de Gemini.
+Lectura por prueba
+●  TS-BIO/EST: 50,6% de precisión sobre 81 cajas aceptadas. Cuatro cajas fueron correctamente retenidas para
+revisión; ninguna fue descartada. Las conexiones y circuitos explican 22 salidas aceptadas sin renglón equivalente
+en el Excel.
+●  TSA-CT: 50,0% de precisión sobre 12 cajas aceptadas. Dos cajas quedaron no identificadas. Los bornes X2 y el
+marcador triangular concentran la categoría Conexión.
+●  TSA-CO/COM: 49,3% de precisión sobre 69 cajas aceptadas. Seis quedaron no identificadas y dos se
+descartaron. Veintidós salidas se clasificaron como Conexión.
+La precisión de 3.1 Lite es consistente entre tableros -49,3% a 50,6%- pero demasiado
+baja para emitir un BOM sin revisión. Su fortaleza es el costo estable por crop; su
+debilidad es el filtro insuficiente de elementos estructurales.
+
+
+PAGE 22
+LIARD · Gemini 3.8 Flash + 3.1 Flash-Lite · YOLO
+Informe de precisión, tiempo y costo
+18/09/2026 · métricas medidas sobre corridas locales
+19
+18 · Conclusión general
+Decisión basada primero en la precisión de Gemini sobre las cajas de YOLO y después en costo, tiempo y cobertura contra el Excel.
+Prueba
+Precisión Gemini
+Abstención
+Costo/crop
+Gemini s/crop
+Decisión
+3.8 Flash · low
+54,3%
+23,6%
+US$ 0,001950
+0,495 s
+Mejor precisión; A/B no puro en
+BIO
+3.8 Flash · default
+51,1%
+7,1%
+US$ 0,004637
+1,041 s
+Más caro y lento que Lite
+3.1 Flash-Lite · default
+50,5%
+6,1%
+US$ 0,000639
+0,401 s
+Mejor economía; requiere filtro
+adicional
+Conclusiones importantes
+●  Calidad: 3.8 low logra la mayor precisión observada, pero parte de su ventaja coincide con un conjunto de cajas
+diferente en TS-BIO/EST. El A/B válido es 3.8 default contra 3.1 Lite: 51,1% frente a 50,5%.
+●  Filtro: 3.1 Lite no descarta ninguna de las 99 cajas comparables. Envía más casos a no identificados, pero
+también recupera como componentes todos los descartes de 3.8; algunos son bornes válidos y otros son marcas
+sobre líneas.
+●  Economía: 3.1 Lite cuesta US$0,000639 por crop en el A/B, frente a US$0,004637 de 3.8 default. El ahorro es
+86,2% y la clasificación tarda 61,5% menos por crop.
+●  Excel: los símbolos no propuestos por YOLO afectan el recall end-to-end, no la precisión selectiva de Gemini. La
+ausencia de bounding boxes verdaderas impide medir una precisión pura de YOLO.
+Recomendación: usar Gemini 3.1 Flash-Lite default para las próximas corridas por
+costo y velocidad, pero bloquear la incorporación automática de Conexión, Circuito y
+marcas estructurales. Esas cajas deben ir a símbolos no identificados hasta que una
+regla o revisión confirme el material.
+Estado pendiente
+●  Los 12 símbolos no identificados de las tres corridas 3.1 permanecen fuera de TP/FP.
+●  Al resolverlos se debe recalcular precisión, recall, F1 y costo por unidad correcta, manteniendo fijo el costo por crop ya medido.
+●  Para separar definitivamente FP de YOLO y error de Gemini hace falta anotar cada caja del plano con clase verdadera.

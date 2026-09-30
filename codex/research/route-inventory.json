@@ -1,0 +1,529 @@
+{
+  "head": "04fc813941ec3ae3b0121f12c173ea4a64cd7219",
+  "method": "Static decorator inventory, not exhaustive field/authorization runtime validation",
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 48
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 73
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 99
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 115
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/forgot-password",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 134
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/reset-password",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 155
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/auth/password",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 180
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/auth/email",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 211
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/email/pending",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 245
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/email/pending",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 266
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/email/confirm",
+      "file": "back/src/modules/auth/controller/auth.controller.ts",
+      "line": 284
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:projectId/brand-preferences",
+      "file": "back/src/modules/brand-preference/controller/project-brand-preference.controller.ts",
+      "line": 37
+    },
+    {
+      "method": "PUT",
+      "path": "/api/project/:projectId/brand-preferences",
+      "file": "back/src/modules/brand-preference/controller/project-brand-preference.controller.ts",
+      "line": 56
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me/brand-preferences",
+      "file": "back/src/modules/brand-preference/controller/user-brand-preference.controller.ts",
+      "line": 35
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/me/brand-preferences",
+      "file": "back/src/modules/brand-preference/controller/user-brand-preference.controller.ts",
+      "line": 48
+    },
+    {
+      "method": "GET",
+      "path": "/api/canonical-catalog/components",
+      "file": "back/src/modules/canonical-catalog/controller/canonical-catalog.controller.ts",
+      "line": 30
+    },
+    {
+      "method": "GET",
+      "path": "/api/canonical-catalog/components/:id",
+      "file": "back/src/modules/canonical-catalog/controller/canonical-catalog.controller.ts",
+      "line": 54
+    },
+    {
+      "method": "GET",
+      "path": "/api/canonical-catalog/component-types",
+      "file": "back/src/modules/canonical-catalog/controller/canonical-catalog.controller.ts",
+      "line": 67
+    },
+    {
+      "method": "POST",
+      "path": "/api/canonical-catalog/components",
+      "file": "back/src/modules/canonical-catalog/controller/canonical-catalog.controller.ts",
+      "line": 87
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/canonical-catalog/components/:id",
+      "file": "back/src/modules/canonical-catalog/controller/canonical-catalog.controller.ts",
+      "line": 123
+    },
+    {
+      "method": "GET",
+      "path": "/api/electrical-plan/:planId/bom/tile-image/:tileIndex",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 49
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/electrical-plan/:planId/bom/unidentified/:id",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 75
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/electrical-plan/:planId/bom/unidentified/:id",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 111
+    },
+    {
+      "method": "POST",
+      "path": "/api/electrical-plan/:planId/bom/symbols/:symbolId/reclassify",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 147
+    },
+    {
+      "method": "POST",
+      "path": "/api/electrical-plan/:planId/bom/symbols/:symbolId/reclassify/preview",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 195
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/electrical-plan/:planId/bom/symbols/review",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 236
+    },
+    {
+      "method": "PUT",
+      "path": "/api/electrical-plan/:planId/bom/components",
+      "file": "back/src/modules/electrical-bom/controller/electrical-bom.controller.ts",
+      "line": 261
+    },
+    {
+      "method": "POST",
+      "path": "/api/electrical-plan/:id/process",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 49
+    },
+    {
+      "method": "GET",
+      "path": "/api/electrical-plan/:id/bom/export",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 75
+    },
+    {
+      "method": "GET",
+      "path": "/api/electrical-plan/:id/file",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 117
+    },
+    {
+      "method": "GET",
+      "path": "/api/electrical-plan/:id/source",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 150
+    },
+    {
+      "method": "GET",
+      "path": "/api/electrical-plan/:id",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 179
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/electrical-plan/:id",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 196
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/electrical-plan/:id",
+      "file": "back/src/modules/electrical-plan/controller/electrical-plan.controller.ts",
+      "line": 224
+    },
+    {
+      "method": "POST",
+      "path": "/api/project/:projectId/electrical-plan",
+      "file": "back/src/modules/electrical-plan/controller/project-electrical-plan.controller.ts",
+      "line": 55
+    },
+    {
+      "method": "POST",
+      "path": "/api/project/:projectId/electrical-plan/crop",
+      "file": "back/src/modules/electrical-plan/controller/project-electrical-plan.controller.ts",
+      "line": 120
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:projectId/electrical-plan",
+      "file": "back/src/modules/electrical-plan/controller/project-electrical-plan.controller.ts",
+      "line": 188
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:projectId/electrical-plan/:planId",
+      "file": "back/src/modules/electrical-plan/controller/project-electrical-plan.controller.ts",
+      "line": 210
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/project/:projectId/electrical-plan/:planId",
+      "file": "back/src/modules/electrical-plan/controller/project-electrical-plan.controller.ts",
+      "line": 239
+    },
+    {
+      "method": "POST",
+      "path": "/api/project/:projectId/process-all",
+      "file": "back/src/modules/electrical-plan/controller/project-processing.controller.ts",
+      "line": 35
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:projectId/processing-status",
+      "file": "back/src/modules/electrical-plan/controller/project-processing.controller.ts",
+      "line": 61
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/project/:projectId/processing-batch",
+      "file": "back/src/modules/electrical-plan/controller/project-processing.controller.ts",
+      "line": 74
+    },
+    {
+      "method": "POST",
+      "path": "/api/project",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 63
+    },
+    {
+      "method": "GET",
+      "path": "/api/project",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 80
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:id",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 94
+    },
+    {
+      "method": "PUT",
+      "path": "/api/project/:id/bom",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 111
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:id/bom",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 155
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:id/bom/export",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 174
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/project/:id",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 218
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:id/reference-table/file",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 243
+    },
+    {
+      "method": "POST",
+      "path": "/api/project/:id/reference-table",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 282
+    },
+    {
+      "method": "POST",
+      "path": "/api/project/:id/reference-table/crop",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 336
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/project/:id/reference-table",
+      "file": "back/src/modules/project/controller/project.controller.ts",
+      "line": 415
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 62
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/catalog",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 74
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/catalog/reading",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 93
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/catalog/currencies",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 112
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/catalog/items",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 124
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/catalog/unlinked",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 142
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/catalog/items",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 169
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/providers/catalog/items/:id",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 192
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/providers/catalog/items/:id",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 219
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/catalog/items/:id/canonical",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 239
+    },
+    {
+      "method": "PUT",
+      "path": "/api/providers/catalog/items/:id/reading",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 274
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/providers/catalog/items/:id/canonical",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 321
+    },
+    {
+      "method": "GET",
+      "path": "/api/providers/catalog/imports",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 342
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/catalog/imports/preview",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 362
+    },
+    {
+      "method": "POST",
+      "path": "/api/providers/catalog/imports",
+      "file": "back/src/modules/provider/controller/provider.controller.ts",
+      "line": 398
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/projects/:projectId/quotes/:quoteId",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 39
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 82
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/supplier/requests",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 101
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/supplier/requests/:purchaseOrderId",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 120
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/supplier/requests/:purchaseOrderId/contact",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 147
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/supplier/requests/:purchaseOrderId/accept",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 180
+    },
+    {
+      "method": "POST",
+      "path": "/api/orders/supplier/requests/:purchaseOrderId/reject",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 215
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/:batchId/providers",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 250
+    },
+    {
+      "method": "GET",
+      "path": "/api/orders/:batchId/providers/:providerOrderId",
+      "file": "back/src/modules/purchase-order/controller/purchase-order.controller.ts",
+      "line": 276
+    },
+    {
+      "method": "GET",
+      "path": "/api/quotation/:projectId/current",
+      "file": "back/src/modules/quotation/controller/quotation.controller.ts",
+      "line": 28
+    },
+    {
+      "method": "GET",
+      "path": "/api/quotation/:projectId/:quoteId",
+      "file": "back/src/modules/quotation/controller/quotation.controller.ts",
+      "line": 50
+    },
+    {
+      "method": "GET",
+      "path": "/api/quotation/:projectId/:quoteId/offers/:providerOfferId",
+      "file": "back/src/modules/quotation/controller/quotation.controller.ts",
+      "line": 75
+    },
+    {
+      "method": "POST",
+      "path": "/api/quotation/:projectId",
+      "file": "back/src/modules/quotation/controller/quotation.controller.ts",
+      "line": 110
+    },
+    {
+      "method": "GET",
+      "path": "/api/bom-catalog",
+      "file": "back/src/modules/quotation/market/bom-catalog.controller.ts",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/api/electrical-plan/:planId/bom/market-data",
+      "file": "back/src/modules/quotation/market/bom-market-data.controller.ts",
+      "line": 17
+    },
+    {
+      "method": "GET",
+      "path": "/api/project/:projectId/bom/market-data",
+      "file": "back/src/modules/quotation/market/project-bom-market-data.controller.ts",
+      "line": 17
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/me",
+      "file": "back/src/modules/users/controller/users.controller.ts",
+      "line": 48
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/me",
+      "file": "back/src/modules/users/controller/users.controller.ts",
+      "line": 76
+    }
+  ],
+  "documentation_heading_comparison": {
+    "documented_count": 86,
+    "code_count": 86,
+    "code_only": [],
+    "docs_only": [],
+    "caveat": "Presence only. Request/response/guard cross-check is targeted, not exhaustive field-by-field validation."
+  }
+}

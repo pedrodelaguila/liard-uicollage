@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Tablero 3D (móvil)</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="vendor/three.global.js"></script>
+<script src="tablero3d-engine.js"></script>
+<style>
+  /* Solo presentación de esta pantalla; todo con tokens. */
+  .t3-disc { display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; margin-bottom: 10px; border-radius: var(--r-md); background: var(--stage); color: var(--stage-ink); border-left: 4px solid var(--volt); font-size: var(--fs-sm); font-weight: 600; line-height: 1.35; }
+  .t3-disc .ic { color: var(--volt); margin-top: 1px; }
+  .t3-top { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; } .t3-top .select { flex: 1; height: 44px; font-size: 15px; }
+  .t3-top .seg button { padding: 12px 12px; }
+  .t3-sum { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--ink-3); margin-bottom: 8px; }
+  .t3-sum .t3-stat { display: flex; gap: 4px; align-items: baseline; } .t3-sum .t3-stat small { display: none; } .t3-sum .t3-stat strong { font: 600 var(--fs-sm) var(--font-mono); color: var(--ink); } .t3-sum .t3-stat .eyebrow { font-size: 9.5px; }
+  .t3-sum .t3-stat:first-child { display: none; }
+  .t3-flag { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn); font-size: var(--fs-xs); font-weight: 600; text-decoration: none; }
+  .t3-stagewrap { position: relative; height: 56vh; min-height: 360px; margin: 0 -14px; }
+  .t3-stagewrap .stage { position: absolute; inset: 0; border-radius: 0; border-left: 0; border-right: 0; }
+  .t3-canvas { display: block; width: 100%; height: 100%; touch-action: none; outline: none; } .t3-canvas:focus-visible { box-shadow: inset 0 0 0 3px var(--volt); }
+  .hud.t3-hud-t { top: 10px; left: 10px; align-items: center; padding: 5px 9px; gap: 6px; font-size: var(--fs-xs); }
+  .hud.t3-hud-z { top: 10px; right: 10px; flex-direction: column; } .hud.t3-hud-z .icon-btn { width: 44px; height: 44px; }
+  .t3-hint { position: absolute; left: 10px; bottom: 10px; right: 70px; font-size: 11px; color: var(--stage-ink-2); pointer-events: none; }
+  .t3-ex { display: flex; align-items: center; gap: 10px; padding: 12px 0 6px; } .t3-ex label { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+  .t3-ex input { flex: 1; height: 32px; accent-color: var(--volt); } .t3-ex output { font: 500 var(--fs-xs) var(--font-mono); width: 38px; } .t3-ex .btn { height: 44px; }
+  .t3-chips { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 10px; } .t3-chips .chip { height: 36px; flex: none; }
+  .t3-sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+  .t3-list { display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 4px; }
+  .t3-li { all: unset; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 4px 10px; border-radius: var(--r-sm); font-size: var(--fs-sm); }
+  .t3-li[aria-pressed='true'] { background: var(--volt-soft); box-shadow: inset 3px 0 0 var(--volt); } .t3-li:focus-visible { box-shadow: var(--focus); } .t3-li.ghost { opacity: .45; }
+  .t3-li-t { flex: 1; min-width: 0; } .t3-li-t strong { display: block; } .t3-li-t small { display: block; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .t3-warn { color: var(--warn); }
+  .t3-svgwrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 8px; height: 56vh; } .t3-svg { width: 100%; height: 100%; }
+  .t3-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; } .t3-actions .btn { height: 44px; }
+  /* Hoja inferior con el aparato elegido */
+  .t3-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; max-height: 48vh; overflow: auto; background: var(--surface); border-radius: 18px 18px 0 0; box-shadow: 0 -10px 40px rgba(12,18,32,.28); transform: translateY(105%); transition: transform var(--t-slow) var(--ease-out); padding-bottom: 18px; }
+  .t3-sheet-open .t3-sheet { transform: none; }
+  .t3-sheet::before { content: ''; display: block; width: 40px; height: 4px; border-radius: 2px; background: var(--line-strong); margin: 8px auto 0; }
+  .t3-det { padding: 10px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .t3-det-h { display: flex; gap: 10px; align-items: flex-start; } .t3-det-h > div { flex: 1; } .t3-det-h h3 { font-size: var(--fs-md); } .t3-det-h .t3-sw { margin-top: 5px; } .t3-det-h .icon-btn { width: 44px; height: 44px; }
+  .t3-qty { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; } .t3-qty > div { padding: 8px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); } .t3-qty strong { display: block; font-size: var(--fs-lg); } .t3-qty .eyebrow { font-size: 9px; letter-spacing: .04em; }
+  .t3-small { font-size: var(--fs-xs); margin: 0; }
+  .t3-dl { margin: 0; display: flex; flex-direction: column; gap: 4px; } .t3-kv { display: grid; grid-template-columns: 120px 1fr; gap: 8px; font-size: var(--fs-sm); } .t3-kv dt { color: var(--ink-3); } .t3-kv dd { margin: 0; }
+  .t3-price { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); } .t3-pr { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: var(--fs-sm); } .t3-pr small { flex-basis: 100%; } .t3-price strong.mono { color: var(--copper); }
+  .t3-links .btn { height: 44px; flex: 1; }
+  .t3-sheet-open .mtabs { visibility: hidden; }
+</style>
+</head>
+<body class="m" data-role="ENGINEER" data-active="tablero3d" data-title="Tablero 3D" data-sub="Modelo conceptual desde el BOM">
+<div id="page">
+  <div class="t3-disc" role="note"><span data-ic></span><span>Modelo conceptual: disposición aproximada derivada del BOM, no un plano de montaje ni un cálculo de gabinete. <span data-cap></span></span></div>
+  <div class="t3-top"><label class="sr-only" for="t3-plan">Tablero</label><select class="select" id="t3-plan" data-t3="plan"></select>
+    <div class="seg" data-t3="view" role="group" aria-label="Tipo de vista"><button data-view="3d" aria-pressed="true">3D</button><button data-view="2d" aria-pressed="false">2D / lista</button></div></div>
+  <div data-t3="note"></div>
+  <div data-t3="empty" hidden></div>
+  <div data-t3="body">
+    <div class="t3-sum" data-t3="summary"></div>
+    <div class="t3-stagewrap" data-t3-stagewrap>
+      <div class="stage" data-t3="stage">
+        <div class="hud t3-hud-t" data-t3="hud-title"></div>
+        <div class="hud t3-hud-z"><button class="icon-btn" data-t3="zoom-in" aria-label="Acercar"></button><button class="icon-btn" data-t3="zoom-out" aria-label="Alejar"></button><button class="icon-btn" data-t3="reset" aria-label="Volver a la vista inicial"></button></div>
+        <div class="t3-hint">Un dedo gira · dos dedos acercan y desplazan · tocá un aparato</div>
+      </div>
+    </div>
+    <div class="t3-svgwrap" data-t3="svg" hidden></div>
+    <div class="t3-ex"><label for="t3-ex">Explotada</label><input type="range" id="t3-ex" min="0" max="100" value="0" data-t3="explode"><output data-t3="explode-out" for="t3-ex">0 %</output><button class="btn btn-secondary" data-t3="play" aria-pressed="false"></button></div>
+    <div class="t3-chips" data-t3="chips" role="group" aria-label="Aislar una familia"></div>
+    <div class="t3-list" data-t3="list" aria-label="Líneas de este tablero"></div>
+    <div class="t3-actions"><button class="btn btn-secondary" data-t3="png"></button><button class="btn btn-secondary" data-t3="csv"></button></div>
+  </div>
+  <section class="t3-sheet" aria-label="Aparato elegido" aria-live="polite"><div data-t3="detail"></div></section>
+</div>
+<script>
+L.ready(() => {
+  const root = document.querySelector('.app') || document.body;
+  root.querySelector('[data-ic]').outerHTML = L.icon('cube', 16); root.querySelector('[data-cap]').outerHTML = L.cap('propuesto');
+  root.querySelector('[data-t3="png"]').innerHTML = L.icon('download', 15) + 'Imagen PNG'; root.querySelector('[data-t3="csv"]').innerHTML = L.icon('table', 15) + 'Lista CSV';
+  root.querySelector('[data-t3="play"]').innerHTML = L.icon('play', 14) + '<span>Animar</span>';
+  root.querySelector('[data-t3="zoom-in"]').innerHTML = L.icon('plus', 20); root.querySelector('[data-t3="zoom-out"]').innerHTML = L.icon('minus', 20); root.querySelector('[data-t3="reset"]').innerHTML = L.icon('refresh', 18);
+  T3D.page(root, { mobile: true });
+  const wrap = root.querySelector('[data-t3-stagewrap]'), stage = root.querySelector('[data-t3="stage"]');
+  new MutationObserver(() => { wrap.hidden = stage.hidden; }).observe(stage, { attributes: true, attributeFilter: ['hidden'] }); wrap.hidden = stage.hidden;
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && window.__t3d.selected()) window.__t3d.pick(null); });
+});
+</script>
+</body>
+</html>

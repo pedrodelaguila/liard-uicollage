@@ -1,0 +1,39 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Pedidos</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .ol a { display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 10px 14px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+  .ol a:last-child { border-bottom: 0; } .ol a[aria-current='true'] { background: var(--volt-soft); } .ol small { display: block; color: var(--ink-3); } .ol .grow { flex: 1; }
+  .li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); } .li small { display: block; color: var(--ink-3); }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; } .acts .btn { height: 52px; }
+  dl { display: grid; grid-template-columns: 90px 1fr; gap: 6px 10px; margin: 0; font-size: var(--fs-sm); } dt { color: var(--ink-3); } dd { margin: 0; }
+</style></head>
+<body class="m" data-role="SUPPLIER" data-active="prov-pedidos" data-title="Pedidos" data-sub="Confirmá o rechazá lo que te adjudicaron">
+<div id="page"></div>
+<script>
+L.ready(() => {
+  if (L.param('demo') === 'ejemplos') { { const rest = new URLSearchParams(location.search); rest.delete('demo'); location.replace('d-prov-solicitudes.html?demo=ejemplos&volver=m-prov-pedidos.html' + (rest.toString() ? '&resto=' + encodeURIComponent(rest.toString()) : '') + (rest.get('frame') ? '&frame=' + rest.get('frame') : '')); return; } }
+  const S = () => L.store.get(); const SID = S().session.supplierId; const page = document.getElementById('page');
+  let oid = L.param('o'); const st = o => o.status === 'SENT' ? 'Esperando tu respuesta' : L.orderStatusLabel[o.status];
+  function render() {
+    const list = S().orders.filter(o => o.supplierId === SID).sort((a, b) => (a.status === 'SENT' ? 0 : 1) - (b.status === 'SENT' ? 0 : 1) || (a.createdAt < b.createdAt ? 1 : -1));
+    const o = list.find(x => x.id === oid) || list[0];
+    if (!o) { page.innerHTML = `<div class="card">${L.empty({ icon: 'truck', title: 'Sin pedidos', text: 'Cuando te adjudiquen materiales, confirmás el pedido acá.', action: '<a class="btn btn-secondary" href="m-prov-pedidos.html?demo=ejemplos">Demo: cargar ejemplos</a>' })}</div>`; return; }
+    oid = o.id; const buyer = S().team.find(u => u.area === 'Compras');
+    page.innerHTML = `${list.length > 1 ? `<nav class="card ol" aria-label="Tus pedidos">${list.map(x => `<a href="m-prov-pedidos.html?o=${x.id}" aria-current="${x.id === o.id}"><span class="grow"><strong class="mono">${L.esc(x.code)}</strong><small>${L.ars(L.orderTotal(x))}</small></span>${L.badge(x.status === 'SENT' ? 'Responder' : L.orderStatusLabel[x.status], L.orderStatusTone[x.status])}</a>`).join('')}</nav>` : ''}
+      <section class="card mt"><div class="card-h"><div><span class="eyebrow">Pedido ${L.cap('existe')}</span><h3 class="mono" style="font-size:var(--fs-xl)">${L.esc(o.code)}</h3></div><span class="spacer"></span>${L.badge(st(o), L.orderStatusTone[o.status])}</div>
+        <div class="card-b" style="padding-bottom:6px"><p style="margin:0">${L.esc(S().company.name)} · ${L.esc(L.project(o.projectId).name)}</p><p class="mono" style="font-size:22px;margin:6px 0 0">${L.ars(L.orderTotal(o))}</p></div>
+        ${o.lines.map(l => `<div class="li"><span><strong>${L.esc(L.lineLabel(L.line(l.lineId)))}</strong><small>${L.esc(l.brand || '')} ${l.isAlt ? '· alternativa aprobada' : ''}</small></span><span class="num mono">${l.qty} × ${L.ars(l.unitPrice)}</span></div>`).join('')}</section>
+      ${o.status === 'SENT' ? `<p class="muted mt" style="font-size:var(--fs-xs)">Se responde una sola vez. Confirmar comparte los contactos.</p><div class="acts"><button class="btn btn-secondary" data-no>${L.icon('x', 16)}Rechazar</button><button class="btn btn-primary" data-ok>${L.icon('check', 16)}Confirmar</button></div>`
+        : `<div class="note ${o.status === 'CONFIRMED' ? 'note-ok' : 'note-err'} mt">${L.icon(o.status === 'CONFIRMED' ? 'check' : 'x', 16)}<p>${o.status === 'CONFIRMED' ? 'Confirmado' : 'Rechazado'} el ${L.dateShort(o.respondedAt)}${o.reason ? ': «' + L.esc(o.reason) + '»' : ''}.</p></div>`}
+      <section class="card mt card-b" aria-labelledby="ct"><h3 id="ct" style="margin-bottom:8px">Contacto de compras</h3>${o.status === 'CONFIRMED'
+        ? `<dl><dt>Empresa</dt><dd>${L.esc(S().company.name)}</dd><dt>Persona</dt><dd>${L.esc(buyer.name)}</dd><dt>Correo</dt><dd><a href="mailto:${L.esc(buyer.email)}">${L.esc(buyer.email)}</a></dd></dl>`
+        : `<p class="muted" style="margin:0">${L.icon('lock', 14)} ${o.status === 'SENT' ? 'Aparece cuando confirmes.' : 'No se comparte en un pedido rechazado.'}</p>`}</section>
+      <p class="muted mt" style="font-size:var(--fs-xs)">El pago y el flete se acuerdan fuera de liard.</p>`;
+    const ok = page.querySelector('[data-ok]'); if (ok) ok.onclick = async () => { if (!(await L.confirm('Confirmar ' + o.code, 'Entregás estos materiales a los precios de tu oferta. Se responde una sola vez.', 'Confirmar pedido'))) return; const r = L.respondOrder(o.id, 'CONFIRMED'); L.toast(r.ok ? 'Pedido confirmado' : r.err, { kind: r.ok ? 'ok' : 'err' }); };
+    const no = page.querySelector('[data-no]'); if (no) no.onclick = () => L.dialog({ title: 'Rechazar ' + o.code, body: `<div class="field"><label for="mr">Motivo</label><select class="select" id="mr"><option value="">Elegí un motivo</option><option>Me quedé sin stock</option><option>Cambió el precio del fabricante</option><option>No llego con el plazo</option></select></div>`,
+      actions: [{ label: 'Cancelar' }, { label: 'Rechazar pedido', kind: 'danger', onClick: d => { const s = d.querySelector('#mr'); if (!s.value) { L.fieldError(s, 'Elegí un motivo: el comprador lo ve.'); return false; } const r = L.respondOrder(o.id, 'REJECTED', s.value); L.toast(r.ok ? 'Pedido rechazado' : r.err, { kind: r.ok ? 'ok' : 'err' }); } }] });
+  }
+  L.store.subscribe(render); render();
+});
+</script></body></html>

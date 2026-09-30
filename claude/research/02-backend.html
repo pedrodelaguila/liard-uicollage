@@ -1,0 +1,440 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 02 — What the LIARD backend actually implements</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="../estrategia/01-estrategia.html" class="">01 · Estrategia de liard</a><a href="../estrategia/02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="../estrategia/03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="../estrategia/04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="02-backend.html" class="on">02 — What the LIARD backend actually implements</a><a href="03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>02 — What the LIARD backend actually implements</h1>
+<p>Source: <code>lab3-liard</code>, branch <code>dev</code>, commit <code>04fc8139</code>. Read-only audit; nothing was run (no tests, no docker, no DB).
+Paths are relative to <code>lab3-liard/back/</code> unless stated.</p>
+<h2>1. Access model (read this first)</h2>
+<ul>
+<li>Three global guards, in order (<code>src/app.module.ts:45-53</code>): <code>JwtAuthGuard</code> (deny by default; <code>@Public()</code> opts out),
+<code>OnboardingGuard</code> (every route requires a sealed onboarding unless <code>@AllowIncompleteOnboarding()</code>), <code>RolesGuard</code>
+(<code>@Roles(...)</code>; silent when absent).</li>
+<li><code>RequireAuth</code> / <code>RequireRole</code> / <code>GuestOnly</code> / <code>RequireOnboarded</code> are <strong>front-end</strong> route guards
+(<code>front/src/components/auth/guards/</code>), not backend decorators. Backend equivalents: <code>@Public</code>, <code>@Roles</code>, <code>@AllowIncompleteOnboarding</code>.</li>
+<li>Refusals are <code>403</code> with a <code>code</code>: <code>ROLE_NOT_SET</code> (→ <code>/onboarding/role</code>), <code>ONBOARDING_PENDING</code> (→ <code>/onboarding/profile</code>),
+<code>WRONG_ROLE</code> (<code>src/common/auth/exception/access-refusal.exception.ts</code>). Unauthenticated: <code>401 &quot;Sesión inválida o vencida.&quot;</code>.</li>
+<li>Session: <code>liard_session</code> HttpOnly cookie (Bearer also accepted). Auth routes throttled per IP (in-memory).</li>
+</ul>
+<h3>Roles</h3>
+<p><code>enum UserRole { ENGINEER, SUPPLIER }</code> — <strong>no admin</strong> (explicitly out of scope; the PO access spec has an empty
+<code>it(&#39;does not mark any route as admin-only&#39;)</code>). <code>User.role</code> is nullable: accounts register with <code>role: null</code>.</p>
+<h3>Onboarding (<code>src/modules/users/</code>)</h3>
+<ul>
+<li><code>needsOnboarding = role === null || onboardingCompletedAt === null</code> (<code>service/users.service.ts:17</code>).</li>
+<li>Role and profile are set via <code>PATCH /api/users/me</code>. Role can change freely <strong>until</strong> sealed; after that → <code>RoleAlreadySetException</code>.
+Switching role before sealing empties the other role&#39;s columns (<code>ROLE_ONLY_PROFILE_COLUMNS</code>).</li>
+<li>Seal is automatic when all required fields are present (<code>types/users.types.ts:23</code>):<ul>
+<li>ENGINEER: fullName, position, phone, companyName, taxId, state, city.</li>
+<li>SUPPLIER: fullName, phone, companyName, taxId, website, state, city <strong>and</strong> ≥1 <code>categories</code>.</li>
+</ul>
+</li>
+<li>Supplier-only profile: categories, shortDescription, brands, deliveryZones, minOrderAmount, leadTimeDays.
+Of these only <code>leadTimeDays</code> feeds logic (quote lead-time fallback); <code>minOrderAmount</code>/<code>deliveryZones</code> are displayed
+(provider directory) but <strong>no matching or ordering logic uses them</strong>.</li>
+<li><code>DELETE /api/users/me</code> = soft &quot;baja&quot; (<code>disabledAt</code> + <code>tokenVersion++</code>).</li>
+</ul>
+<h3>Access matrices (pinned by tests)</h3>
+<ul>
+<li><code>test/modules/provider/unit/catalog-access.spec.ts</code>: <code>GET /providers</code> = any session, onboarding NOT required (the
+onboarding UI consults it); BOM market reads (<code>/bom-catalog</code>, <code>/electrical-plan/:planId/bom/market-data</code>,
+<code>/project/:projectId/bom/market-data</code>) = <code>ENGINEER</code>, sealed; <strong>no write</strong> on the shared catalog; none public.</li>
+<li><code>test/modules/purchase-order/unit/purchase-order-access.spec.ts</code>: 9 routes; <code>/orders/supplier/requests*</code> = <code>SUPPLIER</code>;
+buyer routes = <code>ENGINEER</code> (scoped by project ownership); none public; none exempt from onboarding.</li>
+<li>Ownership: engineer data is filtered by <code>ownerId</code> in every repository query (projects, plans, quotes, batches).
+Supplier&#39;s own catalog and inbox resolve the caller&#39;s <code>Provider</code> (<code>ProviderService.resolveOwnProviderId</code>, lazy + idempotent).
+<strong>Cross-supplier catalog visibility</strong>: engineers&#39; market/quote reads see every active supplier&#39;s catalog — by design.</li>
+<li><code>canonical-catalog/*</code> has <strong>no <code>@Roles</code></strong>: any onboarded account (ENGINEER or SUPPLIER) can <code>POST</code>/<code>PATCH</code> canonical
+components. Documented (&quot;session and sealed onboarding, any role&quot;), but a product decision worth revisiting.</li>
+</ul>
+<h2>2. Routes (86, all under <code>/api</code>)</h2>
+<p>Legend: E = <code>@Roles(ENGINEER)</code>, S = <code>@Roles(SUPPLIER)</code>, any = session + sealed onboarding, no role, P = <code>@Public</code>,
+onb = <code>@AllowIncompleteOnboarding</code>. Status = explicit <code>@HttpCode</code> or Nest default (POST 201, else 200).</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Routes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>auth (11)</td>
+<td>P: <code>POST auth/register</code> 201, <code>POST auth/login</code> 200, <code>POST auth/logout</code> 204, <code>POST auth/forgot-password</code> 204, <code>POST auth/reset-password</code> 204, <code>POST auth/email/confirm</code> 201. onb: <code>GET auth/me</code>, <code>PATCH auth/password</code> 204, <code>PATCH auth/email</code> 202, <code>GET auth/email/pending</code>, <code>DELETE auth/email/pending</code> 204</td>
+</tr>
+<tr>
+<td>users (2)</td>
+<td>onb: <code>PATCH users/me</code> 200, <code>DELETE users/me</code> 204</td>
+</tr>
+<tr>
+<td>brand prefs (4) E</td>
+<td><code>GET/PUT users/me/brand-preferences</code>, <code>GET/PUT project/:projectId/brand-preferences</code></td>
+</tr>
+<tr>
+<td>project (11) E</td>
+<td><code>POST project</code> 201, <code>GET project</code>, <code>GET project/:id</code>, <code>DELETE project/:id</code> 204, <code>GET/PUT project/:id/bom</code>, <code>GET project/:id/bom/export</code> (xlsx|csv), <code>GET project/:id/reference-table/file</code>, <code>POST project/:id/reference-table</code> (201 created / 200 replaced, set via <code>res.status</code>), <code>POST project/:id/reference-table/crop</code>, <code>DELETE project/:id/reference-table</code> 204</td>
+</tr>
+<tr>
+<td>plans in project (5) E</td>
+<td><code>POST project/:projectId/electrical-plan</code> 201 (multi-file DXF/PDF), <code>POST .../electrical-plan/crop</code> 201 (one plan per zone, ≤15), <code>GET .../electrical-plan</code>, <code>GET .../electrical-plan/:planId</code>, <code>DELETE .../electrical-plan/:planId</code> 204</td>
+</tr>
+<tr>
+<td>processing (3) E</td>
+<td><code>POST project/:projectId/process-all</code> 202, <code>GET project/:projectId/processing-status</code>, <code>DELETE project/:projectId/processing-batch</code> 200</td>
+</tr>
+<tr>
+<td>plan (7) E</td>
+<td><code>POST electrical-plan/:id/process</code> 202, <code>GET electrical-plan/:id</code>, <code>PATCH electrical-plan/:id</code> (multiplier only), <code>DELETE electrical-plan/:id</code> 200 (soft), <code>GET .../bom/export</code>, <code>GET .../file</code> (DXF), <code>GET .../source</code> (original PDF)</td>
+</tr>
+<tr>
+<td>plan BOM (7) E</td>
+<td><code>GET electrical-plan/:planId/bom/tile-image/:tileIndex</code>, <code>PATCH/DELETE .../bom/unidentified/:id</code> (resolve / dismiss), <code>POST .../bom/symbols/:symbolId/reclassify</code> (+<code>/preview</code>), <code>PATCH .../bom/symbols/review</code>, <code>PUT .../bom/components</code> (diff save)</td>
+</tr>
+<tr>
+<td>market (3) E</td>
+<td><code>GET bom-catalog</code>, <code>GET electrical-plan/:planId/bom/market-data</code>, <code>GET project/:projectId/bom/market-data</code></td>
+</tr>
+<tr>
+<td>canonical (5) any</td>
+<td><code>GET canonical-catalog/components</code>, <code>GET .../components/:id</code>, <code>GET .../component-types</code>, <code>POST .../components</code> 201, <code>PATCH .../components/:id</code></td>
+</tr>
+<tr>
+<td>providers (16)</td>
+<td>onb (any role): <code>GET providers</code> (directory). S: <code>GET providers/catalog</code> (summary), <code>GET .../catalog/reading</code>, <code>GET .../catalog/currencies</code>, <code>GET .../catalog/items</code>, <code>GET .../catalog/unlinked</code>, <code>POST .../catalog/items</code> 201, <code>PATCH/DELETE .../catalog/items/:id</code> (204), <code>PUT/DELETE .../catalog/items/:id/canonical</code>, <code>PUT .../catalog/items/:id/reading</code>, <code>GET .../catalog/imports</code>, <code>POST .../catalog/imports/preview</code> 200, <code>POST .../catalog/imports</code> 201</td>
+</tr>
+<tr>
+<td>quotation (4) E</td>
+<td><code>POST quotation/:projectId</code> 201, <code>GET quotation/:projectId/current</code>, <code>GET quotation/:projectId/:quoteId</code>, <code>GET quotation/:projectId/:quoteId/offers/:providerOfferId</code></td>
+</tr>
+<tr>
+<td>orders (9)</td>
+<td>E: <code>POST orders/projects/:projectId/quotes/:quoteId</code> 201, <code>GET orders</code> (<code>?status&amp;projectId</code>), <code>GET orders/:batchId/providers</code>, <code>GET orders/:batchId/providers/:providerOrderId</code>. S: <code>GET orders/supplier/requests</code> (<code>?status</code>), <code>GET .../:purchaseOrderId</code>, <code>GET .../:purchaseOrderId/contact</code>, <code>POST .../:purchaseOrderId/accept</code> 200, <code>POST .../:purchaseOrderId/reject</code> 200</td>
+</tr>
+</tbody></table>
+<h3>Cross-check vs <code>api-endpoints.md</code> (verified by script over the decorators and over both the &quot;At a glance&quot; table and the <code>###</code> headings)</h3>
+<ul>
+<li><strong>Code routes missing from docs: none. Documented routes missing from code: none.</strong> 86 = 86 = 86.</li>
+<li>Status codes: all the ones I checked match the docs (e.g. <code>DELETE project/:id</code> 204, <code>DELETE electrical-plan/:id</code> 200,
+reference-table 201/200, processing 202).</li>
+<li>Confirmed mismatches, all minor:<ol>
+<li><code>POST /api/auth/email/confirm</code> returns <strong>201</strong> (no <code>@HttpCode</code>); <code>api-endpoints.md</code> says 201, but its own Swagger
+<code>@ApiResponse</code> says <code>HttpStatus.OK</code> (<code>src/modules/auth/controller/auth.controller.ts:284-295</code>). Swagger is the wrong one.</li>
+<li><code>QuoteProviderOfferDto.coveragePercent</code> (inside <code>POST quotation/:projectId</code> → <code>providerOffers[]</code>) is not named in
+the docs; the comparison DTO calls the same concept <code>availabilityPercent</code>. Two names for one number.</li>
+<li><code>BomDetectedComponentDto</code> fields <code>shortName</code>, <code>confidence</code>, <code>isComponent</code>, <code>mergedIntoAnotherBox</code>,
+<code>detectionConfidence</code> are not documented (the doc only points to &quot;the note above&quot;).</li>
+<li>Docs say <code>responseDeadlineAt</code> is always null and nothing writes <code>EXPIRED</code> — true in code (see §3).</li>
+</ol>
+</li>
+<li>Not a doc issue but convention drift: <code>electrical-plan/dto/electrical-plan-bom-response.dto.ts</code> holds the detector&#39;s
+<strong>inbound</strong> Spanish-keyed payload in <code>dto/</code> (it never reaches an HTTP response; <code>SymbolDetectionResponseMapper</code> translates).</li>
+<li><code>CLAUDE.md</code> says <code>test/modules/</code> covers &quot;all 12 src modules&quot;; there are <strong>14</strong> (<code>users</code>, <code>brand-preference</code> included).</li>
+</ul>
+<h2>3. Data model (<code>prisma/schema.prisma</code>: 33 models, 14 enums, 68 migrations, last <code>20260930130000_quote_line_unmatched_reason</code>)</h2>
+<h3>Enums, verbatim, with what writes them</h3>
+<table>
+<thead>
+<tr>
+<th>Enum</th>
+<th>Values</th>
+<th>Written in practice</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>ElectricalPlanStatus</code></td>
+<td><code>PENDING, PROCESSING, COMPLETED, ERROR, STALE</code></td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>ElectricalBomStatus</code></td>
+<td><code>PENDING_REVIEW, COMPLETE</code></td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>DetectedComponentOrigin</code></td>
+<td><code>DETECTOR, MANUAL_RESOLUTION, LEGACY_POINT</code></td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>ProcessingJobStatus</code></td>
+<td><code>QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED</code></td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>SyncStatus</code> (catalog import run)</td>
+<td><code>PENDING, RUNNING, SUCCESS, FAILED, PARTIAL</code></td>
+<td>only <code>SUCCESS</code>, <code>FAILED</code></td>
+</tr>
+<tr>
+<td><code>QuoteStatus</code></td>
+<td><code>PENDING, PROCESSING, READY, PARTIAL, FAILED, EXPIRED</code></td>
+<td><code>PROCESSING</code> → <code>READY</code>/<code>PARTIAL</code>/<code>FAILED</code>; <code>PENDING</code> only as DB default, <strong><code>EXPIRED</code> never</strong></td>
+</tr>
+<tr>
+<td><code>QuoteLineStatus</code></td>
+<td><code>QUOTED, NOT_FOUND, STALE_PRICE, ERROR, MANUAL_REQUIRED</code></td>
+<td><code>QUOTED</code>, <code>NOT_FOUND</code>, <code>STALE_PRICE</code>; <code>ERROR</code>/<code>MANUAL_REQUIRED</code> only mapped</td>
+</tr>
+<tr>
+<td><code>MatchMethod</code></td>
+<td><code>EXACT_CODE, SKU, MANUFACTURER_PART, NAME_SPEC, FUZZY, MANUAL, CANONICAL</code></td>
+<td><strong>only <code>CANONICAL</code></strong> (score always 100); the rest are legacy</td>
+</tr>
+<tr>
+<td><code>PurchaseOrderStatus</code></td>
+<td><code>SENT, CONFIRMED, REJECTED, EXPIRED</code></td>
+<td><code>SENT</code> → <code>CONFIRMED</code>/<code>REJECTED</code>; <strong><code>EXPIRED</code> never</strong></td>
+</tr>
+<tr>
+<td><code>UserRole</code></td>
+<td><code>ENGINEER, SUPPLIER</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>BrandPreferenceKind</code></td>
+<td><code>PREFERRED, BLOCKED</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>CanonicalAttributeDataType</code></td>
+<td><code>NUMBER, TEXT, BOOLEAN</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>CatalogReadingStatus</code></td>
+<td><code>PENDING, READ, FAILED</code></td>
+<td>all</td>
+</tr>
+<tr>
+<td><code>CanonicalLinkStatus</code></td>
+<td><code>UNLINKED, AUTO, MANUAL</code></td>
+<td>all</td>
+</tr>
+</tbody></table>
+<h3>Models by area (DB names differ: 40 <code>@@map</code>/<code>@map</code>; e.g. <code>ElectricalPlan</code>→<code>Plan</code>, <code>ElectricalBom</code>→<code>Bom</code>, <code>ElectricalComponent</code>→<code>BomItem</code>)</h3>
+<ul>
+<li><strong>Identity</strong>: <code>User</code> (role, profile, <code>onboardingCompletedAt</code>, <code>disabledAt</code>, <code>tokenVersion</code>), <code>PasswordResetToken</code>, <code>EmailChangeRequest</code>.</li>
+<li><strong>Project</strong>: <code>Project</code> (single <code>ownerId</code>, soft delete, <code>currentQuoteId</code>), <code>ReferenceTable</code> (1:1), <code>ProjectBomItem</code>
+(project-level manual lines), <code>BrandPreference</code> (per user <strong>or</strong> per project).</li>
+<li><strong>Plans &amp; detection</strong>: <code>ElectricalPlan</code> (<code>file</code> DXF, <code>sourceFile</code> PDF, <code>multiplier</code>, <code>lastError</code>), <code>ProcessingJob</code>
+(lease: <code>workerId</code>, <code>leaseExpiresAt</code>, <code>attempts</code>/<code>maxAttempts=3</code>, <code>batchId</code>, <code>availableAt</code>), <code>ElectricalBom</code> (1:1 plan),
+<code>ElectricalComponent</code> (BOM line, canonical link + reading status), <code>DetectedComponent</code> (a box, optionally counted by a line),
+<code>UnidentifiedElectricalComponent</code> (resolved*/<code>resolvedAt</code>), <code>BomTileImage</code>.</li>
+<li><strong>Canonical catalog</strong>: <code>CanonicalComponentType</code> → <code>CanonicalComponentTypeAttribute</code> (<code>required</code>, <code>displayOrder</code>) →
+<code>CanonicalAttribute</code>; <code>CanonicalComponent</code> (<code>@@unique[componentTypeId, attributeSignature]</code>) →
+<code>CanonicalComponentAttributeValue</code>; <code>BomLineReading</code> (AI reading cache per normalized material+spec).</li>
+<li><strong>Supplier catalog</strong>: <code>Provider</code> (1:1 with a SUPPLIER <code>User</code>, <code>catalogColumnMapping</code>), <code>ProviderCatalogItem</code>
+(<code>productCode</code>, brand/brandCode/subBrand, price, currency default ARS, lead time, <code>priceValidUntil</code>, <code>isActive</code>,
+canonical link), <code>ProviderPriceHistory</code>, <code>ProviderSyncRun</code> (import run), <code>CatalogReadingRun</code> (AI cost log).</li>
+<li><strong>Quoting</strong>: <code>BomQuote</code> (per project, <code>revision</code>, <code>bomFingerprint</code>) → <code>BomQuoteLine</code> (snapshot of BOM line,
+<code>selectedBrand</code>, <code>selectedProviderId</code>, <code>unmatchedReason</code>) and <code>QuoteProviderOffer</code> (one per provider: totals,
+coverage, lead time) → <code>QuoteLineOffer</code> (provider × line, matched item + price snapshot).</li>
+<li><strong>Ordering</strong>: <code>PurchaseOrderBatch</code> (one per confirmed quote, snapshot) → <code>PurchaseOrder</code> (one per provider,
+<code>@@unique[batchId, providerId]</code>) → <code>PurchaseOrderLine</code>; plus <code>PurchaseOrderUnassignedLine</code>.</li>
+<li><strong>Dead columns</strong> (in schema, never written by <code>src/</code>): <code>BomQuote.supersededAt</code>, <code>BomQuote.expiresAt</code>,
+<code>BomQuote.selectedOfferId</code> (so comparison <code>isSelected</code> is always false), <code>BomQuote.confirmedAt</code> (read for ordering
+only), <code>PurchaseOrder.responseDeadlineAt</code> (read and enforced in <code>respondToSupplierRequest</code>, never set).</li>
+</ul>
+<h3>State machines</h3>
+<ul>
+<li><strong>Plan</strong>: <code>PENDING</code> →(enqueue)→ <code>PROCESSING</code> → <code>COMPLETED</code> | <code>ERROR</code>. Retryable failure keeps <code>PROCESSING</code> with
+<code>lastError</code> while backing off (<code>markPlanAsQueuedForRetry</code>). Replacing the reference table marks <code>COMPLETED</code> plans <code>STALE</code>
+(<code>project.repository.ts:966</code>). Processable = <code>PENDING | ERROR | STALE</code> (<code>processable-plan-statuses.ts</code>). Cancelling a
+batch resets its queued plans to <code>PENDING</code>. Soft delete via <code>deletedAt</code>.</li>
+<li><strong>ProcessingJob</strong>: <code>QUEUED</code> → <code>RUNNING</code> (claimed under a lease, fair per owner) → <code>SUCCEEDED</code> | <code>FAILED</code>, or <code>QUEUED</code>
+again on a transient error (30 s base backoff; 504 is <strong>not</strong> retried; 503 is) or on an expired lease (sweep);
+<code>QUEUED</code> → <code>CANCELLED</code> by batch cancel or project delete.</li>
+<li><strong>BOM</strong>: <code>PENDING_REVIEW</code> while any unidentified symbol is unresolved → <code>COMPLETE</code> once all are resolved/dismissed.</li>
+<li><strong>Canonical link / reading</strong> (catalog items, <code>BomItem</code>, <code>ProjectBomItem</code>): create/import/name-or-spec edit →
+<code>readingStatus PENDING</code> → background Claude read (<code>claude-haiku-4-5</code> by default) → <code>READ</code> (link <code>AUTO</code> or <code>UNLINKED</code>)
+| <code>FAILED</code>. A human correction → <code>MANUAL</code> (and the AI never overwrites it). BOM line readings are cached in <code>BomLineReading</code>.</li>
+<li><strong>Quote</strong>: created <code>PROCESSING</code> (synchronously, inside the POST) → <code>READY</code> (every line quoted) | <code>PARTIAL</code> | <code>FAILED</code>
+(zero lines, or an exception — returned as 201 with <code>FAILED</code>, not an HTTP error). <code>READY</code>/<code>PARTIAL</code> becomes
+<code>Project.currentQuoteId</code>. Quotes are immutable snapshots; re-quoting creates <code>revision + 1</code>.</li>
+<li><strong>Purchase order</strong>: created <code>SENT</code> → supplier <code>accept</code> → <code>CONFIRMED</code> | <code>reject</code> → <code>REJECTED</code> (409 if already answered
+or past a deadline). Terminal. Batch status is <strong>derived</strong>, never stored: any <code>EXPIRED</code> &gt; any <code>REJECTED</code> &gt; any <code>SENT</code> &gt;
+<code>CONFIRMED</code> (<code>purchase-order-status.helpers.ts</code>). One batch per quote (409 on a second confirm).</li>
+</ul>
+<h2>4. End-to-end workflow: status per step</h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Step</th>
+<th>Status</th>
+<th>Evidence / notes</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Register → pick role → complete profile</td>
+<td><strong>Exists</strong></td>
+<td><code>auth.service.ts</code>, <code>users/service/profile-write.builder.ts</code>; mail only for reset + email change (SMTP or log mailer)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Create project (name, description)</td>
+<td><strong>Exists</strong></td>
+<td><code>ProjectService.create</code>; single owner, no members</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Reference table DXF: upload / replace / crop from a plan / delete</td>
+<td><strong>Exists</strong>, optional</td>
+<td><code>project.service.ts:660</code>; replacing marks plans <code>STALE</code>. Detection works without it</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Upload plans: multi-file DXF, PDF auto-converted to DXF by detector <code>/pdf/convert</code> (vector PDFs only; scanned rejected; all-or-nothing batch)</td>
+<td><strong>Exists</strong></td>
+<td><code>electrical-plan.service.ts:81</code>, <code>plan-source-conversion.service.ts</code></td>
+</tr>
+<tr>
+<td>5</td>
+<td>Split a DXF into zones (one plan per zone, ≤15)</td>
+<td><strong>Exists</strong></td>
+<td><code>POST .../electrical-plan/crop</code>, <code>dxf-crop/</code> → detector <code>/dxf/crop</code></td>
+</tr>
+<tr>
+<td>6</td>
+<td>Process: one plan or all (optionally <code>planIds</code>), 202 + poll; cancel queued</td>
+<td><strong>Exists</strong></td>
+<td>Postgres queue + LISTEN/NOTIFY, lease, retry, recovery sweep</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Detection: YOLO locates symbols, Claude vision (<code>claude-opus-5-5</code> default in <code>component-detector/factory.py:67</code>) names them; Spanish payload mapped to English</td>
+<td><strong>Exists</strong></td>
+<td><code>symbol-detection-service.llm.ts</code> → <code>/bom/detectBom</code>; tile images kept for review</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Review plan BOM: resolve/dismiss unidentified, reclassify a symbol or row (with preview + optimistic lock <code>expectedUpdatedAt</code>), mark symbols reviewed, diff-save lines, per-plan multiplier, export xlsx/csv</td>
+<td><strong>Exists</strong></td>
+<td><code>electrical-bom.service.ts:112-294</code></td>
+</tr>
+<tr>
+<td>9</td>
+<td>Canonical identity of each BOM line (type + attributes), AI then human correction</td>
+<td><strong>Exists</strong></td>
+<td><code>bom-line-reading.service.ts</code>, <code>canonical</code> field in saves → <code>MANUAL</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td>Consolidated project BOM: merges <code>COMPLETED</code>/<code>STALE</code> plans × multiplier + project-only lines; warnings for unprocessed/partial/stale; save; export</td>
+<td><strong>Exists</strong></td>
+<td><code>project.service.ts:102-660</code></td>
+</tr>
+<tr>
+<td>11</td>
+<td>Brand preferences (user + project; preferred/blocked)</td>
+<td><strong>Partial</strong></td>
+<td>Stored and served by the backend, <strong>consumed only by the front&#39;s BOM editor</strong> (autofill/dropdowns). The quote matcher does not read them; it only honours a brand/range written on the line</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Market data while editing (who sells this line, at what price) and global catalog browse</td>
+<td><strong>Exists</strong></td>
+<td><code>quotation/market/*</code>, same matcher as the quote</td>
+</tr>
+<tr>
+<td>13</td>
+<td>Quote: equality match on base type + every <code>required</code> attribute; brand/range filter only if requested; per-provider offers with totals, coverage, lead time; currency conversion to <code>QUOTATION_CURRENCY</code> (ARS default)</td>
+<td><strong>Exists</strong></td>
+<td><code>quotation.service.ts:144</code>, <code>matching/quote-matcher.service.ts</code>; guards <code>EMPTY_BOM</code>, <code>NO_PROVIDER_CATALOG</code></td>
+</tr>
+<tr>
+<td>14</td>
+<td>Compare offers: ranked list + per-offer line detail + brand alternatives per line</td>
+<td><strong>Exists</strong> (read-only)</td>
+<td><code>GET quotation/:projectId/:quoteId(/offers/:id)</code>; no &quot;select offer&quot; write (<code>selectedOfferId</code> never set), no side-by-side line matrix endpoint beyond per-offer detail</td>
+</tr>
+<tr>
+<td>15</td>
+<td>Confirm quote → one batch, one <code>PurchaseOrder</code> per provider from engineer&#39;s per-line <code>{quoteLineId, providerId, catalogItemId?}</code>; unassigned lines snapshotted</td>
+<td><strong>Exists</strong></td>
+<td><code>purchase-order.service.ts:51</code>; mixing providers per line is supported</td>
+</tr>
+<tr>
+<td>16</td>
+<td>Buyer tracks orders: list batches (derived status + per-status counts), providers in a batch, lines per provider order (paginated)</td>
+<td><strong>Exists</strong></td>
+<td></td>
+</tr>
+<tr>
+<td>17</td>
+<td>Supplier catalog: xlsx import with column-mapping proposal, two-step preview/confirm, history, item CRUD, AI reading progress, manual canonical link</td>
+<td><strong>Exists</strong></td>
+<td><code>provider/</code>, <code>catalog/import/</code>; only <code>.xlsx</code></td>
+</tr>
+<tr>
+<td>18</td>
+<td>Supplier inbox: list/detail of own requests, accept or reject whole order; buyer contact revealed only after <code>CONFIRMED</code></td>
+<td><strong>Exists</strong></td>
+<td><code>purchase-order.service.ts:178-250</code></td>
+</tr>
+<tr>
+<td>19</td>
+<td>Supplier edits the offer (counter-price, quantity, partial accept, lead time, comments)</td>
+<td><strong>Absent</strong></td>
+<td>accept/reject carry no body; offers are generated from the catalog, never authored by the supplier</td>
+</tr>
+<tr>
+<td>20</td>
+<td>RFQ / supplier-submitted quotes (supplier prices a BOM on request)</td>
+<td><strong>Absent</strong></td>
+<td>quotes are 100 % catalog-driven</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Response deadlines / expiry of orders or quotes</td>
+<td><strong>Absent</strong> (scaffolded)</td>
+<td>enum values + columns exist, nothing writes them, no scheduler</td>
+</tr>
+<tr>
+<td>22</td>
+<td>Notifications (in-app, email, webhook) about orders, processing, quotes</td>
+<td><strong>Absent</strong></td>
+<td>email only for password reset / email change; the only NOTIFY is internal to the job queue; clients poll</td>
+</tr>
+<tr>
+<td>23</td>
+<td>Payments, invoicing, delivery tracking, receipt</td>
+<td><strong>Absent</strong></td>
+<td>no model or route</td>
+</tr>
+<tr>
+<td>24</td>
+<td>Collaboration: project members/sharing, comments, activity log, approvals</td>
+<td><strong>Absent</strong></td>
+<td><code>Project.ownerId</code> only; the &quot;review&quot; of symbols is a flag, not a comment</td>
+</tr>
+<tr>
+<td>25</td>
+<td>Admin / moderation of canonical catalog or accounts</td>
+<td><strong>Absent</strong></td>
+<td>no admin role; canonical writes open to any sealed role</td>
+</tr>
+<tr>
+<td>26</td>
+<td>Catalog price history</td>
+<td><strong>Partial</strong></td>
+<td><code>ProviderPriceHistory</code> written on import (<code>provider.repository.ts</code>); <strong>no route reads it</strong></td>
+</tr>
+</tbody></table>
+<h2>5. Things a UX designer should know</h2>
+<ul>
+<li>Quoting is synchronous inside <code>POST /quotation/:projectId</code>; plan detection is asynchronous (202 + poll <code>processing-status</code> / plan).</li>
+<li>A quote&#39;s outcome depends on canonical identity: a line without a base component or missing an essential attribute is
+<code>NOT_FOUND</code> with a Spanish <code>unmatchedReason</code> — the fix is in the BOM editor, not the quote.</li>
+<li>Everything user-facing the backend emits (errors, reasons, warnings) is Spanish; field names are English.</li>
+<li>Most &quot;future&quot; states (<code>EXPIRED</code>, deadlines, selected offer, sync <code>PARTIAL</code>, legacy match methods) are present in the
+schema but inert: the UI must not assume they happen.</li>
+</ul>
+</article></body></html>

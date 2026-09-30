@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Tablero 3D</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script src="vendor/three.global.js"></script>
+<script src="tablero3d-engine.js"></script>
+<style>
+  /* Solo presentación de esta pantalla; todo con tokens. */
+  .t3-disc { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin-bottom: var(--sp-3); border-radius: var(--r-md); background: var(--stage); color: var(--stage-ink); border-left: 5px solid var(--volt); }
+  .t3-disc strong { font: 600 var(--fs-lg)/1.3 var(--font-display); } .t3-disc .ic { color: var(--volt); } .t3-disc .cap { margin-left: auto; }
+  .t3-sum { display: flex; flex-wrap: wrap; gap: 8px 28px; align-items: flex-end; margin-bottom: var(--sp-3); }
+  .t3-stat .eyebrow { display: block; } .t3-stat strong { display: block; font: 600 var(--fs-xl)/1.15 var(--font-display); } .t3-stat small { color: var(--ink-3); }
+  .t3-flag { display: inline-flex; gap: 6px; align-items: center; padding: 4px 10px; border-radius: var(--r-pill); background: var(--warn-soft); color: var(--warn); font-size: var(--fs-xs); font-weight: 600; text-decoration: none; }
+  .t3-bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: var(--sp-3); }
+  .t3-bar .row { gap: 6px; } .t3-ex { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .t3-ex label { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-2); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+  .t3-ex input { width: 180px; accent-color: var(--volt); } .t3-ex output { font: 500 var(--fs-xs) var(--font-mono); width: 42px; color: var(--ink-2); }
+  .t3-sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+  .t3-main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: var(--sp-4); align-items: start; }
+  .t3-stagewrap { position: relative; height: max(540px, calc(100vh - 330px)); }
+  .t3-stagewrap .stage { position: absolute; inset: 0; }
+  .t3-canvas { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; outline: none; }
+  .t3-canvas:focus-visible { box-shadow: inset 0 0 0 3px var(--volt); }
+  .t3-canvas:active { cursor: grabbing; }
+  .hud.t3-hud-t { top: 12px; left: 12px; align-items: center; padding: 6px 10px; gap: 8px; font-size: var(--fs-sm); }
+  .hud.t3-hud-z { top: 12px; right: 12px; flex-direction: column; }
+  .t3-hint { position: absolute; left: 12px; bottom: 12px; font-size: var(--fs-xs); color: var(--stage-ink-2); background: rgba(12,18,32,.72); padding: 6px 10px; border-radius: var(--r-sm); pointer-events: none; }
+  .t3-hint kbd { background: var(--stage-2); color: var(--stage-ink); border-color: var(--stage-line); }
+  .t3-tip { position: absolute; z-index: 5; max-width: 280px; pointer-events: none; padding: 8px 10px; border-radius: var(--r-sm); background: var(--surface); color: var(--ink); box-shadow: var(--shadow-3); font-size: var(--fs-sm); }
+  .t3-tip small { display: block; color: var(--ink-3); }
+  .t3-svgwrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 12px; height: max(540px, calc(100vh - 330px)); }
+  .t3-svg { width: 100%; height: 100%; display: block; } .t3-svg .t3-hit { cursor: pointer; }
+  .t3-side { display: flex; flex-direction: column; gap: var(--sp-3); max-height: max(540px, calc(100vh - 330px)); }
+  .t3-side .card { display: flex; flex-direction: column; min-height: 0; }
+  .t3-detcard { flex: none; max-height: 62%; overflow: auto; } .t3-listcard { flex: 1; min-height: 160px; }
+  .t3-list { overflow: auto; padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+  .t3-li { all: unset; display: flex; align-items: center; gap: 10px; padding: 7px 10px; border-radius: var(--r-sm); cursor: pointer; font-size: var(--fs-sm); }
+  .t3-li:hover { background: var(--surface-2); } .t3-li:focus-visible { box-shadow: var(--focus); }
+  .t3-li[aria-pressed='true'] { background: var(--volt-soft); box-shadow: inset 3px 0 0 var(--volt); }
+  .t3-li.ghost { opacity: .45; } .t3-li-t { flex: 1; min-width: 0; } .t3-li-t strong { display: block; font-weight: 600; } .t3-li-t small { display: block; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t3-li-n { color: var(--ink-2); } .t3-warn { color: var(--warn); }
+  .t3-det { padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+  .t3-det-h { display: flex; gap: 10px; align-items: flex-start; } .t3-det-h > div { flex: 1; } .t3-det-h h3 { font-size: var(--fs-md); } .t3-det-h .t3-sw { margin-top: 5px; width: 12px; height: 12px; }
+  .t3-det .note { padding: 8px 10px; }
+  .t3-qty { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; } .t3-qty > div { padding: 8px; border-radius: var(--r-sm); background: var(--surface-2); border: 1px solid var(--line); }
+  .t3-qty strong { display: block; font-size: var(--fs-lg); } .t3-qty .eyebrow { font-size: 9.5px; letter-spacing: .06em; }
+  .t3-small { font-size: var(--fs-xs); margin: 0; }
+  .t3-dl { margin: 0; display: flex; flex-direction: column; gap: 4px; } .t3-kv { display: grid; grid-template-columns: 130px 1fr; gap: 8px; font-size: var(--fs-sm); } .t3-kv dt { color: var(--ink-3); } .t3-kv dd { margin: 0; }
+  .t3-price { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
+  .t3-pr { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: var(--fs-sm); } .t3-pr small { flex-basis: 100%; }
+  .t3-price .src-ref, .t3-price .src-conf { } .t3-price strong.mono { color: var(--copper); }
+  .t3-det-empty { padding: 18px 16px; text-align: center; color: var(--ink-2); font-size: var(--fs-sm); } .t3-det-empty .ic { color: var(--volt); }
+  .t3-2d { margin-top: var(--sp-4); } .t3-2d .tbl td { vertical-align: middle; } .tbl tr.t3-ghost { opacity: .45; } .tbl tr[data-line] { cursor: pointer; }
+  .t3-is2d .t3-ex { opacity: .5; }
+  @media (max-width: 1100px) { .t3-main { grid-template-columns: 1fr; } .t3-side { max-height: none; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="tablero3d" data-title="Tablero 3D" data-sub="Modelo conceptual del tablero armado desde el BOM de un plano: para revisar cantidades, marcas y precios sobre algo que se parece a lo que se va a construir">
+<div id="act">
+  <label class="sr-only" for="t3-plan">Tablero</label>
+  <select class="select" id="t3-plan" data-t3="plan" style="width:auto;height:36px"></select>
+  <button class="btn btn-secondary" data-t3="png">${ic}Descargar imagen (PNG)</button>
+  <button class="btn btn-secondary" data-t3="csv">Descargar lista del tablero (CSV)</button>
+</div>
+<div id="page">
+  <div class="t3-disc" role="note"><span data-ic="cube"></span><strong>Modelo conceptual: disposición aproximada derivada del BOM, no un plano de montaje ni un cálculo de gabinete.</strong><span data-cap></span></div>
+  <div data-t3="note"></div>
+  <div data-t3="empty" hidden></div>
+  <div data-t3="body">
+    <div class="t3-sum" data-t3="summary"></div>
+    <div class="t3-bar">
+      <div class="seg" data-t3="view" role="group" aria-label="Tipo de vista"><button data-view="3d" aria-pressed="true">Vista 3D</button><button data-view="2d" aria-pressed="false">Vista 2D / tabla</button></div>
+      <div class="row" data-t3="chips" role="group" aria-label="Aislar una familia"></div>
+      <div class="t3-ex"><label for="t3-ex">Vista explotada</label><input type="range" id="t3-ex" min="0" max="100" step="1" value="0" data-t3="explode"><output data-t3="explode-out" for="t3-ex">0 %</output>
+        <button class="btn btn-secondary btn-sm" data-t3="play" aria-pressed="false" title="Separa puerta, aparatos, rieles y placa (y los vuelve a juntar)"></button></div>
+    </div>
+    <div class="t3-main">
+      <div>
+        <div class="t3-stagewrap" data-t3-stagewrap>
+          <div class="stage stage-grid" data-t3="stage">
+            <div class="hud t3-hud-t" data-t3="hud-title"></div>
+            <div class="hud t3-hud-z"><button class="icon-btn" data-t3="zoom-in" aria-label="Acercar"></button><button class="icon-btn" data-t3="zoom-out" aria-label="Alejar"></button><button class="icon-btn" data-t3="reset" aria-label="Volver a la vista inicial"></button></div>
+            <div class="t3-hint">Arrastrá para girar · <kbd>Mayús</kbd> o clic derecho para desplazar · rueda para acercar · flechas, <kbd>+</kbd> <kbd>−</kbd> y <kbd>0</kbd> con el modelo enfocado</div>
+            <div class="t3-tip" data-t3="tip" hidden></div>
+          </div>
+        </div>
+        <div class="t3-svgwrap" data-t3="svg" hidden></div>
+      </div>
+      <aside class="t3-side" aria-label="Detalle y lista del tablero">
+        <section class="card t3-detcard" aria-live="polite"><div data-t3="detail"></div></section>
+        <section class="card t3-listcard"><div class="card-h"><h3>Líneas de este tablero</h3><span class="spacer"></span><small class="muted">cantidad dibujada</small></div><div class="t3-list" data-t3="list"></div></section>
+      </aside>
+    </div>
+    <section class="card t3-2d" data-t3-2d hidden><div class="card-h"><h3>Tabla del tablero</h3><span class="spacer"></span><small class="muted">misma selección que el dibujo</small></div><div class="tbl-wrap"><table class="tbl" data-t3="table"></table></div></section>
+  </div>
+</div>
+<script>
+L.ready(() => {
+  const root = document.querySelector('.app') || document.body;
+  root.querySelector('[data-ic="cube"]').outerHTML = L.icon('cube', 22);
+  root.querySelector('[data-cap]').outerHTML = L.cap('propuesto');
+  const png = root.querySelector('[data-t3="png"]'), csv = root.querySelector('[data-t3="csv"]');
+  png.innerHTML = L.icon('download', 15) + 'Descargar imagen (PNG)'; csv.innerHTML = L.icon('table', 15) + 'Descargar lista del tablero (CSV)';
+  root.querySelector('[data-t3="play"]').innerHTML = L.icon('play', 14) + '<span>Animar</span>';
+  root.querySelector('[data-t3="zoom-in"]').innerHTML = L.icon('plus', 18); root.querySelector('[data-t3="zoom-out"]').innerHTML = L.icon('minus', 18); root.querySelector('[data-t3="reset"]').innerHTML = L.icon('refresh', 16);
+  /* el escenario 3D va dentro de su contenedor; el lienzo lo agrega el motor */
+  T3D.page(root);
+  const wrap = root.querySelector('[data-t3-stagewrap]'), stage = root.querySelector('[data-t3="stage"]');
+  new MutationObserver(() => { wrap.hidden = stage.hidden; }).observe(stage, { attributes: true, attributeFilter: ['hidden'] }); wrap.hidden = stage.hidden;
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Distribuidores</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .filters { display: flex; gap: 10px; align-items: end; flex-wrap: wrap; margin-bottom: var(--sp-4); }
+  .filters .grow { flex: 1; min-width: 240px; } .filters .field { min-width: 170px; }
+  .dir { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp-4); }
+  .dcard .card-h { align-items: flex-start; } .dcard h3 { font-size: var(--fs-md); } .dcard .card-h small { color: var(--ink-3); display: block; }
+  .mono-av { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; color: #fff; font: 700 14px var(--font-display); flex: none; }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 10px 0; } .facts div { background: var(--surface-2); border-radius: var(--r-sm); padding: 6px 8px; }
+  .facts b { display: block; font: 600 var(--fs-md) var(--font-mono); } .facts small { color: var(--ink-3); }
+  .types { display: flex; gap: 4px; flex-wrap: wrap; }
+  .hist { font-size: var(--fs-xs); color: var(--ink-2); display: flex; flex-direction: column; gap: 2px; }
+  @media (max-width: 1100px) { .dir { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="directorio" data-title="Distribuidores" data-sub="Quién vende qué, cómo responde y cómo te fue con cada uno">
+<div id="act"></div>
+<div id="page"><div id="root"></div></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get(); const estado = L.param('estado');
+  const saved = L.pref('directorio:filtros') || {};
+  const f = { q: '', brand: saved.brand || '', type: saved.type || '', city: saved.city || '', pid: L.param('p') || '' };
+
+  function stats(s) {
+    const items = S().catalog.filter(c => c.supplierId === s.id && c.published);
+    const linked = items.filter(c => c.typeId);
+    const types = [...new Set(linked.map(c => c.typeId))];
+    const stale = linked.filter(L.isStale).length;
+    const offers = S().offers.filter(o => o.supplierId === s.id);
+    const answered = offers.filter(o => ['ENVIADA', 'DECLINADA'].includes(o.status)).length;
+    const orders = S().orders.filter(o => o.supplierId === s.id);
+    const conf = orders.filter(o => o.status === 'CONFIRMED').length, rej = orders.filter(o => o.status === 'REJECTED').length;
+    const cov = f.pid ? (() => { const lines = L.linesOf(f.pid); const c = lines.filter(l => L.matches(l, s.id).length).length; return { c, n: lines.length }; })() : null;
+    return { items: items.length, types, stale, offers: offers.length, answered, orders: orders.length, conf, rej, cov };
+  }
+  function render() {
+    const root = document.getElementById('root');
+    if (estado === 'cargando') { root.innerHTML = `<div class="dir">${'<div class="skel" style="height:300px"></div>'.repeat(3)}</div>`; return; }
+    if (estado === 'error') { root.innerHTML = `<div class="card"><div class="card-b">${L.empty({ icon: 'alertc', title: 'No se pudo cargar el directorio', text: 'Probá de nuevo en un momento.', action: `<a class="btn btn-primary" href="d-directorio.html">Reintentar</a>` })}</div></div>`; return; }
+    const sups = S().suppliers; const brands = [...new Set(sups.flatMap(s => s.brands))].sort(); const cities = [...new Set(sups.map(s => s.city))].sort();
+    const q = f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const list = estado === 'vacio' ? [] : sups.filter(s => { const st = stats(s);
+      const hay = (s.name + ' ' + s.city + ' ' + s.brands.join(' ') + ' ' + st.types.map(t => L.type(t).name).join(' ')).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+      return (!q || hay.includes(q)) && (!f.brand || s.brands.includes(f.brand)) && (!f.city || s.city === f.city) && (!f.type || st.types.includes(f.type)); });
+    root.innerHTML = `<div class="filters">
+        <div class="field grow"><label for="q">Buscar</label><input class="input" type="search" id="q" placeholder="Nombre, ciudad, marca o material (p. ej. «diferencial»)" value="${L.esc(f.q)}"></div>
+        <div class="field"><label for="fb">Marca</label><select class="select" id="fb"><option value="">Todas</option>${brands.map(b => `<option ${f.brand === b ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
+        <div class="field"><label for="ft">Material</label><select class="select" id="ft"><option value="">Todos</option>${Object.entries(S().types).map(([k, t]) => `<option value="${k}" ${f.type === k ? 'selected' : ''}>${L.esc(t.short)}</option>`).join('')}</select></div>
+        <div class="field"><label for="fc">Zona</label><select class="select" id="fc"><option value="">Todas</option>${cities.map(c => `<option ${f.city === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+        <div class="field"><label for="fp">Cobertura para la obra</label><select class="select" id="fp"><option value="">Sin obra</option>${S().projects.map(p => `<option value="${p.id}" ${f.pid === p.id ? 'selected' : ''}>${L.esc(p.name)}</option>`).join('')}</select></div>
+      </div>
+      <p class="muted" style="font-size:var(--fs-sm)">${list.length} de ${sups.length} distribuidores · ${L.cap('existe')} listado de proveedores · ${L.cap('propuesto')} historial, zona y cobertura por obra. Los precios de catálogo son ${L.priceTag('referencia')}.</p>
+      ${list.length ? `<div class="dir">${list.map(s => { const st = stats(s);
+        return `<article class="card dcard"><div class="card-h"><span class="mono-av" style="background:${s.color}" aria-hidden="true">${L.esc(s.short.slice(0, 2).toUpperCase())}</span><div style="flex:1"><h3>${L.esc(s.name)}</h3><small>${L.esc(s.city)} · responde en ~${s.responseH} h</small></div>${st.stale ? L.badge(st.stale + ' precios desact.', 'warn') : L.badge('Precios vigentes', 'ok')}</div>
+          <div class="card-b"><div class="types">${s.brands.map(b => L.badge(b, f.brand === b ? 'brand' : 'muted')).join('')}</div>
+            <div class="facts"><div><small>Catálogo</small><b>${st.items}</b></div><div><small>Materiales</small><b>${st.types.length}</b></div><div><small>${st.cov ? 'Cubre obra' : 'Plazo base'}</small><b>${st.cov ? st.cov.c + '/' + st.cov.n : s.lead + ' d'}</b></div></div>
+            <div class="types" style="margin-bottom:10px">${st.types.map(t => `<span class="badge ${f.type === t ? 'b-brand' : 'b-muted'}">${L.esc(L.type(t).short)}</span>`).join('')}</div>
+            <div class="hist"><span>${L.icon('send', 12)} Respondió ${st.answered} de ${st.offers} solicitudes</span><span>${L.icon('truck', 12)} ${st.orders} pedidos · ${st.conf} confirmados${st.rej ? ' · ' + st.rej + ' rechazados' : ''}</span></div></div>
+          <div class="card-f"><a class="btn btn-sm btn-secondary" href="${L.link('d-cotizacion.html', { p: f.pid || L.currentProjectId(), sup: s.id })}">Pedirle cotización</a><a class="btn btn-sm btn-ghost" href="${L.link('d-pedidos.html')}" data-sup="${s.id}">Ver pedidos</a><span class="spacer"></span><small class="muted">Contacto al confirmar un pedido</small></div></article>`; }).join('')}</div>`
+        : `<div class="card"><div class="card-b">${L.empty({ icon: 'store', title: estado === 'vacio' ? 'No hay distribuidores todavía' : 'Ningún distribuidor con esos filtros', text: estado === 'vacio' ? 'Cuando un distribuidor publique su catálogo en liard aparece acá.' : 'Probá con otra marca, material o zona.', action: estado === 'vacio' ? '' : '<button class="btn btn-secondary" id="clr">Limpiar filtros</button>' })}</div></div>`}`;
+    const qi = document.getElementById('q'); qi.oninput = () => { f.q = qi.value; const p = qi.selectionStart; render(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(p, p); };
+    [['fb', 'brand'], ['ft', 'type'], ['fc', 'city'], ['fp', 'pid']].forEach(([id, k]) => { const s = document.getElementById(id); s.onchange = () => { f[k] = s.value; L.pref('directorio:filtros', { brand: f.brand, type: f.type, city: f.city }); render(); document.getElementById(id).focus(); }; });
+    const c = document.getElementById('clr'); if (c) c.onclick = () => { f.q = f.brand = f.type = f.city = ''; L.pref('directorio:filtros', {}); render(); };
+    root.querySelectorAll('[data-sup]').forEach(a => a.onclick = () => { L.pref('pedidos:filtros', { supplier: a.dataset.sup }); });
+  }
+  render(); L.store.subscribe(render);
+});
+</script>
+</body></html>

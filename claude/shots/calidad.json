@@ -1,0 +1,302 @@
+[
+ {
+  "f": "d-asistentes.html",
+  "w": 1440,
+  "ms": 1208,
+  "issues": []
+ },
+ {
+  "f": "d-asistentes.html",
+  "w": 1024,
+  "ms": 1117,
+  "issues": []
+ },
+ {
+  "f": "d-automatizaciones.html",
+  "w": 1440,
+  "ms": 1133,
+  "issues": []
+ },
+ {
+  "f": "d-automatizaciones.html",
+  "w": 1024,
+  "ms": 1211,
+  "issues": []
+ },
+ {
+  "f": "d-bom.html",
+  "w": 1440,
+  "ms": 1187,
+  "issues": []
+ },
+ {
+  "f": "d-bom.html",
+  "w": 1024,
+  "ms": 1150,
+  "issues": []
+ },
+ {
+  "f": "d-comparar.html",
+  "w": 1440,
+  "ms": 1225,
+  "issues": []
+ },
+ {
+  "f": "d-comparar.html",
+  "w": 1024,
+  "ms": 1102,
+  "issues": []
+ },
+ {
+  "f": "d-cotizacion.html",
+  "w": 1440,
+  "ms": 1105,
+  "issues": []
+ },
+ {
+  "f": "d-cotizacion.html",
+  "w": 1024,
+  "ms": 1218,
+  "issues": []
+ },
+ {
+  "f": "d-cuenta.html",
+  "w": 1440,
+  "ms": 1187,
+  "issues": []
+ },
+ {
+  "f": "d-cuenta.html",
+  "w": 1024,
+  "ms": 1116,
+  "issues": []
+ },
+ {
+  "f": "d-directorio.html",
+  "w": 1440,
+  "ms": 1212,
+  "issues": []
+ },
+ {
+  "f": "d-directorio.html",
+  "w": 1024,
+  "ms": 1159,
+  "issues": []
+ },
+ {
+  "f": "d-inicio.html",
+  "w": 1440,
+  "ms": 1125,
+  "issues": []
+ },
+ {
+  "f": "d-inicio.html",
+  "w": 1024,
+  "ms": 1207,
+  "issues": []
+ },
+ {
+  "f": "d-kit.html",
+  "w": 1440,
+  "ms": 1162,
+  "issues": []
+ },
+ {
+  "f": "d-kit.html",
+  "w": 1024,
+  "ms": 1128,
+  "issues": []
+ },
+ {
+  "f": "d-obra.html",
+  "w": 1440,
+  "ms": 1246,
+  "issues": []
+ },
+ {
+  "f": "d-obra.html",
+  "w": 1024,
+  "ms": 1152,
+  "issues": []
+ },
+ {
+  "f": "d-obras.html",
+  "w": 1440,
+  "ms": 1112,
+  "issues": []
+ },
+ {
+  "f": "d-obras.html",
+  "w": 1024,
+  "ms": 1183,
+  "issues": []
+ },
+ {
+  "f": "d-pedidos.html",
+  "w": 1440,
+  "ms": 1166,
+  "issues": []
+ },
+ {
+  "f": "d-pedidos.html",
+  "w": 1024,
+  "ms": 1113,
+  "issues": []
+ },
+ {
+  "f": "d-plano.html",
+  "w": 1440,
+  "ms": 1212,
+  "issues": []
+ },
+ {
+  "f": "d-plano.html",
+  "w": 1024,
+  "ms": 1166,
+  "issues": []
+ },
+ {
+  "f": "d-presupuesto.html",
+  "w": 1440,
+  "ms": 1167,
+  "issues": []
+ },
+ {
+  "f": "d-presupuesto.html",
+  "w": 1024,
+  "ms": 1136,
+  "issues": []
+ },
+ {
+  "f": "d-prov-catalogo.html",
+  "w": 1440,
+  "ms": 1280,
+  "issues": []
+ },
+ {
+  "f": "d-prov-catalogo.html",
+  "w": 1024,
+  "ms": 1173,
+  "issues": []
+ },
+ {
+  "f": "d-prov-inicio.html",
+  "w": 1440,
+  "ms": 1132,
+  "issues": []
+ },
+ {
+  "f": "d-prov-inicio.html",
+  "w": 1024,
+  "ms": 1244,
+  "issues": []
+ },
+ {
+  "f": "d-prov-oferta.html",
+  "w": 1440,
+  "ms": 1139,
+  "issues": []
+ },
+ {
+  "f": "d-prov-oferta.html",
+  "w": 1024,
+  "ms": 1112,
+  "issues": []
+ },
+ {
+  "f": "d-prov-pedidos.html",
+  "w": 1440,
+  "ms": 1181,
+  "issues": []
+ },
+ {
+  "f": "d-prov-pedidos.html",
+  "w": 1024,
+  "ms": 1157,
+  "issues": []
+ },
+ {
+  "f": "d-prov-solicitudes.html",
+  "w": 1440,
+  "ms": 1097,
+  "issues": []
+ },
+ {
+  "f": "d-prov-solicitudes.html",
+  "w": 1024,
+  "ms": 1114,
+  "issues": []
+ },
+ {
+  "f": "d-prov-vinculacion.html",
+  "w": 1440,
+  "ms": 1181,
+  "issues": []
+ },
+ {
+  "f": "d-prov-vinculacion.html",
+  "w": 1024,
+  "ms": 1134,
+  "issues": []
+ },
+ {
+  "f": "d-tablero-3d.html",
+  "w": 1440,
+  "ms": 2068,
+  "issues": []
+ },
+ {
+  "f": "d-tablero-3d.html",
+  "w": 1024,
+  "ms": 1782,
+  "issues": []
+ },
+ {
+  "f": "m-aprobar.html",
+  "w": 390,
+  "ms": 1182,
+  "issues": []
+ },
+ {
+  "f": "m-avisos.html",
+  "w": 390,
+  "ms": 1106,
+  "issues": []
+ },
+ {
+  "f": "m-inicio.html",
+  "w": 390,
+  "ms": 1193,
+  "issues": []
+ },
+ {
+  "f": "m-obra.html",
+  "w": 390,
+  "ms": 1169,
+  "issues": []
+ },
+ {
+  "f": "m-prov-inicio.html",
+  "w": 390,
+  "ms": 1098,
+  "issues": []
+ },
+ {
+  "f": "m-prov-oferta.html",
+  "w": 390,
+  "ms": 1118,
+  "issues": []
+ },
+ {
+  "f": "m-prov-pedidos.html",
+  "w": 390,
+  "ms": 1237,
+  "issues": []
+ },
+ {
+  "f": "m-tablero-3d.html",
+  "w": 390,
+  "ms": 2056,
+  "issues": []
+ }
+]

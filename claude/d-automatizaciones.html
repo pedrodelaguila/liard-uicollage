@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Equipo y automatizaciones</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+<style>
+  .tabs { flex-wrap: wrap; }
+  .tabs .count { font: 600 10.5px/1.6 var(--font-mono); padding: 0 6px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--ink-2); }
+  .tabs [aria-selected='true'] .count { background: var(--brand-soft); color: var(--brand); }
+  .panel-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .panel-h h2 { font-size: var(--fs-lg); }
+  .form-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 12px; align-items: start; }
+  .form-grid > .btn { margin-top: 21px; }
+  @media (max-width: 1180px) { .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .form-grid > .btn { margin-top: 0; justify-self: start; } }
+  .cm { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .cm:last-child { border-bottom: 0; }
+  .cm.resolved { background: var(--surface-2); }
+  .cm.resolved .cm-text { color: var(--ink-3); }
+  .cm-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: var(--fs-xs); color: var(--ink-3); }
+  .cm-meta strong { color: var(--ink); font-size: var(--fs-sm); }
+  .cm-text { margin: 4px 0 8px; font-size: var(--fs-sm); }
+  .cm-replies { border-left: 2px solid var(--line); padding-left: 12px; margin: 6px 0 8px; display: flex; flex-direction: column; gap: 6px; font-size: var(--fs-sm); }
+  .cm-replies small { color: var(--ink-3); }
+  .reply { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; flex-wrap: wrap; }
+  .reply .field { flex: 1; min-width: 220px; }
+  .rule { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .rule:last-child { border-bottom: 0; }
+  .rule-t { font-weight: 600; font-size: var(--fs-sm); }
+  .rule-s { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .rule-x { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; margin-top: 10px; }
+  .rule-x .field { width: 240px; }
+  .rule-x .btn { margin-top: 21px; }
+  .rule .acts { display: flex; gap: 6px; align-items: center; }
+  .test-out { margin-top: 10px; }
+  .pill-t { font: 600 10px/1.6 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; padding: 0 6px; border-radius: 4px; background: var(--surface-3); color: var(--ink-2); }
+  .ap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); align-items: start; }
+  .ap:last-child { border-bottom: 0; }
+  .ap-total { font: 600 var(--fs-xl)/1.2 var(--font-display); margin: 6px 0; }
+  .ap-acts { display: flex; flex-direction: column; gap: 8px; min-width: 280px; }
+  .ap-acts .row { justify-content: flex-end; }
+  .feed-i { display: grid; grid-template-columns: 96px 32px minmax(0, 1fr); gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--line); align-items: center; font-size: var(--fs-sm); }
+  .feed-i:last-child { border-bottom: 0; }
+  .feed-i .av, .cm .av { width: 32px; height: 32px; font-size: 11px; }
+  .av.sys { background: var(--stage); color: var(--volt); } .av.sup { background: var(--copper); }
+  .feed-i time { font: 500 11px/1.4 var(--font-mono); color: var(--ink-3); }
+  .mail-i.new { box-shadow: inset 3px 0 0 var(--volt); }
+  .roles td .select { width: 132px; }
+  .roles td:first-child, .roles th:first-child { min-width: 170px; }
+  .members td:first-child { white-space: nowrap; }
+  .members .av { width: 30px; height: 30px; font-size: 11px; }
+  .test-out p { overflow-wrap: anywhere; }
+</style>
+</head>
+<body data-role="ENGINEER" data-active="automatizaciones" data-title="Equipo y automatizaciones" data-sub="Quién trabaja en cada obra, comentarios, aprobaciones, reglas de aviso y lo que pasó">
+<div id="act"></div>
+<div id="page">
+  <div class="tabs" role="tablist" aria-label="Secciones" id="tabs"></div>
+  <div id="panel" role="tabpanel"></div>
+</div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get();
+  const TABS = [
+    { id: 'equipo', label: 'Equipo', icon: 'users', count: () => S().team.length },
+    { id: 'comentarios', label: 'Comentarios', icon: 'message', count: () => S().comments.filter(c => !c.resolved && !c.replyTo).length },
+    { id: 'aprobaciones', label: 'Aprobaciones', icon: 'shield', count: () => S().approvals.filter(a => a.status === 'PENDIENTE').length },
+    { id: 'reglas', label: 'Automatizaciones', icon: 'workflow', count: () => S().automations.filter(a => a.enabled).length },
+    { id: 'actividad', label: 'Actividad', icon: 'activity', count: () => S().activity.length },
+    { id: 'correos', label: 'Correos', icon: 'mail', count: () => S().outbox.length },
+  ];
+  let tab = TABS.some(t => t.id === L.param('tab')) ? L.param('tab') : 'equipo';
+  const ui = () => (S().ui || {}).plataforma || {};
+  const setUi = fn => L.store.update(s => { s.ui = s.ui || {}; s.ui.plataforma = s.ui.plataforma || {}; fn(s.ui.plataforma); });
+  const short = pid => { const p = L.project(pid); return p ? p.name.split(' · ')[0] : '—'; };
+  const AREAS = ['Ingeniería', 'Compras', 'Dirección'];
+  const ROLES = { EDITA: 'Edita', LECTURA: 'Solo lectura', NINGUNO: 'Sin acceso' };
+  const emailOk = v => /^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(v);
+  const initials = n => n.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+  const av = id => { const m = L.member(id); if (m) return `<span class="av" aria-hidden="true">${L.esc(m.initials)}</span>`; if (id === 'sistema') return `<span class="av sys" aria-hidden="true">${L.icon('zap', 14)}</span>`; return `<span class="av sup" aria-hidden="true">${L.esc(String(L.who(id) || '?').slice(0, 2).toUpperCase())}</span>`; };
+  const when = d => L.dateShort(d) + ' · ' + L.time(d);
+
+  function entityLink(c) {
+    const [kind, id] = c.entity.split(':');
+    if (kind === 'line') { const l = L.line(id); return { href: L.link('d-bom.html', { p: c.projectId, linea: id }), label: l ? 'Línea «' + L.lineLabel(l) + '»' : 'Línea ' + id }; }
+    if (kind === 'plan') { const p = L.plan(id); return { href: L.link('d-plano.html', { p: c.projectId, plan: id }), label: 'Plano ' + (p ? p.name : id) }; }
+    if (kind === 'request') { const r = L.request(id); return { href: L.link('d-comparar.html', { r: id, p: c.projectId }), label: 'Solicitud ' + (r ? r.code : id) }; }
+    return { href: L.link('d-obra.html', { p: c.projectId }), label: c.entity };
+  }
+
+  /* ─── Automatizaciones: disparadores y acciones de una lista cerrada ─── */
+  const TRIGGERS = {
+    PLANO_PROCESADO: 'Un plano termina de procesarse', OFERTA_RECIBIDA: 'Llega una oferta', PEDIDO_CONFIRMADO: 'Un distribuidor confirma un pedido',
+    PEDIDO_RECHAZADO: 'Un distribuidor rechaza un pedido', OFERTA_POR_VENCER: 'Una oferta vence en 48 h',
+    PLANOS_PROCESADOS: 'Todos los planos de una obra terminan de procesarse', VENCE_SOLICITUD_24H: 'Falta un día para que venza una solicitud', ADJUDICACION_SUPERA: 'Una adjudicación supera un monto',
+  };
+  const NEW_TRIGGERS = ['PLANO_PROCESADO', 'OFERTA_RECIBIDA', 'PEDIDO_CONFIRMADO', 'PEDIDO_RECHAZADO', 'OFERTA_POR_VENCER'];
+  const THEN = { AVISAR_COMPRAS: { area: 'Compras', ch: 'mail' }, AVISAR_INGENIERIA: { area: 'Ingeniería', ch: 'mail' }, PEDIR_APROBACION: { area: 'Dirección', ch: 'app' }, RECORDAR_PROVEEDOR: { supplier: true, ch: 'mail' } };
+  const ruleTarget = r => r.custom ? { area: r.area, ch: r.channel } : THEN[r.then] || { area: 'Ingeniería', ch: 'app' };
+  const targetText = t => t.supplier ? 'recordar por correo a los distribuidores que no respondieron' : 'avisar a ' + t.area + (t.ch === 'mail' ? ' por correo' : ' en la app');
+  function sampleEvent(w) {
+    const s = S();
+    if (w === 'PLANO_PROCESADO') { const p = s.plans.find(x => x.status === 'COMPLETED' && x.processedAt) || s.plans[0]; return { pid: p.projectId, title: p.name + ' quedó procesado (' + short(p.projectId) + ')', body: 'El plano ' + p.name + ' terminó de procesarse. Revisá el BOM en liard.', href: 'd-plano.html?plan=' + p.id + '&p=' + p.projectId }; }
+    if (w === 'PLANOS_PROCESADOS') return { pid: 'p1', title: 'Planos listos en ' + short('p1'), body: 'Todos los planos terminaron de procesarse. El BOM está listo para revisar.', href: 'd-bom.html?p=p1' };
+    if (w === 'OFERTA_RECIBIDA') { const o = s.offers.find(x => x.status === 'ENVIADA' && L.request(x.requestId).status === 'ABIERTA') || s.offers[0]; const r = L.request(o.requestId); return { pid: r.projectId, title: 'Llegó la oferta de ' + L.supplier(o.supplierId).short + ' (' + r.code + ')', body: 'Ya podés compararla en liard.', href: 'd-comparar.html?r=' + r.id + '&p=' + r.projectId }; }
+    if (w === 'PEDIDO_CONFIRMADO') { const o = s.orders.find(x => x.status === 'CONFIRMED') || s.orders[0]; return { pid: o.projectId, title: 'Pedido ' + o.code + ' confirmado por ' + L.supplier(o.supplierId).short, body: 'Ya podés coordinar la entrega.', href: 'd-pedidos.html?o=' + o.id + '&p=' + o.projectId }; }
+    if (w === 'PEDIDO_RECHAZADO') { const o = s.orders.find(x => x.status === 'REJECTED'); return o ? { pid: o.projectId, title: 'Pedido ' + o.code + ' rechazado por ' + L.supplier(o.supplierId).short, body: 'Motivo: ' + (o.reason || 'sin motivo') + '.', href: 'd-pedidos.html?o=' + o.id + '&p=' + o.projectId }
+      : { pid: 'p3', title: 'Pedido de ejemplo rechazado por Norte Materiales', body: 'Ningún pedido de la demo fue rechazado: este es un ejemplo. Motivo: sin stock del material.', href: 'd-pedidos.html?p=p3' }; }
+    if (w === 'OFERTA_POR_VENCER') { const o = s.offers.filter(x => x.status === 'ENVIADA' && x.validUntil >= B.TODAY).sort((a, b) => a.validUntil < b.validUntil ? -1 : 1)[0]; const r = L.request(o.requestId); return { pid: r.projectId, title: 'La oferta de ' + L.supplier(o.supplierId).short + ' en ' + r.code + ' vence el ' + L.date(o.validUntil), body: 'Adjudicala antes o pedile que la renueve.', href: 'd-comparar.html?r=' + r.id + '&p=' + r.projectId }; }
+    if (w === 'VENCE_SOLICITUD_24H') { const r = s.requests.find(x => x.status === 'ABIERTA') || s.requests[0]; const o = L.offersOf(r.id).find(x => x.status === 'PENDIENTE' || x.status === 'BORRADOR'); return { pid: r.projectId, supplierId: o ? o.supplierId : r.supplierIds[0], title: 'Recordatorio: ' + r.code + ' vence el ' + L.date(r.deadline), body: s.company.name + ' espera tu oferta. Respondé desde liard.', href: 'd-prov-oferta.html?r=' + r.id }; }
+    if (w === 'ADJUDICACION_SUPERA') { const rule = s.automations.find(a => a.when === 'ADJUDICACION_SUPERA'); return { pid: 'p2', title: 'Aprobación pedida: adjudicación de ejemplo por ' + L.ars((rule.threshold || 0) + 1), body: 'Supera el monto de ' + L.ars(rule.threshold) + '. Decidila en Equipo y automatizaciones.', href: 'd-automatizaciones.html?tab=aprobaciones' }; }
+    return { pid: 'p1', title: 'Evento de ejemplo', body: '', href: 'd-inicio.html' };
+  }
+  function testRule(id) {
+    const r = S().automations.find(a => a.id === id); const t = ruleTarget(r); const ev = sampleEvent(r.when); const out = [];
+    L.store.update(s => {
+      if (t.supplier) { const sp = s.suppliers.find(x => x.id === ev.supplierId); L._mail(s, sp.email, '[Prueba] ' + ev.title, ev.body); out.push({ ch: 'mail', to: sp.email, subject: '[Prueba] ' + ev.title }); }
+      else if (t.ch === 'mail') s.team.filter(m => m.area === t.area).forEach(m => { L._mail(s, m.email, '[Prueba] ' + ev.title, ev.body); out.push({ ch: 'mail', to: m.email, subject: '[Prueba] ' + ev.title }); });
+      else { L._notify(s, { role: 'ENGINEER', title: '[Prueba · para ' + t.area + '] ' + ev.title, body: ev.body, href: ev.href }); out.push({ ch: 'app', to: t.area, subject: '[Prueba · para ' + t.area + '] ' + ev.title }); }
+      s.ui = s.ui || {}; s.ui.plataforma = s.ui.plataforma || {}; s.ui.plataforma.lastTest = { ruleId: id, at: L.now(), out };
+    });
+    if (!out.length) L.toast('La regla no tiene a quién avisar', { kind: 'warn', detail: 'No hay nadie del área ' + t.area + ' en el equipo.' });
+    else L.toast('Regla probada', { detail: out[0].ch === 'mail' ? out.length + (out.length === 1 ? ' correo simulado en Correos' : ' correos simulados en Correos') : 'Aviso simulado en la campana' });
+  }
+
+  /* ─── Paneles ─── */
+  const P = {};
+  P.equipo = () => {
+    const s = S(); const roles = ui().roles || {};
+    const roleOf = (pid, uid) => L.project(pid).owner === uid ? 'DUENO' : (roles[pid] && roles[pid][uid]) || 'EDITA';
+    return `
+    <div class="note" style="margin-bottom:var(--sp-4)">${L.icon('info', 16)}<p><strong>En la app de hoy cada obra tiene un solo dueño</strong> ${L.cap('existe')}: no hay miembros, invitaciones ni accesos por obra. Lo de abajo es una propuesta ${L.cap('propuesto')} para que Ingeniería, Compras y Dirección trabajen sobre la misma obra. ${L.sim('Invitaciones simuladas')}</p></div>
+    <section class="card" aria-labelledby="eq-t" style="margin-bottom:var(--sp-4)"><div class="card-h"><h3 id="eq-t">Miembros de ${L.esc(s.company.name)}</h3>${L.cap('propuesto')}<span class="spacer"></span><span class="muted">${s.team.length} personas</span></div>
+      <div class="tbl-wrap"><table class="tbl members"><thead><tr><th>Persona</th><th>Área</th><th>Correo</th><th>Estado</th><th class="num">Obras propias</th></tr></thead><tbody>
+      ${s.team.map(m => `<tr data-member="${m.id}"><td><span class="row">${av(m.id)}<strong>${L.esc(m.name)}</strong>${m.id === s.session.userId ? L.badge('vos', 'brand') : ''}</span></td><td>${L.esc(m.area)}</td><td class="mono">${L.esc(m.email)}</td><td>${m.invited ? L.badge('Invitación pendiente', 'warn', 'mail') : L.badge('Activa', 'ok', 'check')}</td><td class="num">${s.projects.filter(p => p.owner === m.id).length}</td></tr>`).join('')}
+      </tbody></table></div>
+      <form class="card-f" id="invite" novalidate style="display:block">
+        <div class="eyebrow" style="margin-bottom:8px">Invitar a alguien del equipo</div>
+        <div class="form-grid">
+          <div class="field"><label for="inv-name">Nombre y apellido</label><input class="input" id="inv-name" autocomplete="off"></div>
+          <div class="field"><label for="inv-mail">Correo</label><input class="input" id="inv-mail" type="email" autocomplete="off" placeholder="nombre@empresa.com"></div>
+          <div class="field"><label for="inv-area">Área</label><select class="select" id="inv-area"><option value="">Elegí un área</option>${AREAS.map(a => `<option>${a}</option>`).join('')}</select></div>
+          <button class="btn btn-primary" type="submit">${L.icon('send', 14)}Enviar invitación</button>
+        </div>
+        <p class="muted" style="margin:8px 0 0;font-size:var(--fs-xs)">Le llega un correo con el enlace para entrar (simulado: queda en Correos). Entra con acceso «Edita» a todas las obras; lo cambiás abajo.</p>
+      </form></section>
+    <section class="card" aria-labelledby="ro-t"><div class="card-h"><h3 id="ro-t">Acceso por obra</h3>${L.cap('propuesto')}<span class="spacer"></span><span class="muted">El dueño no se cambia desde acá</span></div>
+      <div class="tbl-wrap"><table class="tbl roles"><thead><tr><th>Obra</th>${s.team.map(m => `<th>${L.esc(m.name.split(' ')[0])} <span class="muted">· ${L.esc(m.area)}</span></th>`).join('')}</tr></thead><tbody>
+      ${s.projects.map(p => `<tr><td><a href="${L.link('d-obra.html', { p: p.id })}">${L.esc(short(p.id))}</a></td>${s.team.map(m => { const r = roleOf(p.id, m.id); return `<td>${r === 'DUENO' ? L.badge('Dueño', 'brand', 'star') : `<select class="select input-sm" data-role-p="${p.id}" data-role-u="${m.id}" aria-label="Acceso de ${L.esc(m.name)} a ${L.esc(p.name)}">${Object.entries(ROLES).map(([k, v]) => `<option value="${k}"${k === r ? ' selected' : ''}>${v}</option>`).join('')}</select>`}</td>`; }).join('')}</tr>`).join('')}
+      </tbody></table></div></section>`;
+  };
+  P.comentarios = () => {
+    const s = S(); const f = L.pref('plataforma:cm') || 'abiertos';
+    const roots = s.comments.filter(c => !c.replyTo).filter(c => f === 'todos' || (f === 'abiertos' ? !c.resolved : c.resolved));
+    const replies = id => s.comments.filter(c => c.replyTo === id).slice().reverse();
+    return `<div class="panel-h"><h2>Comentarios de todas las obras</h2>${L.cap('propuesto')}<span class="spacer"></span>
+      <div class="seg" role="group" aria-label="Filtrar comentarios">${[['abiertos', 'Abiertos'], ['resueltos', 'Resueltos'], ['todos', 'Todos']].map(([k, t]) => `<button type="button" data-cmf="${k}" aria-pressed="${k === f}">${t}</button>`).join('')}</div></div>
+      <div class="card">${roots.length ? roots.map(c => { const e = entityLink(c); return `<article class="cm${c.resolved ? ' resolved' : ''}" data-cm="${c.id}">${av(c.who)}<div>
+        <div class="cm-meta"><strong>${L.esc(L.who(c.who))}</strong><span>${when(c.at)}</span><span>·</span><a href="${e.href}">${L.esc(short(c.projectId))} · ${L.esc(e.label)}</a>${c.resolved ? L.badge('Resuelto', 'ok', 'check') : L.badge('Abierto', 'warn')}</div>
+        <p class="cm-text">${L.esc(c.text)}</p>
+        ${replies(c.id).length ? `<div class="cm-replies">${replies(c.id).map(r => `<div><strong>${L.esc(L.who(r.who))}</strong> <small>${when(r.at)}</small><br>${L.esc(r.text)}</div>`).join('')}</div>` : ''}
+        ${c.resolved ? `<small class="muted">Resuelto por ${L.esc(L.who(c.resolvedBy))}${c.resolvedAt ? ' · ' + when(c.resolvedAt) : ''}</small> <button class="btn btn-ghost btn-sm" data-reopen="${c.id}">Reabrir</button>` : `
+        <form class="reply" data-reply="${c.id}" novalidate><div class="field"><label class="sr-only" for="rp-${c.id}">Responder a ${L.esc(L.who(c.who))}</label><input class="input input-sm" id="rp-${c.id}" placeholder="Responder…" autocomplete="off"></div>
+          <button class="btn btn-secondary btn-sm" type="submit">${L.icon('send', 13)}Responder</button><button class="btn btn-ghost btn-sm" type="button" data-resolve="${c.id}">${L.icon('check', 13)}Marcar resuelto</button></form>`}
+      </div></article>`; }).join('') : L.empty({ icon: 'message', title: f === 'abiertos' ? 'No hay comentarios abiertos' : 'No hay comentarios acá', text: f === 'abiertos' ? 'Los comentarios se dejan sobre una línea del BOM, un plano o una solicitud. Cuando los resuelven, pasan a Resueltos.' : 'Probá con otro filtro.' })}</div>`;
+  };
+  P.aprobaciones = () => {
+    const s = S(); const rule = s.automations.find(a => a.when === 'ADJUDICACION_SUPERA');
+    const pend = s.approvals.filter(a => a.status === 'PENDIENTE'), done = s.approvals.filter(a => a.status !== 'PENDIENTE');
+    const bySup = a => Object.values(a.alloc || {}).reduce((acc, sid) => { acc[sid] = (acc[sid] || 0) + 1; return acc; }, {});
+    const card = a => { const r = L.request(a.requestId); const by = bySup(a);
+      return `<article class="ap" data-ap="${a.id}"><div>
+        <div class="row"><strong>Adjudicar ${L.esc(r.code)}</strong><span class="muted">· ${L.esc(short(r.projectId))}</span>${a.status === 'PENDIENTE' ? L.badge('Esperando a Dirección', 'warn', 'clock') : a.status === 'APROBADA' ? L.badge('Aprobada', 'ok', 'check') : L.badge('Rechazada', 'err', 'x')}${a.simulated ? L.sim('Pedido de ejemplo') : ''}</div>
+        <div class="ap-total">${L.ars(a.total)}</div>
+        <small class="muted">Pedida por ${L.esc(L.who(a.requestedBy))} · ${when(a.at)} · ${Object.entries(by).map(([sid, n]) => L.esc(L.supplier(sid).short) + ' ' + n + (n === 1 ? ' línea' : ' líneas')).join(', ')}</small>
+        ${a.status !== 'PENDIENTE' ? `<p style="margin:6px 0 0;font-size:var(--fs-sm)">${a.status === 'APROBADA' ? 'Aprobó' : 'Rechazó'} ${L.esc(L.who(a.approver || 'u-daniel'))} · ${when(a.decidedAt)}${a.note ? ' · «' + L.esc(a.note) + '»' : ''}</p>` : ''}
+        <p style="margin:6px 0 0"><a href="${L.link('d-comparar.html', { r: r.id, p: r.projectId })}">Ver la comparación</a></p></div>
+        ${a.status === 'PENDIENTE' ? `<form class="ap-acts" data-decide="${a.id}" novalidate><div class="field"><label for="apn-${a.id}">Nota para Compras</label><input class="input input-sm" id="apn-${a.id}" placeholder="Obligatoria si rechazás" autocomplete="off"></div>
+          <div class="row"><button class="btn btn-secondary btn-sm" type="button" data-dec="RECHAZADA">${L.icon('x', 13)}Rechazar</button><button class="btn btn-primary btn-sm" type="button" data-dec="APROBADA">${L.icon('check', 13)}Aprobar adjudicación</button></div></form>` : ''}
+      </article>`; };
+    return `<div class="note" style="margin-bottom:var(--sp-4)">${L.icon('users', 16)}<p>Decidís como <strong>Daniel Ortega · Dirección</strong> ${L.sim('Demo: cambio de persona')}. ${rule && rule.enabled ? 'Hoy toda adjudicación de más de ' + L.ars(rule.threshold) + ' pide esta aprobación antes de emitir los pedidos.' : 'La regla de aprobación está apagada: las adjudicaciones se emiten sin pasar por Dirección.'} <a href="${L.link('d-automatizaciones.html', { tab: 'reglas' })}" data-go="reglas">Cambiar el monto</a>.</p></div>
+      <div class="panel-h"><h2>Pendientes</h2>${L.cap('propuesto')}<span class="spacer"></span>${!pend.length && s.requests.some(r => r.status === 'ABIERTA') ? `<button class="btn btn-secondary btn-sm" data-sample-ap>${L.icon('plus', 13)}Simular un pedido de aprobación</button>` : ''}</div>
+      <div class="card" style="margin-bottom:var(--sp-5)">${pend.length ? pend.map(card).join('') : L.empty({ icon: 'shield', title: 'No hay aprobaciones pendientes', text: 'Aparecen cuando alguien adjudica por más del monto de la regla. Para verlo en la demo, simulá uno con la solicitud abierta.' })}</div>
+      <div class="panel-h"><h2>Decididas</h2></div>
+      <div class="card">${done.length ? done.map(card).join('') : '<p class="muted pad" style="margin:0">Todavía no se decidió ninguna.</p>'}</div>`;
+  };
+  P.reglas = () => {
+    const s = S(); const last = ui().lastTest;
+    const rule = r => { const t = ruleTarget(r);
+      return `<div class="rule" data-rule="${r.id}"><label class="switch"><input type="checkbox" data-toggle="${r.id}"${r.enabled ? ' checked' : ''} aria-label="Regla encendida: ${L.esc(r.label)}"></label>
+        <div><div class="rule-t">${L.esc(r.label)}</div>
+          <div class="rule-s"><span class="pill-t">Cuando</span>${L.esc(TRIGGERS[r.when] || r.when)}<span class="pill-t">Entonces</span>${L.esc(r.when === 'ADJUDICACION_SUPERA' ? 'pedir aprobación a Dirección en la app' : targetText(t))}${r.custom ? L.badge('creada por vos', 'brand') : ''}${r.enabled ? L.badge('Encendida', 'ok') : L.badge('Apagada', 'muted')}</div>
+          ${r.when === 'ADJUDICACION_SUPERA' ? `<form class="rule-x" data-thr="${r.id}" novalidate><div class="field"><label for="thr">Monto (ARS)</label><input class="input num" id="thr" inputmode="numeric" value="${L.num(r.threshold)}" autocomplete="off"></div><button class="btn btn-secondary btn-sm" type="submit">Guardar monto</button></form>` : ''}
+          ${last && last.ruleId === r.id ? `<div class="test-out note note-ok">${L.icon('check', 16)}<div><p><strong>Prueba ${when(last.at)}:</strong> ${last.out.length ? last.out.map(o => (o.ch === 'mail' ? 'correo simulado a ' : 'aviso en la app para ') + '<span class="mono">' + L.esc(o.to) + '</span> · «' + L.esc(o.subject) + '»').join('<br>') : 'no había nadie a quién avisar.'}</p>${last.out.some(o => o.ch === 'mail') ? `<p><a href="${L.link('d-automatizaciones.html', { tab: 'correos' })}" data-go="correos">Ver en Correos</a></p>` : '<p>Lo ves en la campana de avisos.</p>'}</div></div>` : ''}
+        </div>
+        <div class="acts"><button class="btn btn-secondary btn-sm" data-test="${r.id}">${L.icon('play', 13)}Probar regla</button>${r.custom ? `<button class="icon-btn" data-del="${r.id}" aria-label="Borrar la regla ${L.esc(r.label)}" title="Borrar regla">${L.icon('trash', 15)}</button>` : ''}</div></div>`; };
+    return `<div class="note" style="margin-bottom:var(--sp-4)">${L.icon('info', 16)}<p>Las notificaciones por correo están ${L.cap('planificado')} para el Sprint 5; hoy la app solo manda correos de contraseña y de cambio de correo. Las reglas son ${L.cap('propuesto')}: disparadores y acciones de una lista cerrada, sin escribir código. ${L.sim('Correos simulados')}</p></div>
+      <section class="card" style="margin-bottom:var(--sp-5)"><div class="card-h"><h3>Reglas</h3>${L.cap('propuesto')}<span class="spacer"></span><span class="muted">${s.automations.filter(a => a.enabled).length} de ${s.automations.length} encendidas</span></div>
+        <div>${s.automations.map(rule).join('')}</div></section>
+      <section class="card"><div class="card-h"><h3>Nueva regla</h3>${L.cap('propuesto')}</div>
+        <form class="card-b" id="new-rule" novalidate><div class="form-grid">
+          <div class="field"><label for="nr-when">Cuando</label><select class="select" id="nr-when"><option value="">Elegí un evento</option>${NEW_TRIGGERS.map(k => `<option value="${k}">${TRIGGERS[k]}</option>`).join('')}</select></div>
+          <div class="field"><label for="nr-area">Avisar a</label><select class="select" id="nr-area"><option value="">Elegí un área</option>${AREAS.map(a => `<option>${a}</option>`).join('')}</select></div>
+          <div class="field"><label for="nr-ch">Por</label><select class="select" id="nr-ch"><option value="mail">Correo</option><option value="app">Aviso en la app</option></select></div>
+          <button class="btn btn-primary" type="submit">${L.icon('plus', 14)}Crear regla</button></div>
+          <p class="muted" style="margin:10px 0 0;font-size:var(--fs-xs)">La regla nace encendida. Probala para ver el correo o el aviso que generaría.</p></form></section>`;
+  };
+  P.actividad = () => {
+    const s = S(); const f = L.pref('plataforma:act') || 'todas';
+    const items = s.activity.filter(a => f === 'todas' || a.projectId === f);
+    return `<div class="panel-h"><h2>Actividad</h2>${L.cap('propuesto')}<span class="spacer"></span>
+      <label class="row" style="gap:6px"><span class="lbl">Obra</span><select class="select input-sm" id="act-f" style="width:auto"><option value="todas">Todas las obras</option>${s.projects.map(p => `<option value="${p.id}"${p.id === f ? ' selected' : ''}>${L.esc(short(p.id))}</option>`).join('')}</select></label></div>
+      <p class="muted">La app de hoy no guarda un historial de actividad: esto se arma con lo que hacen las personas, los distribuidores y el sistema en la demo.</p>
+      <div class="card">${items.length ? items.map(a => `<div class="feed-i"><time datetime="${a.at}">${when(a.at)}</time>${av(a.who)}<div><strong>${L.esc(L.who(a.who))}</strong> <span class="muted">· ${L.esc(short(a.projectId))}</span><br>${L.esc(a.text)}</div></div>`).join('') : L.empty({ icon: 'activity', title: 'Sin actividad en esta obra', text: 'Cuando alguien sube un plano, edita el BOM o pide cotización, aparece acá.' })}</div>`;
+  };
+  P.correos = () => {
+    const s = S(); const seen = ui().seenMail || 0;
+    return `<div class="note note-warn" style="margin-bottom:var(--sp-4)">${L.icon('mail', 16)}<p><strong>Ningún correo sale de este prototipo.</strong> Esta es la bandeja de lo que se enviaría. Las notificaciones por correo a los dos lados están ${L.cap('planificado')} para el Sprint 5. ${L.sim('Correo simulado')}</p></div>
+      <div class="panel-h"><h2>Correos simulados</h2><span class="muted">${s.outbox.length}</span></div>
+      <div class="card"><div class="mail pad">${s.outbox.length ? s.outbox.map((m, i) => `<article class="mail-i${i < s.outbox.length - seen ? ' new' : ''}"><header><strong>${L.esc(m.subject)}</strong><small>Para <span class="mono">${L.esc(m.to)}</span> · ${when(m.at)}</small></header><p>${L.esc(m.body)}</p></article>`).join('') : L.empty({ icon: 'mail', title: 'No hay correos', text: 'Aparecen cuando una regla avisa por correo o cuando se envía una solicitud.' })}</div></div>`;
+  };
+
+  function render() {
+    document.getElementById('tabs').innerHTML = TABS.map(t => `<button role="tab" id="tab-${t.id}" data-tab="${t.id}" aria-selected="${t.id === tab}" aria-controls="panel" tabindex="${t.id === tab ? 0 : -1}">${L.icon(t.icon, 15)}${t.label}<span class="count">${t.count()}</span></button>`).join('');
+    const panel = document.getElementById('panel'); panel.setAttribute('aria-labelledby', 'tab-' + tab);
+    const ae = document.activeElement; const keep = ae && panel.contains(ae) && ae.tagName === 'INPUT' && ae.type !== 'checkbox' ? { id: ae.id, v: ae.value } : null;
+    panel.innerHTML = P[tab]();
+    if (keep && keep.id) { const el = document.getElementById(keep.id); if (el) { el.value = keep.v; el.focus(); } }
+    if (tab === 'correos' && ui().seenMail !== S().outbox.length) setTimeout(() => { if (tab === 'correos') setUi(u => { u.seenMail = S().outbox.length; }); }, 2500);
+  }
+  const go = t => { tab = t; L.setParam('tab', t); render(); document.getElementById('tab-' + t).focus(); };
+
+  const page = document.getElementById('page');
+  document.getElementById('tabs').addEventListener('keydown', e => { const i = TABS.findIndex(t => t.id === tab); if (e.key === 'ArrowRight') go(TABS[(i + 1) % TABS.length].id); if (e.key === 'ArrowLeft') go(TABS[(i + TABS.length - 1) % TABS.length].id); });
+  page.addEventListener('click', async e => {
+    const a = e.target.closest('[data-go]'); if (a) { e.preventDefault(); go(a.dataset.go); return; }
+    const t = e.target.closest('button'); if (!t) return;
+    if (t.dataset.tab) return go(t.dataset.tab);
+    if (t.dataset.cmf) { L.pref('plataforma:cm', t.dataset.cmf); return render(); }
+    if (t.dataset.resolve) { const id = t.dataset.resolve; L.store.update(s => { const c = s.comments.find(x => x.id === id); c.resolved = true; c.resolvedBy = s.session.userId; c.resolvedAt = L.now(); L._log(s, c.projectId, s.session.userId, 'Marcó resuelto el comentario de ' + L.who(c.who) + ': «' + c.text.slice(0, 50) + (c.text.length > 50 ? '…' : '') + '»'); }); L.toast('Comentario resuelto'); return; }
+    if (t.dataset.reopen) { const id = t.dataset.reopen; L.store.update(s => { const c = s.comments.find(x => x.id === id); c.resolved = false; delete c.resolvedBy; delete c.resolvedAt; }); L.toast('Comentario reabierto'); return; }
+    if (t.dataset.dec) {
+      const f = t.closest('[data-decide]'); const id = f.dataset.decide; const inp = f.querySelector('input'); const note = inp.value.trim(); const dec = t.dataset.dec;
+      if (dec === 'RECHAZADA' && !note) { L.fieldError(inp, 'Contale a Compras por qué la rechazás.'); inp.focus(); return; }
+      L.fieldError(inp, null);
+      const ap = S().approvals.find(x => x.id === id); const r = L.request(ap.requestId);
+      const ok = await L.confirm(dec === 'APROBADA' ? 'Aprobar la adjudicación' : 'Rechazar la adjudicación', (dec === 'APROBADA' ? 'Vas a aprobar ' : 'Vas a rechazar ') + 'la adjudicación de ' + r.code + ' por ' + L.ars(ap.total) + ' como Dirección. ' + (dec === 'APROBADA' ? 'Compras recibe el aviso y ya puede emitir los pedidos.' : 'Compras recibe el aviso con tu nota; no se emite ningún pedido.'), dec === 'APROBADA' ? 'Aprobar' : 'Rechazar', dec === 'APROBADA' ? 'primary' : 'danger');
+      if (!ok) return;
+      L.decideApproval(id, dec, note); L.toast(dec === 'APROBADA' ? 'Adjudicación aprobada' : 'Adjudicación rechazada', { detail: r.code + ' · ' + L.ars(ap.total) }); return;
+    }
+    if (t.hasAttribute('data-sample-ap')) { createSampleApproval(); return; }
+    if (t.dataset.test) { testRule(t.dataset.test); return; }
+    if (t.dataset.del) { const r = S().automations.find(x => x.id === t.dataset.del); if (await L.confirm('Borrar la regla', 'Vas a borrar «' + r.label + '». Los avisos que ya generó quedan.', 'Borrar regla', 'danger')) { L.store.update(s => { s.automations = s.automations.filter(x => x.id !== r.id); }); L.toast('Regla borrada'); } return; }
+  });
+  page.addEventListener('change', e => {
+    const el = e.target;
+    if (el.dataset.toggle) { const id = el.dataset.toggle; L.store.update(s => { s.automations.find(x => x.id === id).enabled = el.checked; }); L.toast(el.checked ? 'Regla encendida' : 'Regla apagada'); return; }
+    if (el.dataset.roleP) { const pid = el.dataset.roleP, uid = el.dataset.roleU, v = el.value; L.store.update(s => { s.ui = s.ui || {}; s.ui.plataforma = s.ui.plataforma || {}; const u = s.ui.plataforma; u.roles = u.roles || {}; (u.roles[pid] = u.roles[pid] || {})[uid] = v; L._log(s, pid, s.session.userId, 'Cambió el acceso de ' + L.who(uid) + ' a «' + ROLES[v] + '».'); }); L.toast('Acceso actualizado', { detail: L.who(uid) + ' · ' + short(pid) + ' · ' + ROLES[v] }); return; }
+    if (el.id === 'act-f') { L.pref('plataforma:act', el.value); render(); }
+  });
+  page.addEventListener('submit', e => {
+    e.preventDefault(); const f = e.target;
+    if (f.id === 'invite') {
+      const n = f.querySelector('#inv-name'), m = f.querySelector('#inv-mail'), a = f.querySelector('#inv-area'); let bad = null;
+      const name = n.value.trim(), mail = m.value.trim().toLowerCase();
+      if (name.length < 3 || !/\s/.test(name)) { L.fieldError(n, 'Escribí nombre y apellido.'); bad = bad || n; } else L.fieldError(n, null);
+      if (!mail) { L.fieldError(m, 'Escribí el correo.'); bad = bad || m; } else if (!emailOk(mail)) { L.fieldError(m, 'El correo no parece válido: revisá que tenga @ y dominio.'); bad = bad || m; } else if (S().team.some(x => x.email.toLowerCase() === mail)) { L.fieldError(m, 'Esa persona ya está en el equipo.'); bad = bad || m; } else L.fieldError(m, null);
+      if (!a.value) { L.fieldError(a, 'Elegí el área.'); bad = bad || a; } else L.fieldError(a, null);
+      if (bad) { L.toast('No enviamos la invitación', { kind: 'err', detail: 'Corregí los campos marcados; no se agregó a nadie.' }); bad.focus(); return; }
+      L.store.update(s => { const id = L.uid('u'); s.team.push({ id, name, initials: initials(name), area: a.value, email: mail, invited: true, invitedAt: L.now() });
+        L._mail(s, mail, 'Te invitaron a liard', s.team.find(x => x.id === s.session.userId).name + ' te invitó a ' + s.company.name + ' en liard (' + a.value + '). Entrá con el enlace para crear tu contraseña.');
+        L._log(s, L.currentProjectId(), s.session.userId, 'Invitó a ' + name + ' (' + a.value + ') al equipo.'); });
+      L.toast('Invitación enviada', { detail: mail + ' · correo simulado en Correos' }); return;
+    }
+    if (f.dataset.reply) {
+      const inp = f.querySelector('input'); const text = inp.value.trim(); if (!text) { L.fieldError(inp, 'Escribí la respuesta.'); inp.focus(); return; }
+      const parent = S().comments.find(c => c.id === f.dataset.reply); inp.blur();
+      const c = L.addComment(parent.entity, parent.projectId, text);
+      L.store.update(s => { s.comments.find(x => x.id === c.id).replyTo = parent.id; });
+      L.toast('Respuesta publicada'); return;
+    }
+    if (f.dataset.thr) {
+      const inp = f.querySelector('input'); const raw = inp.value.replace(/[.\s]/g, '').replace(/^ARS/i, '');
+      if (!/^\d+$/.test(raw)) { L.fieldError(inp, 'Escribí un monto en pesos, sin decimales (p. ej. 30.000.000). El monto anterior sigue vigente.'); inp.focus(); return; }
+      const v = +raw;
+      if (v < 100000) { L.fieldError(inp, 'El mínimo es ARS 100.000: por debajo, casi toda adjudicación pediría aprobación. El monto anterior sigue vigente.'); inp.focus(); return; }
+      if (v > 10000000000) { L.fieldError(inp, 'El máximo es ARS 10.000.000.000. El monto anterior sigue vigente.'); inp.focus(); return; }
+      L.fieldError(inp, null); inp.blur();
+      L.store.update(s => { const r = s.automations.find(x => x.id === f.dataset.thr); r.threshold = v; r.label = 'Si una adjudicación supera ' + L.ars(v) + ', pedir aprobación de Dirección'; });
+      L.toast('Monto guardado', { detail: 'Las adjudicaciones de más de ' + L.ars(v) + ' pedirán aprobación.' }); return;
+    }
+    if (f.id === 'new-rule') {
+      const w = f.querySelector('#nr-when'), a = f.querySelector('#nr-area'), ch = f.querySelector('#nr-ch'); let bad = null;
+      if (!w.value) { L.fieldError(w, 'Elegí cuándo se dispara.'); bad = w; } else L.fieldError(w, null);
+      if (!a.value) { L.fieldError(a, 'Elegí a quién avisar.'); bad = bad || a; } else L.fieldError(a, null);
+      if (bad) { bad.focus(); return; }
+      const dup = S().automations.find(r => r.when === w.value && ruleTarget(r).area === a.value && ruleTarget(r).ch === ch.value);
+      if (dup) { L.fieldError(a, 'Ya existe una regla igual: «' + dup.label + '».'); a.focus(); return; }
+      const label = 'Cuando ' + TRIGGERS[w.value].charAt(0).toLowerCase() + TRIGGERS[w.value].slice(1) + ', avisar a ' + a.value + (ch.value === 'mail' ? ' por correo' : ' en la app');
+      L.store.update(s => { s.automations.push({ id: L.uid('au'), when: w.value, then: 'AVISAR', area: a.value, channel: ch.value, label, enabled: true, custom: true, createdBy: s.session.userId, createdAt: L.now() }); });
+      L.toast('Regla creada', { detail: label }); return;
+    }
+  });
+  function createSampleApproval() {
+    const r = S().requests.find(x => x.status === 'ABIERTA'); if (!r) { L.toast('No hay solicitudes abiertas para simular', { kind: 'warn' }); return; }
+    if (S().approvals.some(a => a.requestId === r.id && a.status === 'PENDIENTE')) return;
+    const alloc = L.allocate(r.id, 'BARATO'); const sum = L.allocationSummary(r.id, alloc);
+    L.store.update(s => { s.approvals.unshift({ id: L.uid('ap'), requestId: r.id, total: sum.total, alloc, status: 'PENDIENTE', requestedBy: 'u-martin', at: L.now(), approver: 'u-daniel', simulated: true });
+      L._notify(s, { role: 'ENGINEER', title: 'Aprobación pedida para ' + r.code, body: 'Adjudicación por ' + L.ars(sum.total) + ' espera a Dirección.', href: 'd-automatizaciones.html?tab=aprobaciones' });
+      L._log(s, r.projectId, 'u-martin', 'Pidió aprobación de Dirección para adjudicar ' + L.ars(sum.total) + ' (ejemplo de la demo).'); });
+    L.toast('Pedido de aprobación simulado', { detail: r.code + ' · ' + L.ars(sum.total) });
+  }
+
+  if (L.param('estado') === 'con-aprobacion' && !S().approvals.some(a => a.status === 'PENDIENTE')) createSampleApproval();
+  L.store.subscribe(render);
+  render();
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+﻿Tablero;Línea;Familia;Material;Marca;Cantidad dibujada (1 tablero);Repeticiones;Cantidad a comprar por este tablero;Ubicación estimada;Módulos DIN;Ancho estimado (mm);Alto estimado (mm);Procedencia;Precio de referencia mín. (ARS);Precio de referencia máx. (ARS)
+TGBT;b1;Protección;Caja moldeada 4P · 400 A · 50 kA · Termomagnética;Schneider;1;1;1;Placa, fila superior;;185;255;detectado;2890000;3005600
+TGBT;b3;Protección;Descargador 4P · 40 kA;Cualquier marca;1;1;1;Riel 1;4;72;90;detectado;118440;207250
+TGBT;b5;Protección;Térmica 4P · 63 A · curva C;Schneider;4;1;4;Riel 1;4;72;85;detectado;186000;193440
+TGBT;b6;Protección;Térmica 4P · 32 A · curva C;Schneider;6;1;6;Riel 1 · Riel 2;4;72;85;detectado;131000;136240
+TGBT;b7;Protección;Diferencial 4P · 63 A;Schneider;1;1;1;Riel 2;4;72;85;detectado;;
+TGBT;b2;Maniobra;Seccionador 4P · 400 A;Schneider;1;1;1;Placa, fila superior;;185;240;detectado;920000;956800
+TGBT;b4;Medición;Multimedidor Modbus RTU;Schneider;1;1;1;Puerta;;96;96;detectado;468000;486720
+TGBT;b14;Señalización;Ojo de buey Rojo · 220 V;Cualquier marca;3;1;3;Puerta;;22;22;detectado;4430;8160
+TGBT;b15;Señalización;Ojo de buey Verde · 220 V;Cualquier marca;3;1;3;Puerta;;22;22;detectado;4430;8160
+TGBT;b18;Conexionado;Borne 4 mm²;Cualquier marca;24;1;24;Bornera;;6,2;45;inferido;870;1600
+TGBT;b16;Envolvente;Gabinete IP55 · 2000×800 mm;Schneider;1;1;1;Envolvente (el gabinete);;800;2000;inferido;3150000;3276000
+
+Modelo conceptual: disposición aproximada derivada del BOM, no un plano de montaje ni un cálculo de gabinete.
+"Gabinete: 2000×800 mm, de la línea del BOM; profundidad 400 mm supuesta."
+Precios de referencia de catálogo: no son ofertas confirmadas.

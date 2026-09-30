@@ -1,0 +1,701 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 03 — LIARD frontend: journeys, rules, copy, visual system</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="../estrategia/01-estrategia.html" class="">01 · Estrategia de liard</a><a href="../estrategia/02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="../estrategia/03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="../estrategia/04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="03-frontend.html" class="on">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>03 — LIARD frontend: journeys, rules, copy, visual system</h1>
+<p>Source: <code>lab3-liard</code> repo, <code>front/</code>, branch <code>dev</code>, commit <code>04fc8139</code>. Read-only audit; nothing in the repo was modified.
+All paths below are relative to <code>lab3-liard/front/src/</code> unless they start with <code>front/</code> or <code>back/</code>.</p>
+<p>Purpose: give the design team a map of every existing screen and the domain rules the UI enforces today, so a radical
+redesign can drop the current layouts without dropping a verified rule.</p>
+<hr>
+<h2>1. Routes and guards</h2>
+<p>Router: <code>router/index.tsx</code> (mounted in <code>App.tsx</code> inside <code>TooltipProvider</code> + <code>components/shared/Toaster.tsx</code>).</p>
+<p>Guards (<code>components/auth/guards/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Guard</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GuestOnly</code></td>
+<td>With a session, redirects to <code>resolvePostLoginRoute(user)</code> (<code>lib/auth/session-home.ts</code>). Renders nothing while the session loads.</td>
+</tr>
+<tr>
+<td><code>RequireAuth</code></td>
+<td>No session -&gt; <code>/login</code>. Waits for session load (explicitly to avoid the &quot;logged out on refresh&quot; bug).</td>
+</tr>
+<tr>
+<td><code>RequireOnboarded</code></td>
+<td>Role missing or <code>needsOnboarding</code> -&gt; back to the onboarding step.</td>
+</tr>
+<tr>
+<td><code>RequireRole role=X</code></td>
+<td>Wrong role or onboarding pending -&gt; the user&#39;s own home.</td>
+</tr>
+</tbody></table>
+<p><code>resolvePostLoginRoute</code>: no role -&gt; <code>/onboarding/role</code>; role but profile not sealed -&gt; <code>/onboarding/profile</code>;
+otherwise <code>ENGINEER -&gt; /projects</code>, <code>SUPPLIER -&gt; /supplier/requests</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Page component</th>
+<th>Guard / who sees it</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>/</code></td>
+<td><code>pages/LandingPage.tsx</code></td>
+<td>public</td>
+</tr>
+<tr>
+<td><code>/forgot-password</code></td>
+<td><code>pages/auth/ForgotPasswordPage.tsx</code></td>
+<td>public (deliberately not GuestOnly: link opens with a session)</td>
+</tr>
+<tr>
+<td><code>/reset-password</code></td>
+<td><code>pages/auth/ResetPasswordPage.tsx</code></td>
+<td>public</td>
+</tr>
+<tr>
+<td><code>/confirmar-email</code></td>
+<td><code>pages/auth/ConfirmEmailPage.tsx</code></td>
+<td>public</td>
+</tr>
+<tr>
+<td><code>/login</code></td>
+<td><code>pages/auth/LoginPage.tsx</code></td>
+<td>GuestOnly</td>
+</tr>
+<tr>
+<td><code>/register</code></td>
+<td><code>pages/auth/RegisterAccountPage.tsx</code></td>
+<td>GuestOnly</td>
+</tr>
+<tr>
+<td><code>/register/type</code>, <code>/register/profile</code></td>
+<td>redirects to <code>/onboarding/role</code>, <code>/onboarding/profile</code></td>
+<td>legacy aliases</td>
+</tr>
+<tr>
+<td><code>/onboarding/role</code></td>
+<td><code>pages/onboarding/SelectRolePage.tsx</code></td>
+<td>RequireAuth</td>
+</tr>
+<tr>
+<td><code>/onboarding/profile</code></td>
+<td><code>pages/onboarding/CompleteProfilePage.tsx</code></td>
+<td>RequireAuth</td>
+</tr>
+<tr>
+<td><code>/cuenta</code>, <code>/cuenta/:section</code></td>
+<td><code>pages/account/AccountPage.tsx</code> inside <code>RoleLayout</code></td>
+<td>RequireAuth + RequireOnboarded, both roles</td>
+</tr>
+<tr>
+<td><code>/projects</code></td>
+<td><code>pages/ProjectsPage.tsx</code></td>
+<td>ENGINEER, <code>AppLayout</code></td>
+</tr>
+<tr>
+<td><code>/projects/:id</code></td>
+<td><code>pages/ProjectDetailPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/projects/:id/plans/:planId</code></td>
+<td><code>pages/PlanDetailPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/projects/:id/bom/edit</code> (<code>?planId=</code> optional)</td>
+<td><code>pages/BomEditorPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/projects/:id/quotation</code> (<code>?planId=&amp;planName=</code> optional)</td>
+<td><code>pages/QuotationPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/projects/:id/quotation/material/:itemId</code></td>
+<td><code>pages/MaterialOffersPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/projects/:id/quotation/:offerId</code></td>
+<td><code>pages/QuotationDetailPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/orders</code></td>
+<td><code>pages/orders/OrdersPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/orders/:orderBatchId/success</code></td>
+<td><code>pages/orders/OrderSuccessPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/orders/:orderBatchId/providers</code></td>
+<td><code>pages/orders/OrderPerProviderPage.tsx</code></td>
+<td>ENGINEER</td>
+</tr>
+<tr>
+<td><code>/supplier</code></td>
+<td>redirect -&gt; <code>/supplier/requests</code></td>
+<td>SUPPLIER, <code>pages/supplier/SupplierLayout.tsx</code></td>
+</tr>
+<tr>
+<td><code>/supplier/requests</code></td>
+<td><code>SupplierRequestsPage status=&quot;SENT&quot;</code> &quot;Solicitudes recibidas&quot;</td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/requests/accepted</code></td>
+<td>same, <code>CONFIRMED</code>, &quot;Solicitudes aceptadas&quot;</td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/requests/rejected</code></td>
+<td>same, <code>REJECTED</code>, &quot;Solicitudes rechazadas&quot;</td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/requests/:purchaseOrderId</code></td>
+<td><code>SupplierRequestDetailPage.tsx</code></td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/requests/:purchaseOrderId/contact</code></td>
+<td><code>SupplierRequestContactPage.tsx</code></td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/catalog/products</code></td>
+<td><code>SupplierCatalogPage.tsx</code></td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/catalog/manage</code></td>
+<td><code>SupplierCatalogImportPage.tsx</code> (import wizard)</td>
+<td>SUPPLIER</td>
+</tr>
+<tr>
+<td><code>/supplier/catalog/link</code></td>
+<td><code>SupplierCatalogLinkPage.tsx</code> (canonical linking)</td>
+<td>SUPPLIER</td>
+</tr>
+</tbody></table>
+<p>There is no 404 catch-all route: an unknown URL renders an empty <code>&lt;Routes&gt;</code>.
+Route and UI identifiers are mixed: <code>/cuenta</code> and <code>/confirmar-email</code> are Spanish, everything else is English.</p>
+<p>Navigation shells:</p>
+<ul>
+<li>Engineer (<code>components/layouts/AppLayout.tsx</code>): collapsible shadcn sidebar (<code>AppSidebar.tsx</code>) with only <strong>Proyectos</strong>
+and <strong>Pedidos</strong>, a &quot;Nuevo proyecto&quot; button, and the account menu at the bottom (<code>SidebarAccountMenu.tsx</code>: &quot;Mi cuenta&quot;,
+&quot;Cerrar sesión&quot;). <code>AppTopBar.tsx</code> holds breadcrumbs. <code>NewProjectModal</code> is mounted globally.</li>
+<li>Supplier (<code>components/layouts/supplier-nav.ts</code>, <code>SupplierSidebar.tsx</code>): <strong>Solicitudes</strong> (Recibidas / Aceptadas /
+Rechazadas) and <strong>Catálogo</strong> (Productos / Gestión de productos / Vinculación).</li>
+<li><code>RoleLayout.tsx</code> picks one of the two for <code>/cuenta</code> (the only shared screen).</li>
+</ul>
+<hr>
+<h2>2. Journeys by role</h2>
+<h3>2.1 Public and auth</h3>
+<p><strong>Landing</strong> (<code>pages/LandingPage.tsx</code>, <code>components/landing/*</code>, own stylesheet <code>styles/landing.css</code>): hero diagram, audience
+switch (engineer / supplier), boards showcase, CAD symbol art, steps. CTAs to <code>/login</code> and <code>/register</code>.</p>
+<p><strong>Register</strong> (<code>components/auth/register/RegisterForm.tsx</code>, <code>hooks/auth/useRegisterForm.ts</code>): single screen — &quot;Nombre y
+apellido&quot;, email, password, &quot;Repetir contraseña&quot; -&gt; &quot;Crear cuenta&quot; / &quot;Creando cuenta&quot;. Side sheet: &quot;Tu plano, ya contado.&quot;
+Validations: &quot;Ingresá tu nombre.&quot;, &quot;Ingresá un correo válido.&quot;, &quot;Las contraseñas no coinciden.&quot;, password rule
+&quot;Debe contener al menos 8 caracteres, una mayúscula y un número.&quot; (<code>hooks/auth/authValidation.ts</code>). Duplicate email:
+&quot;Ese email ya tiene una cuenta.&quot; + link &quot;Iniciá sesión con esa cuenta&quot;.</p>
+<p><strong>Login</strong> (<code>components/auth/login/*</code>): &quot;Iniciar sesión — Entrá con la cuenta de tu equipo.&quot; Panel tagline &quot;Del plano a la
+orden de compra.&quot; Button disabled until fields are filled. Error alerts (<code>components/auth/shared/AuthFormAlert.tsx</code>):
+credentials invalid (&quot;Revisá el correo y la contraseña, e intentá de nuevo.&quot;), &quot;Sin conexión con el servidor — No pudimos
+llegar a liard…&quot;, &quot;Demasiados intentos — Esperá unos minutos antes de volver a probar.&quot; (429 handled distinctly on
+purpose, <code>lib/api.ts isTooManyRequestsError</code>). After a reset: &quot;Contraseña actualizada — Entrá con tu contraseña nueva.&quot;</p>
+<p><strong>Recovery</strong>: &quot;Recuperar contraseña&quot; -&gt; &quot;Enviar enlace&quot; -&gt; &quot;Si hay una cuenta con ese email, mandamos un enlace… El enlace
+vence en una hora.&quot; (no account enumeration). Reset with a dead token: &quot;Este enlace ya no sirve&quot;.</p>
+<p><strong>Email change confirmation</strong> (<code>/confirmar-email</code>): states &quot;Enlace incompleto / A este enlace le falta el código&quot;,
+&quot;Correo confirmado&quot;, &quot;No pudimos confirmar el correo&quot;, &quot;Esa dirección ya está en uso&quot;, &quot;El enlace no sirve más&quot;.</p>
+<p><strong>Onboarding</strong></p>
+<ol>
+<li><code>/onboarding/role</code> — &quot;¿Cómo vas a usar liard?&quot; Two cards (<code>lib/auth/role-options.ts</code>): <strong>Soy Usuario</strong> (&quot;Querés
+cotizar, comparar proveedores y gestionar los pedidos…&quot;) and <strong>Soy Proveedor</strong> (&quot;Estás en Argentina y querés llegar a
+más compradores…&quot;). Rule: role can change until the profile is complete; <strong>then it is fixed</strong>.</li>
+<li><code>/onboarding/profile</code> — &quot;Bienvenido a liard. Completá tu perfil para empezar. Son dos pasos obligatorios y uno que podés
+dejar para después.&quot; Stepper (<code>components/auth/onboarding/ProfileWizard.tsx</code>, fields in <code>lib/auth/profile-fields.ts</code>):<ul>
+<li>ENGINEER: <em>Tus datos</em> (Cargo, Teléfono) -&gt; <em>Tu empresa</em> (Nombre de la empresa, CUIT, Sitio web optional, Provincia,
+Ciudad) -&gt; <em>Tus proveedores</em> (optional; pick favourite providers from <code>GET /providers</code>). Copy states the favourites
+&quot;no se guarda en tu perfil ni afecta cómo se ordenan tus cotizaciones&quot; — <strong>the step is cosmetic today.</strong></li>
+<li>SUPPLIER: <em>Tus datos</em> -&gt; <em>Tu empresa</em> (+ &quot;Rubros que vendés&quot;, &quot;Solo te llegan pedidos de los rubros que marques.&quot;) -&gt;
+<em>Tu perfil de venta</em> (optional: Descripción corta, Marcas que representás, Zonas de entrega, Pedido mínimo en pesos,
+Plazo de entrega habitual en días hábiles).
+Validations (<code>lib/auth/profile-validation.ts</code>): &quot;Completá este campo.&quot;, &quot;Ingresá un teléfono válido.&quot;, &quot;Ingresá una URL
+válida.&quot;, &quot;El CUIT no es válido.&quot;, &quot;Ingresá solo números.&quot; 24 Argentine provinces hard-coded.</li>
+</ul>
+</li>
+</ol>
+<p><strong>Account</strong> (<code>/cuenta/:section</code>): sections ENGINEER <code>perfil | empresa | marcas | seguridad</code>, SUPPLIER
+<code>perfil | empresa | preferencias | seguridad</code> (<code>pages/account/AccountPage.tsx</code>). <em>Marcas</em> = account-level brand rules
+(<code>components/account/BrandPreferencesCard.tsx</code>: &quot;Marcas preferidas — En orden: cuando varias cotizan lo mismo, gana la de
+arriba.&quot; + blocked brands). <em>Seguridad</em>: change password (&quot;Contraseña actualizada. Las otras sesiones quedaron cerradas.&quot;,
+&quot;La contraseña nueva tiene que ser distinta de la actual.&quot;), change email with pending state and cancel, and &quot;Dar de baja la
+cuenta&quot; which requires typing exactly <strong><code>ELIMINAR</code></strong> (<code>service/api/users.ts DELETE_ACCOUNT_CONFIRMATION</code>).</p>
+<h3>2.2 Engineer (&quot;Usuario&quot;)</h3>
+<p><strong>Step 1 — Projects list</strong> (<code>pages/ProjectsPage.tsx</code>, <code>components/project/ProjectsGrid.tsx</code>, <code>ProjectCard.tsx</code>): subtitle
+&quot;Tus obras y sus tableros, con el estado de cada plano a la vista.&quot; Card grid + &quot;Iniciar Nuevo Proyecto&quot; card. Toolbar:
+search &quot;Buscar proyectos...&quot;, status popover (Todos los estados / Listo / En Proceso / Pendiente / Requiere Atención / Sin
+Planos — <code>types/project.types.ts ProgressLabel</code>), date range popover, &quot;Limpiar filtros&quot;. Filters live in the URL
+(<code>hooks/project/useProjectFilters.ts</code>). Empty: &quot;No hay proyectos activos todavía&quot;; no match: &quot;Sin resultados&quot;. A
+<strong>FirstStepsChecklist</strong> (&quot;Primeros pasos&quot;: Creá un proyecto / Subí la tabla de referencia y los planos / Procesá los planos y
+revisá la lista / Cotizá y emití los pedidos) can be hidden. Delete project from the card (Cypress pins that the modal copy
+must not promise deleting plans/BOMs).</p>
+<p><strong>Step 2 — New project</strong> (<code>components/project/NewProjectModal.tsx</code>): name required, max 100 chars; description max 500.</p>
+<p><strong>Step 3 — Project workspace</strong> (<code>pages/ProjectDetailPage.tsx</code>, <code>components/project/workspace/*</code>):</p>
+<ul>
+<li><strong>Reference table card</strong> (<code>ReferenceTableCard.tsx</code>): the client&#39;s symbol legend DXF. Optional — &quot;Sin ella los planos se
+procesan igual, con los nombres estándar en vez de los del cliente&quot;. Only <code>.dxf</code> accepted (&quot;Solo se permiten archivos .dxf
+para la tabla de referencia.&quot;). Upload file, or crop it out of a plan (<code>CropReferenceTableModal.tsx</code>, embeds the DXF
+viewer), view, download, replace, delete.</li>
+<li><strong>Plans panel</strong> (<code>PlansPanel.tsx</code>): &quot;Cada plano del proyecto es un tablero.&quot; Upload dialog (<code>UploadPlansDialog.tsx</code>) offers
+two paths: &quot;Ya tengo un archivo por tablero&quot; (pick <code>.dxf</code>/<code>.pdf</code>, drag-drop onto the list) or &quot;Tengo un plano con varios&quot;
+-&gt; <strong>Recortar tableros</strong> (<code>components/plan/DxfGeneratorModal.tsx</code>, the crop viewer). Limits
+(<code>utils/uploadPlansValidation.ts</code>): <strong>max 15 plans per upload, max 10 PDFs</strong>; PDFs are converted to DXF on upload
+(&quot;Convirtiendo el PDF a DXF. Puede tardar unos segundos.&quot;).</li>
+<li>Plan rows: status badge (<code>components/project/PlanStatusBadge.tsx</code>): <code>COMPLETED</code> &quot;Listo&quot;, <code>PROCESSING</code> &quot;En Proceso&quot;,
+<code>ERROR</code> &quot;Error&quot;, <code>STALE</code> &quot;Por revisar&quot;, <code>PENDING</code> &quot;Pendiente&quot;. Processable = PENDING, ERROR, STALE (<code>lib/planStatus.ts</code>);
+action label &quot;Procesar&quot; / &quot;Reintentar&quot; / &quot;Procesando&quot;. Row menu: Ver página de detalles, <strong>Editar repeticiones…</strong>
+(multiplier 1–1000, <code>plan-variations/shared/planMultiplierForm.ts</code>; a board repeated N times counts N times), Abrir visor
+rápido, Descargar BOM del plano, Descargar DXF / PDF original, Eliminar plano. Badge on rows with unidentified symbols.</li>
+<li><strong>Bulk processing</strong> (<code>hooks/project/useBulkPlanProcessing.ts</code>): select plans -&gt; process-all (202, queued); progress bar
+&quot;Procesando tanda / Planos en espera / Progreso de extracción&quot;; &quot;Cancelar los planos que todavía no empezaron a
+procesarse&quot; (<code>DELETE /project/:id/processing-batch</code>). Messages: &quot;Ya hay una tanda en curso; se sigue esa.&quot;, &quot;No hay planos
+para procesar.&quot;, &quot;No quedaba nada encolado para cancelar.&quot; Status is polled (<code>refetchInterval</code> in
+<code>service/queries/project.queries.ts</code>, <code>plan.queries.ts</code>).</li>
+<li><strong>Consolidated BOM</strong> (<code>components/project/BomSummaryTable.tsx</code>): &quot;BOM Consolidado&quot;, &quot;Material / Especificación&quot;, export
+Excel/CSV, &quot;Editar BOM&quot; / &quot;Configurar BOM&quot;, &quot;Solicitar cotización&quot; / &quot;Ver cotización&quot; / &quot;Volver a cotizar&quot;. Empty: &quot;Sin BOM
+consolidado — Procesá al menos un plano…&quot;. Partial: &quot;Hay planos procesándose: el BOM todavía no está completo.&quot;</li>
+<li><strong>Project brand rules</strong> (<code>ProjectBrandPreferencesModal.tsx</code>, &quot;Marcas del proyecto&quot;): preferred (ordered, override account)
+and blocked brands for this obra; shows the merged &quot;Lo que termina valiendo en esta obra&quot;.</li>
+<li><strong>Quote gate</strong> (<code>ProjectDetailPage.tsx</code> lines 42–68, <code>hooks/project/bomSummaryPresentation.ts</code>) — &quot;Solicitar cotización&quot;
+refuses, in order:<ol>
+<li>no computed BOM — &quot;No hay un BOM computado en el proyecto. Procesá al menos un plano primero.&quot;</li>
+<li>plans still processing — &quot;Hay planos procesándose actualmente. Esperá a que finalicen.&quot;</li>
+<li>zero materials</li>
+<li>lines without brand or specification — &quot;Faltan definir marcas o especificaciones en el BOM. Primero definilas en el editor.&quot;</li>
+<li>unresolved symbols — &quot;Hay símbolos sin resolver en los planos. Resolvelos o descartalos en el visor CAD antes de cotizar.&quot;</li>
+</ol>
+</li>
+</ul>
+<p><strong>Step 4 — Plan detail</strong> (<code>pages/PlanDetailPage.tsx</code> -&gt; <code>components/plan-variations/layouts/PlanLayoutV5_InteractiveInspector.tsx</code>,
+the only surviving &quot;V5&quot; of an earlier variations experiment). Header with breadcrumbs, status badge, multiplier field (saved
+on blur, reverted if the server refuses), pager &quot;1 / 2&quot; with ←/→ shortcuts. Two tabs:</p>
+<ul>
+<li><strong>Visor CAD</strong> (<code>components/plan/PlanDxfViewer.tsx</code>, three.js/dxf-viewer in-page): zoom, fit (&quot;F&quot;), fullscreen,
+<strong>Detecciones</strong> toggle overlays detected boxes (<code>PlanDetectedComponentBoxes.tsx</code>) and unidentified boxes
+(<code>PlanUnidentifiedBoxes.tsx</code>). Clicking a box opens <code>DetectedSymbolPanel</code> (&quot;Símbolo seleccionado&quot;, &quot;Qué leyó el detector&quot;,
+&quot;En qué fila cuenta&quot;, &quot;Corregir símbolo&quot; / &quot;Abrir el corrector completo&quot;). A box that no row counts opens read-only.
+Loading copy: &quot;Descargando plano CAD…&quot;, &quot;Analizando entidades geométricas…&quot;, &quot;Preparando vista 2D…&quot;; timeouts &quot;El plano
+DXF demoró demasiado en procesarse.&quot;</li>
+<li><strong>Cómputo BOM</strong> (<code>plan-variations/layouts/inspector/PlanBomTab.tsx</code>): per-plan table (Material / Código Técnico,
+Especificación Técnica, qty), &quot;Total de unidades&quot;, inline &quot;Editar especificación&quot; (material and spec cannot be empty),
+export, &quot;Editar BOM&quot; (-&gt; editor with <code>?planId</code>), &quot;Ver en el plano&quot; (-&gt; symbol locator), &quot;Solicitar cotización&quot; for the plan.</li>
+<li><strong>Símbolos CAD sin resolver</strong> (<code>plan-variations/shared/UnmappedSymbolsCard.tsx</code>): grouped rows of symbols the detector
+could not map; select many -&gt; &quot;Asignar material&quot; (<code>BatchResolveSymbolsDialog</code>: Especificación Técnica, &quot;Cantidad por
+símbolo&quot; &gt; 0, placeholders &quot;Ej: Guardamotor GV2P16&quot;) or &quot;Descartar símbolo (no computar)&quot;. Concurrency: 409 -&gt; &quot;No se
+descartó nada: otro usuario ya resolvió o descartó alguno de los símbolos seleccionados…&quot;.</li>
+<li>Symbol <strong>reclassify</strong> with a backend preview (&quot;Así queda la fila&quot;, &quot;Ya existe esa fila: se suman&quot;, &quot;Esto parte la fila en
+dos / Partir la fila&quot;, &quot;Está bien, siguiente&quot;).</li>
+</ul>
+<p><strong>Step 5 — BOM editor</strong> (<code>pages/BomEditorPage.tsx</code> -&gt; <code>components/bom-editor/BomEditorWorkspace.tsx</code>, <code>useBomEditor.ts</code>
+1089 lines, <code>saveBomEditor.ts</code>). Scope: project, or one plan via <code>?planId</code>. Two views (<code>shared/ViewModeToggle.tsx</code>):
+&quot;Por planos — Recorre plano por plano, con lo que cada uno aporta al BOM&quot; (<code>layouts/by-plan/*</code>: board list &quot;Tableros del
+proyecto&quot;, board panel, footer nav) and &quot;Por componentes — Lista todos los componentes del proyecto, con el detalle del
+elegido&quot; (list + <code>layouts/BomEditorInspector.tsx</code>: &quot;Origen y Trazabilidad en Planos&quot;, Material en Catálogo, Especificación
+Técnica, Componente base, Precio unitario / Precio por la cantidad).</p>
+<ul>
+<li>Per line: material (catalog combo or free text &quot;Material fuera de catálogo&quot;), specification, brand (&quot;Cualquier marca — El
+proveedor propone el equivalente más conveniente&quot;, or a brand not in catalog &quot;Pedir esta marca aunque no esté en el
+catálogo&quot;), <strong>gama</strong> (sub-brand range; &quot;Cualquier gama&quot;), quantity with ± and &quot;Restaurar cantidad detectada&quot;,
+&quot;Detectado en planos:&quot; traceability, canonical panel &quot;Componente base&quot; (reading status: &quot;Leyendo componente…&quot;, &quot;No es un
+componente base&quot;, &quot;Tiene todos los atributos esenciales.&quot;).</li>
+<li>Line diagnosis (<code>bomEditorLogic.ts ISSUE_DEFS</code>, <code>shared/lineState.ts</code>): state <strong>Bloquea la cotización / Se puede cotizar con
+reparos / Lista</strong>.<ul>
+<li>BLOCKER: <code>NO_MATERIAL</code> &quot;Falta material&quot;, <code>NO_QUANTITY</code> &quot;Sin cantidad&quot;, <code>NO_SPEC</code> &quot;Falta especificación&quot;, <code>NO_BRAND</code>
+&quot;Falta decidir marca&quot;. Only the first three block <strong>saving</strong> (<code>SAVE_BLOCKING_CODES</code>); <code>NO_BRAND</code> blocks only quoting.</li>
+<li>WARNING: &quot;Material fuera de catálogo&quot;, &quot;Especificación libre&quot;, &quot;Marca fuera de catálogo&quot;, &quot;Posible duplicado&quot;, &quot;Faltan
+atributos esenciales&quot;.</li>
+<li>INFO: &quot;Especificación a criterio del proveedor&quot;, &quot;Cantidad editada&quot;.</li>
+</ul>
+</li>
+<li>Filter chips (<code>filterChips.ts</code>): No se guardan, Sin marca, Sin especificación, Sin cantidad, Con observaciones. Search
+&quot;Buscar material o especificación…&quot;.</li>
+<li>Bulk: multi-select, <code>BulkActionBar</code> &quot;Aplicar marca a las líneas seleccionadas&quot; (incompatible brands excluded),
+<strong>Asignación rápida</strong> per board (<code>QuickBrandDropdown</code>), <strong>Aplicar mis preferidas</strong> (fills brandless lines with the
+preferred-brand rules). Blocked brands: &quot;Las marcas bloqueadas dejan de ofrecerse. Lo que ya está guardado en el BOM no
+cambia.&quot; (a warning, not a rejection — pinned by Cypress). Keyboard: duplicate/delete lines.</li>
+<li>Save: &quot;BOM guardado correctamente.&quot; / &quot;No hay cambios nuevos para guardar.&quot;; optimistic lock -&gt; &quot;Alguien más editó una de
+las líneas que estás guardando. Recargá la página…&quot;. Leaving dirty: <code>UnsavedChangesDialog</code> &quot;Tenés cambios sin guardar&quot;.
+&quot;Guardá los cambios del BOM antes de cotizar.&quot; then &quot;Solicitar cotización&quot; (<code>hooks/bom/useBomEditorQuote.ts</code>: &quot;BOM
+verificado y confirmado. Cotización generada.&quot;). Degraded modes: &quot;No hay proveedores importados: el editor abre sin
+catálogo ni precios de referencia.&quot;</li>
+<li>Symbol locator (<code>components/bom-symbol-locator/*</code>): from a line, walk every symbol that produced it on the plan (←/→),
+&quot;Leé la especificación en el plano y corregila&quot;, zoom +/−/0.</li>
+</ul>
+<p><strong>Step 6 — Quotation / allocation</strong> (<code>pages/QuotationPage.tsx</code> -&gt; <code>components/quotation-workspace/layouts/QuotationWorkspaceLayout.tsx</code>).
+Title &quot;Cotización · Adjudicación de Materiales&quot;. States (<code>components/quotation/QuotationStateCard.tsx</code>): &quot;No hay cotización
+vigente&quot; + &quot;Generar cotización&quot;; &quot;Sin ofertas de proveedores&quot;; &quot;Todavía no hay proveedores con catálogo&quot;; load error.</p>
+<ul>
+<li>Matrix (<code>table/QuotationMatrixTable.tsx</code>): rows = materials, columns = suppliers, cells = offers; per-cell brand/gama
+variant selector (&quot;Clic para cambiar la variante&quot;).</li>
+<li>Optimization toolbar (<code>shared/OptimizationToolbar.tsx</code>): Estrategia <strong>Múltiples Proveedores / Único Proveedor</strong>;
+Optimizar <strong>Más Barato / Más Rápido / Mayor Cobertura</strong> (single-supplier picks the cheapest/fastest with 100 % coverage).
+Table toolbar: availability (Todos / Solo con stock / Sin stock en proveedores), quick filters (Mostrar Todos / Top 3 Más
+Baratos / Top 3 Más Rápidos / Selección Manual). &quot;Adjudicar todo&quot; to one supplier with a coverage/impact confirm dialog
+(&quot;Se adjudicarán todos los materiales… que cuenten con stock confirmado en este distribuidor&quot;, reassignment notice).</li>
+<li>HUD (<code>summary/QuotationStatusHUD.tsx</code>): Cobertura, Estado, Distribuidores, Monto total; &quot;Sin adjudicar&quot; filter.</li>
+<li>Material drawer (<code>shared/ComponentIntelligenceDrawer.tsx</code>) and a full page per material (<code>MaterialOffersPage.tsx</code>).</li>
+<li>Offer detail per supplier (<code>QuotationDetailPage.tsx</code>, <code>components/quotation/*</code>): priced lines (flags &quot;PRECIO DESACT.&quot;,
+&quot;NO CATALOGADO&quot;, &quot;REVISION MANUAL&quot;), uncatalogued items box, emit from here with warning: &quot;Emitir desde acá usa la
+cotización entera: una cotización admite un solo pedido…&quot;.</li>
+<li><code>?planId</code> only <strong>filters the view</strong> (&quot;Cotizando únicamente componentes del plano: … Ver cotización de todo el proyecto →&quot;);
+the quote is always project-wide.</li>
+<li><strong>Allocations and selected variants are kept in <code>sessionStorage</code></strong> (<code>hooks/quotation/quotationSessionStorage.ts</code>, keys
+<code>liard.quotation.allocations.&lt;quoteId&gt;</code>), not on the server — closing the tab loses the allocation.</li>
+<li>Emit (<code>shared/ExecuteOrderAction.tsx</code>, <code>components/order/confirm-order/ConfirmOrderDialog.tsx</code>): disabled with &quot;Adjudicá al
+menos un ítem para ejecutar la orden&quot;; dialog &quot;Emitir solicitud a proveedores&quot;, &quot;N pedidos · M ítems&quot;, &quot;Enviar solicitud&quot;.
+<strong>One quote admits one order</strong>; afterwards &quot;Esta cotización ya tiene un pedido emitido&quot; + &quot;Ver pedido&quot;.</li>
+</ul>
+<p><strong>Step 7 — Orders</strong> (<code>pages/orders/*</code>, <code>components/order/*</code>): success page &quot;La solicitud se envió correctamente&quot; (Materiales
+enviados, Proveedores contactados, Total estimado; next steps &quot;Respuesta del proveedor — puede confirmar o rechazar&quot;,
+&quot;Contacto habilitado — Si confirma, compartimos sus datos…&quot;). <code>/orders</code>: stats (En espera / Confirmados / Rechazados /
+Vencidos), toolbar (project filter, search &quot;Buscar pedido, proyecto o tablero...&quot;, sort Más recientes / Más antiguos / Mayor
+monto), table, pagination. Scope label &quot;Tablero puntual&quot; vs &quot;Proyecto completo&quot;. Per-provider page: provider list + detail
+(&quot;Qué le pediste a cada proveedor y cómo viene respondiendo.&quot;) or &quot;Pedido completo&quot; (all lines, sorted by provider, partial
+load warning). Order status badges (<code>OrderStatusBadge.tsx</code>): EN ESPERA / CONFIRMADO / RECHAZADO / VENCIDO.</p>
+<h3>2.3 Supplier (&quot;Proveedor&quot;)</h3>
+<ol>
+<li><strong>Requests inbox</strong> (<code>SupplierRequestsPage.tsx</code>, grid of <code>SupplierRequestCard</code>: Nombre del cliente, Nro de solicitud,
+Precio total estimado). Tabs by status via the sidebar. Filters: search, date range, price range (&quot;El precio desde no puede
+ser mayor que el precio hasta.&quot;).</li>
+<li><strong>Request detail</strong> (<code>SupplierRequestDetailPage.tsx</code>): summary card + lines table (Código de producto…). Actions <strong>Aceptar
+solicitud</strong> (&quot;se compartirán tus datos de contacto con el solicitante&quot;) / <strong>Rechazar solicitud</strong> (&quot;el solicitante va a
+verla como rechazada y no vas a poder responderla de nuevo&quot;). No partial accept, no reason field. 409 -&gt; &quot;Esta solicitud
+ya fue respondida o venció su plazo.&quot; After accept: &quot;Ver contacto&quot;.</li>
+<li><strong>Client contact</strong> (<code>SupplierRequestContactPage.tsx</code>): only after accepting (&quot;Los datos del cliente se comparten cuando
+aceptás la solicitud.&quot;). <strong>Preferred channel, schedule, notes, WhatsApp and Instagram are hard-coded mock data</strong>
+(<code>components/supplier/fixtures/supplier.fixtures.ts mockSupplierContactDetails</code>, used at line 131) — every client shows
+&quot;Lun a Vie · 9:00 a 18:00&quot;, WhatsApp 541112345678, @liard.oficial.</li>
+<li><strong>Catalog — Productos</strong> (<code>SupplierCatalogPage.tsx</code>, <code>SupplierCatalogTable.tsx</code>): table Producto / Código de producto /
+Marca / Componente base / Precio / Estado / Acciones, page size 20. Add/edit product modal
+(<code>SupplierCatalogItemModal.tsx</code>: código, nombre, precio + moneda required — &quot;Usá punto para los decimales&quot;, up to 14
+integers + 4 decimals; optional vigencia &quot;Hasta cuándo vale este precio&quot;, Código de la marca, gama, plazo mín/máx días).
+Publish / unpublish (&quot;Producto despublicado. Seguí viéndolo con el filtro Todos.&quot;). Price freshness: &quot;Precio vencido&quot;,
+&quot;Actualizado hoy/ayer&quot;. Banner &quot;Tenés N productos sin componente base&quot; -&gt; &quot;Ir a vincular&quot;. Empty: &quot;Tu catálogo está vacío
+— … Sin ítems en el catálogo no vas a recibir pedidos.&quot;</li>
+<li><strong>Catalog — Gestión de productos</strong> (import wizard, <code>SupplierCatalogImportPage.tsx</code>, <code>hooks/supplier/useCatalogImportWizard.ts</code>,
+<code>components/supplier/catalog-import/*</code>): steps <strong>Elegir planilla -&gt; Revisar la lectura -&gt; Confirmar</strong>. Choose header row
+and number format (&quot;1.234,56 — coma decimal&quot; / &quot;1,234.56 — punto decimal&quot;), map columns to attributes or a fixed default
+(&quot;Valor fijo para toda la planilla&quot;), preview via backend; verdict <strong>Planilla aceptada / Aceptada con advertencias /
+Planilla rechazada</strong>; checks such as &quot;Todos los artículos declaran su marca&quot;, &quot;Los códigos repetidos son pocos&quot;. Import
+<strong>replaces</strong> the catalog (<code>CatalogReplaceWarning</code>). Result &quot;Catálogo actualizado — Tu lista de precios ya es la que ven
+los ingenieros al cotizar.&quot; History &quot;Cargas anteriores&quot;.</li>
+<li><strong>Catalog — Vinculación</strong> (<code>SupplierCatalogLinkPage.tsx</code>, <code>components/supplier/canonical-link/*</code>): background AI reading
+progress (&quot;Leyendo tu catálogo&quot;, Productos leídos / No se pudieron leer / Por leer, Tiempo restante; polled); overview by
+state (Sin identificar / Les falta un atributo / Sin vincular / No se pudo leer); per-product sheet: component type +
+attribute slots (&quot;Fuera del estándar&quot;, &quot;Sin valor&quot;), autosave (&quot;Cada cambio se guarda solo.&quot;), &quot;Siguiente pendiente&quot;.
+Manual links are kept across re-imports (&quot;…a mano: una nueva carga del catálogo no lo cambia.&quot;).</li>
+</ol>
+<hr>
+<h2>3. Domain rules the UI enforces (keep these through a redesign)</h2>
+<ol>
+<li>Role chosen once; locked when the profile is complete. Engineer and supplier never share screens except <code>/cuenta</code>.</li>
+<li>A plan = a tablero. Upload max 15 files (10 PDFs); PDF converts to DXF server-side. Reference table is DXF only and optional.</li>
+<li>Plan lifecycle PENDING -&gt; PROCESSING -&gt; COMPLETED | ERROR | STALE (&quot;Por revisar&quot; = plan changed, reprocess). Only
+PENDING/ERROR/STALE are processable; processing is queued and polled, one batch at a time per project, cancellable
+while not started.</li>
+<li>Board multiplier 1..1000; quantities in the consolidated BOM are multiplied.</li>
+<li>Unresolved/unidentified symbols must be assigned or discarded before quoting.</li>
+<li>BOM line rules: material + quantity &gt; 0 + specification needed to save; brand decision (a brand, or &quot;Cualquier marca&quot;)
+also needed to quote. Specification &quot;Sin preferencia&quot; = supplier&#39;s choice.</li>
+<li>Brand rules: account preferred (ordered) and blocked; project rules override account. Blocked brands stop being
+offered but existing BOM values are untouched and saving is not blocked.</li>
+<li>Optimistic concurrency on BOM saves and symbol edits (409 -&gt; reload message).</li>
+<li>A quote can only be generated when no plan is processing and the BOM is saved/clean.</li>
+<li>Quote is project-wide; one quote -&gt; one order batch -&gt; one purchase order per provider.</li>
+<li>Supplier: accept or reject whole request, once; contact data shared only after accept; requests can expire (VENCIDO).</li>
+<li>Catalog import replaces the whole catalog; manual canonical links survive re-imports; unpublished products are hidden
+from engineers.</li>
+</ol>
+<hr>
+<h2>4. API calls vs backend routes</h2>
+<p>Method + path extraction over <code>front/src/**</code> (<code>apiClient.&lt;verb&gt;(...)</code>) against every <code>@Controller</code> + <code>@Get/@Post/...</code> in
+<code>back/src/**/controller/*.ts</code> (path params normalised).</p>
+<ul>
+<li>Front calls: 84 (in 13 files under <code>service/api/</code>). Backend routes: 86.</li>
+<li><strong>Front calls with no backend route: none.</strong> Every frontend call matches a route.</li>
+<li>One call is not through <code>apiClient</code>: <code>getBomTileImageUrl</code> (<code>service/api/electrical-plan.ts:109</code>) builds
+<code>/api/electrical-plan/:id/bom/tile-image/:n</code> as a string, <strong>but no component uses it</strong> (dead helper). The standalone
+viewer (<code>dxf-viewer/main.ts:257</code>) uses <code>fetch(url)</code> for a URL the host passes in.</li>
+<li><strong>Backend routes with no frontend caller:</strong><table>
+<thead>
+<tr>
+<th>Route</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET /quotation/:projectId/:quoteId</code></td>
+<td>front only uses <code>/current</code> and <code>/offers/:id</code></td>
+</tr>
+<tr>
+<td><code>PATCH /canonical-catalog/components/:id</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>GET /project/:projectId/electrical-plan</code></td>
+<td>plans come inside <code>GET /project/:id</code></td>
+</tr>
+<tr>
+<td><code>DELETE /project/:projectId/electrical-plan/:planId</code></td>
+<td>front deletes via <code>DELETE /electrical-plan/:id</code></td>
+</tr>
+<tr>
+<td><code>GET /electrical-plan/:id</code></td>
+<td>front uses the project-scoped <code>GET /project/:id/electrical-plan/:planId</code></td>
+</tr>
+<tr>
+<td><code>GET /providers/catalog/unlinked</code></td>
+<td>link page uses <code>GET /providers/catalog/items</code> with filters</td>
+</tr>
+<tr>
+<td><code>GET /electrical-plan/:id/bom/tile-image/:n</code></td>
+<td>only the unused URL helper above</td>
+</tr>
+</tbody></table>
+</li>
+</ul>
+<p>Front call inventory by area: auth (11 routes under <code>/auth/*</code>), users (<code>/users/me</code> PATCH x2, DELETE; brand prefs
+GET/PUT), project (list, detail, create, delete, <code>bom</code> GET/PUT/export, reference-table POST/DELETE/file/crop,
+processing-status, process-all, processing-batch DELETE, brand-preferences GET/PUT, market-data), electrical-plan (upload,
+crop, detail, PATCH, delete, process, file, source, export, <code>bom/components</code> PUT, <code>bom/symbols/review</code>, reclassify +
+preview, unidentified PATCH/DELETE, market-data), bom-catalog, canonical-catalog (types, components GET/POST, one by id),
+quotation (POST, current, offer detail), orders (list, providers, provider detail, confirm), supplier requests (list,
+detail, contact, accept, reject), provider catalog (summary, currencies, items CRUD, canonical PUT/DELETE, reading GET/PUT,
+imports GET/POST, preview), providers directory.</p>
+<hr>
+<h2>5. Visual system today</h2>
+<ul>
+<li><strong>Stack</strong>: Tailwind v4 (<code>@import &quot;tailwindcss&quot;</code>, tokens in <code>styles/index.css</code>, 558 lines), <code>tw-animate-css</code>, shadcn
+(<code>front/components.json</code>: style <code>radix-luma</code>, baseColor <code>mist</code>, icons <code>lucide</code>), Radix primitives in <code>components/ui/</code>
+(alert-dialog, badge, breadcrumb, button, card, checkbox, dialog, dropdown-menu, input, popover, scroll-area, select,
+separator, sheet, sidebar, skeleton, switch, table, tabs, textarea, tooltip, custom toast). TanStack Query, Zustand,
+three.js via <code>dxf-viewer</code>.</li>
+<li><strong>Fonts</strong>: Inter Variable (body and headings; <code>--heading</code> = <code>--sans</code>), JetBrains Mono 400–700 (<code>font-mono</code> used 176
+times — codes, quantities, labels); <code>font-heading</code> used 10 times.</li>
+<li><strong>Colour</strong>: background <code>#F4F4FC</code> (bluish off-white, hex on purpose for P3/sRGB consistency), cards white, primary
+<code>#0058BE</code> (blue), secondary greys <code>#E2E5EC/#CDD2DC/#AEB6C4</code>, semantic tokens <code>--success</code>, <code>--warning</code> (+ solid/surface
+variants), <code>--destructive</code>; greyscale chart tokens; BOM-table tokens (<code>--bom-material</code> = primary). Leftover Vite starter
+vars (<code>--accent-bg: rgba(170,59,255,.1)</code> purple, <code>--code-bg</code>, <code>--social-bg</code>). Radius base <code>0.625rem</code>.</li>
+<li><strong>Dark mode</strong>: a <code>.dark</code> block exists (<code>index.css:329</code>) but nothing toggles it.</li>
+<li><strong>Layout</strong>: full-height sidebar + scroll inset; content widths vary per page (<code>max-w-7xl</code> in quotation, others differ).
+Landing has a separate stylesheet and visual language (<code>styles/landing.css</code>, 534 lines).</li>
+</ul>
+<p>What feels weak (evidence-based):</p>
+<ul>
+<li>Token discipline leaks: 279 raw palette utilities (<code>bg-/text-/border-</code> + slate/gray/zinc/blue/amber/emerald/red/green)
+outside the semantic tokens, e.g. <code>SupplierRequestStatusBadge.tsx</code> uses <code>green-500</code> while orders use <code>--success</code>.</li>
+<li>Radius drift: <code>rounded-lg</code> 133, <code>rounded-2xl</code> 112, <code>rounded-xl</code> 108, <code>rounded-md</code> 64, <code>rounded-[3px]</code> 32, plus
+<code>rounded-3xl/[2rem]/[2px]/[4px]</code> — no card/control radius scale.</li>
+<li>Inconsistent capitalisation of copy: Title Case (&quot;Iniciar Nuevo Proyecto&quot;, &quot;Solicitar Cotización&quot;, &quot;Múltiples
+Proveedores&quot;, &quot;Requiere Atención&quot;) next to sentence case (&quot;Solicitar cotización&quot;, &quot;Subir planos&quot;); ALL CAPS badges
+(&quot;EN ESPERA&quot;, &quot;NO CATALOGADO&quot;, &quot;PRECIO DESACT.&quot;).</li>
+<li>Vocabulary drift for the same concept: plano / tablero / plan; &quot;Usuario&quot; (role card) vs &quot;ingeniero&quot; (copy) vs ENGINEER;
+proveedor / distribuidor; pedido / solicitud / orden de compra; &quot;Cómputo BOM&quot; / &quot;BOM Consolidado&quot; / &quot;Lista de
+materiales&quot;; &quot;Visor CAD&quot; vs &quot;Visor Rápido CAD 2D&quot;.</li>
+<li>Very dense expert screens: BOM editor (two views, inspector, bulk bar, filters, quick assign, preferred brands) and the
+quotation matrix (two strategy axes + availability filter + quick filters + HUD + drawer + per-material page) layer
+controls rather than guide a decision.</li>
+<li>Some copy is jargon/marketing that reads as filler (&quot;Motor Three.js WebGL&quot;, &quot;Renderizando entidades CAD en WebGL...&quot;,
+&quot;Drawer de Inteligencia de Componentes&quot;, &quot;proveedores oficiales&quot;).</li>
+<li>Mock data shipped in the real UI (supplier contact channels, see 2.3.3); onboarding &quot;Tus proveedores&quot; step saves
+nothing; allocation lives only in <code>sessionStorage</code>.</li>
+<li>No 404 route; no dark mode despite tokens; no mobile layout for the heavy screens (only <code>use-mobile.ts</code> hook for the
+sidebar).</li>
+</ul>
+<hr>
+<h2>6. Cypress coverage (<code>front/cypress/e2e/</code>, 28 specs, ~260 <code>it</code>)</h2>
+<p>Specs stub the API with <code>cy.intercept</code> for most flows (fixtures in <code>cypress/fixtures/</code>: sessions per role, catalog
+previews, <code>minimal-plan.dxf</code>, <code>plan-with-symbols.dxf</code>, <code>catalogo-proveedor.xlsx</code>); CI runs them against a real backend.</p>
+<table>
+<thead>
+<tr>
+<th>Spec</th>
+<th>Journey covered</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>landing-page</code> (8)</td>
+<td>landing sections, nav to login/register</td>
+</tr>
+<tr>
+<td><code>app-navigation-and-session</code> (4)</td>
+<td>sidebar navigation, session, landing</td>
+</tr>
+<tr>
+<td><code>auth-and-onboarding</code> (21)</td>
+<td>login validation/401/429/network, register, recovery, email confirm, route guards, onboarding role+profile</td>
+</tr>
+<tr>
+<td><code>onboarding-favoritos</code> (9)</td>
+<td>&quot;Tus proveedores&quot; step</td>
+</tr>
+<tr>
+<td><code>user-account</code> (22)</td>
+<td><code>/cuenta</code> tabs per role, brand rules, password, email change + cancel, delete with <code>ELIMINAR</code>, onboarding redirect</td>
+</tr>
+<tr>
+<td><code>projects-flow</code> (11)</td>
+<td>list, filters, NewProjectModal, plan 404</td>
+</tr>
+<tr>
+<td><code>project-delete</code> (10)</td>
+<td>delete project, copy guard, 409, double-click single DELETE</td>
+</tr>
+<tr>
+<td><code>project-not-found</code> (6)</td>
+<td>404 and 500 states</td>
+</tr>
+<tr>
+<td><code>project-detail-actions</code> (8)</td>
+<td>plan list/search, delete plan modal, quote pre-validations</td>
+</tr>
+<tr>
+<td><code>project-plan-row-layout</code> (6)</td>
+<td>plan rows, multiplier from row menu, invalid multiplier</td>
+</tr>
+<tr>
+<td><code>project-plan-pdf</code> (6)</td>
+<td>PDF plans</td>
+</tr>
+<tr>
+<td><code>project-bom-refresh</code> (1)</td>
+<td>consolidated BOM refresh</td>
+</tr>
+<tr>
+<td><code>project-brand-preferences</code> (7)</td>
+<td>project brand rules modal</td>
+</tr>
+<tr>
+<td><code>plan-detail</code> (27)</td>
+<td>header/pager/multiplier, tabs, BOM tab, unidentified symbols, quote pre-validation, inline spec edit, locator, symbol correction incl. 409</td>
+</tr>
+<tr>
+<td><code>bom-editor-views</code> (8), <code>bom-editor-por-plano</code> (12), <code>bom-editor-por-plano-edicion</code> (14)</td>
+<td>two views, per-board editing, bulk brand, gama, shortcuts, quick assign, multiplier</td>
+</tr>
+<tr>
+<td><code>bom-editor-actions</code> (4)</td>
+<td>unsaved-changes guard, bulk bar, save errors</td>
+</tr>
+<tr>
+<td><code>bom-editor-autocompletado-marcas</code> (8), <code>bom-editor-marcas-preferidas</code> (5)</td>
+<td>preferred-brand autofill, blocked brands (warning, not rejection)</td>
+</tr>
+<tr>
+<td><code>quotation-flow</code> (10)</td>
+<td>quotation states, workspace, confirm dialog, emit success/500, offer detail</td>
+</tr>
+<tr>
+<td><code>quotation-matrix-interactions</code> (3)</td>
+<td>drawer, allocate-all dialog, search/filters</td>
+</tr>
+<tr>
+<td><code>quotation-multibrand</code> (7)</td>
+<td>brand/gama variants</td>
+</tr>
+<tr>
+<td><code>orders-engineer</code> (11)</td>
+<td><code>/orders</code>, success page, per-provider page</td>
+</tr>
+<tr>
+<td><code>supplier-requests</code> (9)</td>
+<td>inbox, detail accept/reject, contact</td>
+</tr>
+<tr>
+<td><code>supplier-catalog</code> (6), <code>supplier-catalog-management</code> (5)</td>
+<td>product list, CRUD</td>
+</tr>
+<tr>
+<td><code>catalog-import-wizard</code> (10)</td>
+<td>import wizard accepted/warned/rejected</td>
+</tr>
+</tbody></table>
+<p>Note: the project&#39;s <code>CLAUDE.md</code> says &quot;23 specs&quot;; <code>dev</code> has 28.</p>
+<p>Not covered by Cypress: <code>SupplierCatalogLinkPage</code> (canonical linking; only the link to it is asserted), <code>MaterialOffersPage</code>
+beyond the navigation to it (<code>quotation-multibrand.cy.ts:304</code>), the DXF crop flows
+(<code>DxfGeneratorModal</code>, <code>CropReferenceTableModal</code>) and the standalone viewer (guarded instead by <code>npm run verify:crop</code> and
+Vitest in <code>front/tests/dxf-viewer/</code>).</p>
+<hr>
+<h2>7. <code>src/dxf-viewer/</code> — the standalone crop tool</h2>
+<p>A second Vite entrypoint (<code>front/dxf-viewer.html</code>, <code>dxf-viewer/main.ts</code> 533 lines), no React, state held at module level
+in <code>main.ts</code>. Built on <code>dxf-viewer</code> + three.js with a worker (<code>core/dxf.worker.ts</code>).</p>
+<p>What it does: load a DXF (drag-drop, file picker, or a URL/content sent by the host), separate model/paper spaces
+(<code>core/dxfSpaces.ts</code>), repair references and prune blocks, then let the user <strong>draw rectangular zones</strong> (&quot;Seleccionar zona&quot;,
+&quot;Arrastrá para dibujar la zona · Botón derecho para mover · Rueda para acercar&quot;, <code>ui/toolCopy.ts</code>), name each panel
+(<code>core/panelNaming.ts</code>), keep or drop the frame, queue several (<code>core/panelCropManager.ts</code>, <code>ui/croppedPanelsView.ts</code>),
+and export. Load steps shown: &quot;Leyendo el archivo / Separando espacios / Interpretando el DXF / Preparando la escena&quot;.
+It is <strong>not</strong> the symbol locator (that lives in React, <code>components/bom-symbol-locator/</code>).</p>
+<p>Host protocol (<code>dxf-viewer/ui/parentMessages.ts</code>, host side <code>hooks/dxf/useDxfIframeMessages.ts</code>):</p>
+<ul>
+<li>Host -&gt; viewer: <code>LOAD_DXF_URL</code>, <code>LOAD_DXF_CONTENT</code> (<code>main.ts:474-480</code>). Embedded mode via <code>?embedded=1</code> (or being in an
+iframe) toggles <code>.is-embedded</code> styling.</li>
+<li>Viewer -&gt; host: one <code>DXF_CROPS_DONE</code> per batch with <code>crops: [{ filename, bounds{minX,maxX,minY,maxY}, keepFrame }]</code> —
+rectangles only, no bytes; and <code>CLOSE_MODAL</code> (host also accepts <code>CLOSE_DXF_MODAL</code> and Escape). Host checks
+<code>event.origin === window.location.origin</code>.</li>
+<li>The host then sends the rectangles to the backend (<code>POST /project/:id/electrical-plan/crop</code> for boards,
+<code>POST /project/:id/reference-table/crop</code> for the legend), which crops via the detector&#39;s <code>/dxf/crop</code>. The host enforces
+<code>MAX_PLANS_PER_UPLOAD</code> (15) on the batch (<code>components/plan/DxfGeneratorModal.tsx:57</code>), matching the backend&#39;s 15-zone cap.</li>
+<li>Embedded by <code>components/plan/DxfGeneratorModal.tsx</code> (&quot;Editor de Recorte de Tableros DXF&quot;: &quot;Subí el plano DXF que contiene
+los tableros&quot; or &quot;O elegí un plano ya cargado en el proyecto&quot;) and <code>components/project/CropReferenceTableModal.tsx</code>
+(&quot;Editor de Recorte de Tabla de Referencia DXF&quot;).</li>
+</ul>
+<hr>
+<h2>8. Glossary (verbatim UI vocabulary)</h2>
+<p>Domain nouns: Proyecto / obra, Plano, Tablero, Tabla de referencia, Símbolo (CAD), Detecciones, BOM / Cómputo BOM /
+BOM Consolidado / Lista de materiales, Línea, Material, Especificación (técnica), Marca, Gama, Componente base, Atributos
+esenciales, Repeticiones (multiplicador), Cotización, Oferta, Adjudicación / adjudicar, Distribuidor, Proveedor, Pedido,
+Solicitud, Orden de compra, Catálogo, Planilla, Vinculación, Lectura (del catálogo).</p>
+<p>Statuses:</p>
+<ul>
+<li>Plan: Listo · En Proceso · Error · Por revisar · Pendiente (CAD tab also &quot;Error CAD&quot;).</li>
+<li>Project: Listo · En Proceso · Pendiente · Requiere Atención · Sin Planos.</li>
+<li>BOM line: Bloquea la cotización · Se puede cotizar con reparos · Lista.</li>
+<li>Order / supplier request: EN ESPERA · CONFIRMADO · RECHAZADO · VENCIDO (filters: En espera, Confirmados, Rechazados, Vencidos).</li>
+<li>Catalog item link: Sin identificar · Les falta un atributo · Sin vincular · No se pudo leer (reading PENDING/READ/FAILED; link UNLINKED/AUTO/MANUAL).</li>
+<li>Catalog import verdict: Planilla aceptada · Aceptada con advertencias · Planilla rechazada.</li>
+<li>Quote line flags: PRECIO DESACT. · NO CATALOGADO · REVISION MANUAL · Sin adjudicar · Sin asignar.</li>
+</ul>
+<p>Choice labels: Cualquier marca · Cualquier gama · Sin preferencia · Material fuera de catálogo · Pedir esta marca aunque no
+esté en el catálogo · Múltiples Proveedores / Único Proveedor · Más Barato / Más Rápido / Mayor Cobertura · Por planos /
+Por componentes · Soy Usuario / Soy Proveedor.</p>
+<p>Primary actions: Crear cuenta · Iniciar sesión · Iniciar Nuevo Proyecto · Subir planos · Recortar tableros · Subir tabla ·
+Procesar / Reintentar · Editar repeticiones… · Editar BOM / Configurar BOM · Aplicar mis preferidas · Asignación rápida ·
+Asignar material · Descartar símbolo · Corregir la fila / Partir la fila · Solicitar cotización / Generar cotización / Volver
+a cotizar · Adjudicar todo · Emitir solicitud a proveedores / Enviar solicitud · Ver pedido · Aceptar solicitud / Rechazar
+solicitud · Ver contacto · Cargar planilla · Confirmar importación · Agregar producto · Despublicar producto · Ir a
+vincular · Siguiente pendiente · Dar de baja la cuenta.</p>
+<p>Recurring tone: voseo rioplatense (&quot;Subí&quot;, &quot;Elegí&quot;, &quot;Revisá&quot;, &quot;Volvé a intentar en unos minutos&quot;), errors say what happened
+and what is preserved (&quot;la cotización queda como estaba&quot;, &quot;Las páginas ya cargadas se conservan&quot;).</p>
+</article></body></html>

@@ -1,0 +1,83 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Aprobar</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .who { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); margin-bottom: 14px; font-size: var(--fs-sm); }
+  .sec-t { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 8px; } .sec-t h2 { font-size: var(--fs-md); }
+  .ap { margin-bottom: 12px; } .ap .card-b { padding: 14px; }
+  .ap h3 { font-size: var(--fs-md); } .ap .big { font: 600 26px/1.1 var(--font-display); letter-spacing: -.02em; margin: 6px 0 2px; }
+  .ap .meta { font-size: var(--fs-xs); color: var(--ink-3); }
+  .ap .sups { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+  .ap .sups div { display: flex; justify-content: space-between; gap: 8px; font-size: var(--fs-sm); padding: 8px 10px; background: var(--surface-2); border-radius: var(--r-sm); }
+  .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; } .acts .btn { height: 46px; font-size: var(--fs-sm); }
+  .sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; margin-right: 6px; }
+  .attrs { width: 100%; border-collapse: collapse; font-size: var(--fs-xs); margin: 8px 0; } .attrs th, .attrs td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; } .attrs th { color: var(--ink-3); font-weight: 600; }
+  .same { color: var(--ok); font-weight: 600; } .diff { color: var(--err); font-weight: 600; }
+  .done-i { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); font-size: var(--fs-sm); } .done-i:last-child { border-bottom: 0; } .done-i .grow { flex: 1; min-width: 0; } .done-i small { display: block; color: var(--ink-3); }
+</style>
+</head>
+<body class="m" data-role="ENGINEER" data-active="" data-title="Aprobar" data-sub="Adjudicaciones y equivalencias pendientes">
+<div id="page"><div id="root"></div></div>
+<script>
+L.ready(() => {
+  const S = () => L.store.get(); const estado = L.param('estado');
+  const focusAp = L.param('ap');
+  const sw = sid => `<span class="sw" style="background:${L.supplier(sid).color}" aria-hidden="true"></span>`;
+
+  function pendingEq() {
+    const out = [];
+    S().offers.filter(o => o.status === 'ENVIADA').forEach(o => { const r = L.request(o.requestId); if (!r || r.status !== 'ABIERTA') return;
+      o.lines.filter(l => l.mode === 'ALTERNATIVA' && l.alt && l.alt.equivalence === 'SUGERIDA').forEach(ol => out.push({ o, ol, r })); });
+    return out;
+  }
+  function apCard(a) {
+    const r = L.request(a.requestId); const byS = {};
+    const c = L.compare(a.requestId);
+    Object.entries(a.alloc).forEach(([lid, sid]) => { const row = c.rows.find(x => x.lineId === lid); const x = row && row.opts.find(y => y.supplierId === sid); if (!x || x.none) return; byS[sid] = byS[sid] || { t: 0, n: 0 }; byS[sid].t += x.total; byS[sid].n++; });
+    const rl = S().automations.find(x => x.when === 'ADJUDICACION_SUPERA');
+    return `<article class="card ap" id="ap-${a.id}"><div class="card-b"><div class="row">${L.badge('Adjudicación', 'copper', 'shield')}<span class="spacer"></span>${L.cap('propuesto')}</div>
+      <h3 style="margin-top:8px">${L.esc(r.code)} · ${L.esc(L.project(r.projectId).name)}</h3><div class="big mono">${L.ars(a.total)}</div>
+      <div class="meta">Pedida por ${L.esc(L.who(a.requestedBy))} · ${L.dateShort(a.at)} ${L.time(a.at)}${rl ? ' · supera ' + L.arsShort(rl.threshold) : ''}</div>
+      <div class="sups">${Object.entries(byS).map(([sid, b]) => `<div><span>${sw(sid)}${L.esc(L.supplier(sid).short)} · ${b.n} ${b.n === 1 ? 'material' : 'materiales'}</span><span class="mono">${L.arsShort(b.t)}</span></div>`).join('')}</div>
+      <div class="field"><label for="note-${a.id}">Nota (obligatoria para rechazar)</label><textarea class="textarea" id="note-${a.id}" style="min-height:56px" placeholder="Ej.: pedí una mejora de precio a Delta"></textarea></div>
+      <div class="acts"><button class="btn btn-secondary" data-ap-no="${a.id}">${L.icon('x', 16)}Rechazar</button><button class="btn btn-primary" data-ap-ok="${a.id}">${L.icon('check', 16)}Aprobar</button></div>
+      <a class="btn btn-ghost btn-sm btn-block" style="margin-top:6px" href="${L.link('d-comparar.html', { r: r.id, p: r.projectId })}">Ver la comparación completa</a></div></article>`;
+  }
+  function eqCard({ o, ol, r }) {
+    const l = L.line(ol.lineId); const t = L.type(l.typeId);
+    const rows = t.attrs.map(at => { const a = l.attrs[at.k], b = ol.alt.attrs[at.k]; const same = String(a == null ? '' : a) === String(b == null ? '' : b);
+      return `<tr><th>${L.esc(at.label)}</th><td>${L.esc(a == null ? '—' : a)}</td><td>${L.esc(b == null ? '—' : b)}</td><td class="${same ? 'same' : 'diff'}">${same ? '✓' : '≠'}</td></tr>`; }).join('');
+    const id = o.id + '|' + ol.lineId;
+    return `<article class="card ap"><div class="card-b"><div class="row">${L.badge('Alternativa sugerida', 'warn', 'alert')}<span class="spacer"></span><span class="meta">${L.esc(r.code)}</span></div>
+      <h3 style="margin-top:8px">${L.esc(L.lineLabel(l))}</h3>
+      <div class="meta">${sw(o.supplierId)}${L.esc(L.supplier(o.supplierId).short)} ofrece <strong class="mono">${L.esc(ol.alt.code)}</strong> (${L.esc(ol.alt.brand)} ${L.esc(ol.alt.gama)}) a ${L.ars(ol.alt.unitPrice)} c/u</div>
+      <table class="attrs"><thead><tr><th>Atributo</th><th>Pedido</th><th>Ofrecido</th><th></th></tr></thead><tbody>${rows}<tr><th>Marca</th><td>${L.esc(L.brandLabel(l.brand))}</td><td>${L.esc(ol.alt.brand)}</td><td></td></tr></tbody></table>
+      <p class="meta" style="margin:0">«${L.esc(ol.alt.reason)}» · ${L.esc(L.stockLabel[ol.stock])} · ${ol.leadDays} d</p>
+      <div class="acts"><button class="btn btn-secondary" data-eq-no="${id}">${L.icon('x', 16)}Rechazar</button><button class="btn btn-primary" data-eq-ok="${id}">${L.icon('check', 16)}Aprobar equivalencia</button></div></div></article>`;
+  }
+  function render() {
+    const root = document.getElementById('root');
+    if (estado === 'cargando') { root.innerHTML = '<div class="skel" style="height:44px;margin-bottom:12px"></div><div class="skel" style="height:280px;margin-bottom:12px"></div><div class="skel" style="height:220px"></div>'; return; }
+    if (estado === 'error') { root.innerHTML = L.empty({ icon: 'alertc', title: 'Sin conexión', text: 'No pudimos traer lo pendiente. Tus decisiones anteriores están guardadas.', action: '<a class="btn btn-primary" href="m-aprobar.html">Reintentar</a>' }); return; }
+    const aps = estado === 'vacio' ? [] : S().approvals.filter(a => a.status === 'PENDIENTE').sort((a, b) => (a.id === focusAp ? -1 : b.id === focusAp ? 1 : 0));
+    const eqs = estado === 'vacio' ? [] : pendingEq();
+    const done = estado === 'vacio' ? [] : [...S().approvals.filter(a => a.status !== 'PENDIENTE').map(a => ({ at: a.decidedAt, t: 'Adjudicación ' + L.request(a.requestId).code + ' · ' + L.arsShort(a.total), ok: a.status === 'APROBADA', who: 'Daniel Ortega', note: a.note })),
+      ...S().offers.flatMap(o => o.lines.filter(l => l.alt && l.alt.decidedAt).map(l => ({ at: l.alt.decidedAt, t: 'Equivalencia ' + l.alt.code, ok: l.alt.equivalence === 'APROBADA', who: L.who(l.alt.decidedBy) })))].sort((a, b) => (b.at > a.at ? 1 : -1)).slice(0, 6);
+    root.innerHTML = `<div class="who"><span class="av" style="background:var(--copper)">DO</span><div style="flex:1"><strong>Daniel Ortega</strong><br><small class="muted">Dirección · aprueba adjudicaciones grandes</small></div>${L.sim('demo')}</div>
+      <div class="sec-t"><h2>Adjudicaciones</h2><small class="muted">${aps.length} pendiente${aps.length === 1 ? '' : 's'}</small></div>
+      ${aps.length ? aps.map(apCard).join('') : `<div class="card"><div class="card-b" style="padding:8px">${L.empty({ icon: 'check', title: 'Nada para aprobar', text: 'Cuando una adjudicación supere el umbral de la empresa, te llega acá.' })}</div></div>`}
+      <div class="sec-t"><h2>Equivalencias técnicas</h2><small class="muted">${eqs.length} pendiente${eqs.length === 1 ? '' : 's'}</small></div>
+      ${eqs.length ? `<p class="muted" style="font-size:var(--fs-xs);margin:-2px 0 8px">La equivalencia es una decisión técnica: queda registrada a nombre de ${L.esc(L.member(S().session.userId).name)} (${L.esc(L.member(S().session.userId).area)}), la sesión de la demo.</p>` : ''}
+      ${eqs.length ? eqs.map(eqCard).join('') : `<p class="muted" style="font-size:var(--fs-sm)">No hay alternativas esperando revisión.</p>`}
+      ${done.length ? `<div class="sec-t"><h2>Decididas</h2></div><div class="card">${done.map(d => `<div class="done-i">${L.icon(d.ok ? 'check' : 'x', 16, d.ok ? '' : '')}<div class="grow"><strong>${L.esc(d.t)}</strong><small>${d.ok ? 'Aprobada' : 'Rechazada'} · ${L.esc(d.who)} · ${L.dateShort(d.at)} ${L.time(d.at)}${d.note ? ' · «' + L.esc(d.note) + '»' : ''}</small></div></div>`).join('')}</div>` : ''}`;
+    root.querySelectorAll('[data-ap-ok]').forEach(b => b.onclick = () => { const id = b.dataset.apOk; L.decideApproval(id, 'APROBADA', document.getElementById('note-' + id).value.trim()); L.toast('Adjudicación aprobada', { detail: 'Ingeniería ya puede emitir los pedidos.' }); });
+    root.querySelectorAll('[data-ap-no]').forEach(b => b.onclick = () => { const id = b.dataset.apNo; const n = document.getElementById('note-' + id);
+      if (!n.value.trim()) { L.fieldError(n, 'Contá por qué la rechazás: Ingeniería lo ve.'); n.focus(); return; } L.decideApproval(id, 'RECHAZADA', n.value.trim()); L.toast('Adjudicación rechazada', { kind: 'info' }); });
+    const eqAct = (v, d) => { const [o, l] = v.split('|'); L.setEquivalence(o, l, d); };
+    root.querySelectorAll('[data-eq-ok]').forEach(b => b.onclick = () => { eqAct(b.dataset.eqOk, 'APROBADA'); L.toast('Equivalencia aprobada'); });
+    root.querySelectorAll('[data-eq-no]').forEach(b => b.onclick = () => { eqAct(b.dataset.eqNo, 'RECHAZADA'); L.toast('Alternativa rechazada', { kind: 'info' }); });
+    if (focusAp) { const el = document.getElementById('ap-' + focusAp); if (el && !render.scrolled) { el.scrollIntoView({ block: 'start' }); render.scrolled = true; } }
+  }
+  render(); L.store.subscribe(render);
+});
+</script>
+</body></html>

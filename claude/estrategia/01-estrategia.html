@@ -1,0 +1,324 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 01 · Estrategia de liard</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="01-estrategia.html" class="on">01 · Estrategia de liard</a><a href="02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="03-roadmap.html" class="">03 · Roadmap por dependencias</a><a href="04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="../research/01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="../research/02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="../research/03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="../research/04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="../research/05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>01 · Estrategia de liard</h1>
+<p>Base: repo <code>lab3-liard</code>, rama <code>dev</code>, commit <code>04fc8139</code> (30/09/2026), leído sin ejecutar nada. Las fuentes se citan como
+<code>research/0N-*.md §sección</code>, documentos del repo (<code>documentacion/…</code>) o URL. Cada cifra lleva una etiqueta: <strong>[medido]</strong> (corrida
+del equipo o conteo en código), <strong>[entrevista]</strong> (discovery, 7 empresas, muestra no representativa), <strong>[fuente externa]</strong>
+(un tercero la publica y nadie la auditó) o <strong>[estimación]</strong> (cuenta propia, es una hipótesis).</p>
+<p>Liderazgo global y ganancias son <strong>hipótesis a validar</strong>, no metas garantizadas. Este documento dice qué tendría que ser
+cierto para que lo sean y cómo darnos cuenta rápido si no lo es.</p>
+<hr>
+<h2>1. Diagnóstico: qué existe en <code>dev</code> y qué dicen los documentos</h2>
+<h3>1.1 Lo que existe (verificado en código)</h3>
+<p>El circuito de punta a punta <strong>está construido pero no está en producción</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Tramo</th>
+<th>Estado en <code>dev</code></th>
+<th>Evidencia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Plano → BOM</td>
+<td>Existe. DXF y PDF vectorial, recorte de hasta 15 tableros por DXF, cola Postgres con lease, detección YOLO (dónde) + Claude (qué), revisión sobre el plano, multiplicador de 1 a 1000</td>
+<td><code>research/02-backend.md §4</code> pasos 3–8</td>
+</tr>
+<tr>
+<td>BOM → componente base</td>
+<td>Existe. 33 tipos base sembrados, lectura con Haiku que cachea por texto normalizado, corrección humana <code>MANUAL</code></td>
+<td><code>research/02 §4</code> paso 9; <code>research/04 §1</code> ítems 1–3</td>
+</tr>
+<tr>
+<td>Catálogo del proveedor</td>
+<td>Existe. Importación xlsx con vista previa, lectura IA, vinculación manual. <strong>Reemplaza el catálogo entero</strong></td>
+<td><code>research/02 §4</code> paso 17; <code>research/03 §2.3</code></td>
+</tr>
+<tr>
+<td>Cotización</td>
+<td>Existe, <strong>100 % desde catálogo</strong>: igualdad de tipo base + atributos <code>required</code>, score 100, <code>CANONICAL</code></td>
+<td><code>research/02 §4</code> paso 13</td>
+</tr>
+<tr>
+<td>Comparación y adjudicación</td>
+<td>Existe en modo lectura. La adjudicación vive en <code>sessionStorage</code>, así que <strong>si se cierra la pestaña se pierde</strong>. <code>selectedOfferId</code> nunca se escribe</td>
+<td><code>research/03 §2.2</code> paso 6; <code>research/02 §3</code> columnas muertas</td>
+</tr>
+<tr>
+<td>Pedido</td>
+<td>Existe. Un lote por cotización y un <code>PurchaseOrder</code> por proveedor. El proveedor acepta o rechaza el pedido entero, una sola vez, sin mandar nada más</td>
+<td><code>research/02 §4</code> pasos 15–18</td>
+</tr>
+<tr>
+<td>Oferta editable del proveedor, RFQ, plazos, notificaciones, pagos, colaboración, admin</td>
+<td><strong>Ausentes</strong>. <code>EXPIRED</code> y <code>responseDeadlineAt</code> existen en el schema, pero nada los escribe</td>
+<td><code>research/02 §4</code> pasos 19–25</td>
+</tr>
+</tbody></table>
+<h3>1.2 Reconciliaciones entre lo que dicen los documentos y lo que hay en el código</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Lo que dice el documento</th>
+<th>Lo que hay en realidad</th>
+<th>Qué hacer con eso</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>R1</td>
+<td><code>Roadmap.md</code> §Sprint 4.11: &quot;Se desplegó la versión demo… para sus primeros 5 usuarios&quot;</td>
+<td>Issue <strong>#985</strong> abierto y con <strong>todas</strong> las casillas sin marcar. No hay <code>docker-compose.prod.yml</code>, Caddyfile, workflow de deploy ni IaC. <code>Arquitectura Liard.md:75</code> dice &quot;Preparada, no desplegada&quot; y <code>:76</code> dice &quot;Hoy, en desarrollo, los archivos viven en el disco local&quot;. <code>research/04 §5</code>: &quot;Todavía no se desplegó nada&quot;</td>
+<td><strong>Hay cero usuarios externos</strong> [medido]. Hasta que #985 cierre, cualquier métrica de adopción es cero o no existe. Hay que corregir el Roadmap</td>
+</tr>
+<tr>
+<td>R2</td>
+<td>Issues #832, #930, #931, #970, #987 y la épica #988 figuran abiertos</td>
+<td>Su código ya está en <code>dev</code> (PRs #957, #989, #990, #971 y #995). Como el repo por defecto es <code>main</code>, <code>Closes #N</code> no los cierra al mergear a <code>dev</code></td>
+<td>Cerrarlos a mano. Sin eso, el tablero de GitHub no sirve para medir avance (<code>research/04</code> intro)</td>
+</tr>
+<tr>
+<td>R3</td>
+<td>Sprint 4.4: el matching por componente base &quot;está hecho&quot;</td>
+<td>Está hecho en el backend (PR #995), pero <strong>ningún componente del front muestra <code>unmatchedReason</code></strong></td>
+<td>El usuario ve NOT_FOUND sin saber por qué. Es un hueco de confianza que se arregla con un ticket S</td>
+</tr>
+<tr>
+<td>R4</td>
+<td><code>Documento de Visión</code> §1.3: precisión ≥ 90 % en tableros complejos</td>
+<td>Hay mediciones por etapa: ubicar aparatos 97,3 % en 15 planos y 99,4 % en 25 [medido, <code>research/04 §4</code>]; clasificar 51–52 de 56 [medido]; lectura IA 98,6 % y 97,5 % sobre casos <strong>sintéticos</strong> [medido, sintético]. <strong>Del matching de punta a punta sobre datos reales no hay ningún número</strong></td>
+<td>El criterio de éxito no se puede declarar cumplido. Falta medir línea del BOM → oferta correcta (#904)</td>
+</tr>
+<tr>
+<td>R5</td>
+<td>Sprint 5: &quot;pagos = suscripción + comisión por lead&quot;</td>
+<td>Nadie preguntó en el discovery cuánto pagarían las empresas ni si los proveedores aceptarían comisión (<code>research/01 §3</code> &quot;Disposición a pagar — ABIERTO&quot;). No hay issue ni código (<code>research/04 §2</code>)</td>
+<td>Tratarlo como hipótesis y validar precio antes de construir cobro (ver §4)</td>
+</tr>
+<tr>
+<td>R6</td>
+<td><code>CLAUDE.md</code>: 23 specs de Cypress y 12 módulos</td>
+<td>Hay 28 specs y 14 módulos (<code>research/03 §6</code>, <code>research/02 §2</code>)</td>
+<td>Es menor. Muestra que la documentación va detrás del código</td>
+</tr>
+<tr>
+<td>R7</td>
+<td>Onboarding &quot;Tus proveedores&quot; y contacto del cliente</td>
+<td>El paso de favoritos no guarda nada, y los canales de contacto del cliente son un <strong>mock hardcodeado</strong> (WhatsApp 541112345678 para todos los clientes) (<code>research/03 §2.3</code>)</td>
+<td>Antes de que un proveedor real vea la pantalla, hay que sacar el mock o reemplazarlo por datos reales</td>
+</tr>
+<tr>
+<td>R8</td>
+<td>&quot;Catálogo por dueño&quot;</td>
+<td>Las lecturas del catálogo validan el <strong>rol</strong> y no la propiedad (<code>Arquitectura Liard.md:260</code>). <code>canonical-catalog</code> acepta escrituras de cualquier rol (<code>research/02 §1</code>)</td>
+<td>Es riesgo de confidencialidad y de calidad de datos. Se arregla <strong>antes</strong> de sumar distribuidores reales</td>
+</tr>
+<tr>
+<td>R9</td>
+<td>Preferencias de marca</td>
+<td>El editor del front las usa, pero el matcher de cotización no las lee (<code>research/02 §4</code> paso 11)</td>
+<td>Aclararlo en la UI o hacer que el matcher las lea</td>
+</tr>
+<tr>
+<td>R10</td>
+<td>North Star / OKRs &quot;definidos&quot; (Roadmap §Sprint 3)</td>
+<td>No están en ningún documento (<code>research/01 §8.3</code>)</td>
+<td>Se proponen en §6</td>
+</tr>
+</tbody></table>
+<p><strong>Conclusión del diagnóstico.</strong> El producto técnico va adelante de la validación comercial. Hay un flujo de 86 rutas
+(<code>research/02 §2</code>) y unas 258 pruebas e2e (<code>research/04 §1</code>.10) [medido], pero hay cero usuarios desplegados, cero
+evidencia de precio y cero medición de punta a punta del matching. El cuello de botella no es construir más, sino
+<strong>poner lo construido frente a usuarios reales y medir</strong>.</p>
+<hr>
+<h2>2. Dónde está el valor defendible</h2>
+<p>El discovery reformula el problema como <strong>tres problemas encadenados</strong>: interpretar el plano, llevar el BOM a productos
+comerciales y conectar con proveedores (<code>research/01 §3</code>, DISC §&quot;El problema&quot;). Solo la cadena completa es difícil de
+copiar:</p>
+<ul>
+<li><strong>Detectar símbolos no alcanza como foso.</strong> Switchonomy y OpenDrawing ya leen unifilares (<code>research/05 §2</code>) [fuente
+externa] y los configuradores de los fabricantes son gratis. Eso deja en cero el precio de ancla de &quot;un BOM a partir de un
+diseño conocido&quot; (<code>research/05 §2</code>, fila Schneider).</li>
+<li><strong>El activo acumulable es el catálogo canónico</strong> (tipo → atributos → valores, sin marca) con equivalencias multimarca y
+los catálogos de varios distribuidores vinculados a él. Ninguna herramienta relevada combina leer el plano de un tercero,
+la equivalencia multimarca y la comparación entre varios distribuidores (<code>research/05 §2</code>, &quot;Positioning gap&quot;)
+[estimación].</li>
+<li><strong>Los proveedores no quieren ver planos.</strong> Quieren recibir el BOM ya contado y especificado (Electro HCM), les importan
+eficiencia y orden más que volumen (Q Electric) y <strong>rechazan manejar pagos</strong> (<code>research/01 §3</code>) [entrevista]. El valor del
+lado de la oferta es recibir una <strong>solicitud estructurada</strong>, no un canal de venta con comisión.</li>
+</ul>
+<h3>Precio, plazo y stock pesan tanto como el precio de lista</h3>
+<p>El discovery repite que el precio de catálogo es una referencia, que la oferta final depende del volumen, la forma de pago y
+el convenio, y que el más barato puede entregar a 90 días (<code>research/01 §3</code> principios; Nisamat: stock con hasta 3 meses de
+demora) [entrevista]. Hoy el backend cotiza <strong>solo con catálogo</strong>, y el proveedor no puede ajustar precio, stock ni plazo
+(<code>research/02 §4</code> paso 19). <strong>La brecha de producto más importante del lado comercial es que el proveedor confirme o ajuste
+precio, stock y plazo.</strong> Así lo promete el <code>Documento de Visión</code> §2.2 y hoy no existe.</p>
+<hr>
+<h2>3. Segmento de entrada: el A, no GRAMONT</h2>
+<table>
+<thead>
+<tr>
+<th>Segmento</th>
+<th>Quiénes (evidencia)</th>
+<th>Qué valoran</th>
+<th>Decisión</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>A: alta necesidad de conteo</strong></td>
+<td>Liard, EMEVE (1,5 días por 40 tableros), Meco (35–40 presupuestos/semana con 5 personas) [entrevista]</td>
+<td>Conteo + revisión + reglas</td>
+<td><strong>Cabeza de playa.</strong> Es donde el caso Fundaleu (4 h → 17 min) [medido, un caso, <code>research/01 §1</code>] tiene sentido</td>
+</tr>
+<tr>
+<td><strong>B: procesos maduros</strong></td>
+<td>GRAMONT (EPLAN, IEC 61439, ~300 cotizaciones/año, convierte 10–15 %) [entrevista]</td>
+<td>&quot;El conteo no es el problema&quot;: costeo, matching, precios al día</td>
+<td><strong>No es el primer cliente.</strong> Se entra después con presupuesto y margen (O-12) e historial de precios (O-15), cuando esas piezas existan</td>
+</tr>
+<tr>
+<td><strong>C: distribuidores</strong></td>
+<td>Electro HCM, Q Electric, Nisamat (15–20 presupuestos/día por vendedor, 2–3 h cada uno) [entrevista]</td>
+<td>BOM estructurado, trazabilidad por email, sin pagos</td>
+<td><strong>Lado de la oferta del piloto.</strong> Se los recluta por valor operativo, no por comisión</td>
+</tr>
+</tbody></table>
+<p>GRAMONT es la mejor señal de lo que el producto tiene que ser en H2 (costeo), pero no sirve para validar H1: su dolor no
+es el que resolvemos hoy.</p>
+<hr>
+<h2>4. Monetización: hipótesis, no plan</h2>
+<p>Nada de esta sección está validado. En el discovery no se preguntó disposición a pagar (<code>research/05 §3</code>) [entrevista].</p>
+<table>
+<thead>
+<tr>
+<th>Hipótesis</th>
+<th>Referencia</th>
+<th>Riesgo</th>
+<th>Cómo se valida</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>H-M1 · Suscripción por empresa con cupo de tableros</strong>, no por usuario</td>
+<td>Togal USD 299 por usuario/mes; Kreo USD 35–175 [fuente externa]. Techo por valor: <strong>USD 1–3,5 por tablero</strong> procesado [estimación, <code>research/05 §3.2</code>: solo las horas de EMEVE salen del discovery, el resto se supuso]</td>
+<td>Cobrar por usuario castiga a la estructura de &quot;11 personas cotizando&quot; (César Braña) [entrevista]</td>
+<td>Pilotos pagos con 3 niveles de precio (ver <code>03-roadmap.md §6</code>)</td>
+</tr>
+<tr>
+<td><strong>H-M2 · Pago por plano</strong> para usuarios ocasionales</td>
+<td>Drawer: desde USD 22,20 por detección [fuente externa]</td>
+<td>Canibaliza la suscripción si el piso está mal puesto</td>
+<td>Ofrecerlo en paralelo y medir qué eligen</td>
+</tr>
+<tr>
+<td><strong>H-M3 · Proveedor: suscripción por solicitudes estructuradas o tarifa por RFQ calificada</strong>, no comisión sobre el pedido</td>
+<td>Margen neto del distribuidor ~3 % [fuente externa, <code>research/05 §1.4</code>]: una comisión &gt; 1–2 % del GMV se come la mitad de su ganancia [estimación]</td>
+<td>Q Electric rechazó los pagos; la comisión nunca se preguntó [entrevista]</td>
+<td>Preguntarlo explícitamente en la validación V2</td>
+</tr>
+<tr>
+<td><strong>H-M4 · Comisión por lead</strong> (lo que dice el Sprint 5)</td>
+<td>Marketplaces B2B 3–15 % [fuente externa]; no se traslada a pedidos de obra [estimación]</td>
+<td>Con el pago fuera de la plataforma, se puede esquivar</td>
+<td>Diferir hasta que haya volumen de pedidos medido</td>
+</tr>
+<tr>
+<td><strong>H-M5 · Tarifa financiada por el fabricante</strong> (participación en especificación)</td>
+<td>Representantes: 8–16 % de la venta neta [fuente externa]</td>
+<td>Conflicto con la neutralidad multimarca</td>
+<td>H3, con reglas de neutralidad publicadas</td>
+</tr>
+</tbody></table>
+<p><strong>Costo variable a cubrir</strong> [medido, <code>research/04 §4</code>]: detección USD 1,02 por plano de 221 cajas (techo USD 1,22;
+TSSS USD 1,32); plano medio ~USD 0,73; lectura de BOM ~USD 0,041 por plano; lectura de catálogo USD 3,42 por 2.551 líneas.
+<strong>Regla derivada</strong> [estimación]: a USD 1–3,5 por tablero de ingreso y ~USD 1 de costo de IA, <strong>el margen bruto por tablero
+es entre fino y negativo</strong> si no se controla el gasto. Por eso el control de costo de IA (O-09) va antes que el cobro
+(O-11), y no al revés.</p>
+<hr>
+<h2>5. Diferenciales a validar: IA, FX e inflación</h2>
+<ul>
+<li><strong>IA que propone y persona que confirma.</strong> EMEVE ya probó una IA paga que alucinaba (<code>research/01 §3</code>) [entrevista].
+El diferencial es mostrar la procedencia (detectado / inferido por regla / manual) y <strong>no inventar un SKU crítico</strong>,
+más que &quot;tener IA&quot;. Métrica: la proporción de líneas que el ingeniero acepta sin editar, con umbral ≥ 90 % en tableros
+simples y ≥ 80 % en complejos (<code>research/05 §4</code>) [estimación, umbral propuesto].</li>
+<li><strong>FX e inflación.</strong> Inflación de 1,7 % mensual y 33,5 % interanual (ago. 2026, INDEC); mayorista ARS 1.522 por USD, con
++4,6 % en el año [fuente externa, <code>research/05 §4</code>]. La forma de pago cambia el precio (Nisamat) [entrevista]. Hoy el
+backend convierte a <code>QUOTATION_CURRENCY</code> (<code>research/02 §4</code> paso 13), pero no guarda la vigencia de la oferta ni recotiza.
+<strong>Hipótesis:</strong> un presupuesto de venta con validez y cobertura por inflación es un motivo de compra para el segmento B.
+<strong>Umbral:</strong> ≥ 40 % de las empresas del piloto pagarían aparte por recotización automática (<code>research/05 §4</code>)
+[estimación].</li>
+<li><strong>Plano en PDF.</strong> Detecta 2,4 % menos aparatos que en DXF [medido]. Amplía el mercado a quien no tiene el DXF.</li>
+</ul>
+<hr>
+<h2>6. North Star y métricas de guarda (propuestas)</h2>
+<ul>
+<li><strong>North Star:</strong> <em>tableros cotizados con oferta confirmada por el proveedor, por semana</em>. Obliga a que funcione toda la
+cadena y no solo la detección.</li>
+<li><strong>Guardas:</strong> minutos por tablero <strong>incluida la revisión humana</strong>, contra la línea base manual propia de cada empresa (el
+objetivo ≥ 60 % menos tiempo sale de <code>research/05 §4</code> [estimación]); faltantes con precio ≤ 1 por tablero; costo de IA por
+tablero; mediana de respuesta del proveedor (&lt; 30 min contra las 2–3 h de hoy [entrevista]); retención de 3 de 5 empresas
+piloto en la semana 4.</li>
+</ul>
+<hr>
+<h2>7. Expansión: LatAm IEC, solo si se cumplen las condiciones</h2>
+<p>Latinoamérica era el 3,6 % del mercado de tableros de BT en 2022 y la región de mayor crecimiento (4,6 % CAGR 2022–28)
+[fuente externa, Frost &amp; Sullivan, <code>research/05 §1.1</code>]. En Chile, ~60 % de los tableros de obras grandes pasan por
+distribuidores [fuente externa]. Las normas IEC y la base Schneider/ABB/Siemens son comunes a la región, lo que hace
+<strong>plausible</strong> reusar el catálogo canónico [estimación].</p>
+<p><strong>Condiciones para salir de Argentina (todas):</strong></p>
+<ol>
+<li>En Argentina, ≥ 5 empresas pagando y ≥ 3 distribuidores respondiendo solicitudes dentro de la plataforma durante 3
+meses seguidos.</li>
+<li>Acierto de matching de punta a punta medido sobre datos reales y por encima del umbral acordado (V4 en
+<code>03-roadmap.md</code>).</li>
+<li>Costo de IA por tablero &lt; 30 % del ingreso por tablero [estimación, umbral propuesto].</li>
+<li>Resuelto dónde viven los datos: São Paulo cuesta entre 53 % y 113 % más que la región actual de AWS y Chile no figura en
+la lista de precios (<code>Arquitectura Liard.md:155</code>) [fuente externa].</li>
+<li>Un socio local tipo CADIME en el país destino. En Argentina, el rol de CADIME todavía no está validado (<code>research/01 §8.8</code>).</li>
+</ol>
+<p>Sin estas condiciones, &quot;liderazgo regional&quot; es una aspiración y no se planifica trabajo para eso.</p>
+<hr>
+<h2>8. Riesgos principales</h2>
+<table>
+<thead>
+<tr>
+<th>Riesgo</th>
+<th>Señal temprana</th>
+<th>Mitigación</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Competidores de Liard desconfían de una plataforma asociada a Liard (VIS §1.5)</td>
+<td>Rechazos en los pilotos fuera del círculo de Liard</td>
+<td>Unidad separada, confidencialidad por diseño (O-22) y política de datos escrita</td>
+</tr>
+<tr>
+<td>El costo de IA supera el ingreso por tablero</td>
+<td>Ledger por tablero &gt; USD 1,5</td>
+<td>Tope por espacio de trabajo (O-09), detección sin repetir y caché</td>
+</tr>
+<tr>
+<td>Distribuidores que no responden</td>
+<td>&lt; 50 % de solicitudes respondidas</td>
+<td>Email como canal formal (O-08), solicitud ya estructurada, sin comisión al principio</td>
+</tr>
+<tr>
+<td>Un competidor que lee unifilares (Switchonomy, OpenDrawing) entra a LatAm</td>
+<td>Presencia comercial en AR</td>
+<td>Profundidad en catálogos locales y equivalencias; no competir por la detección sola</td>
+</tr>
+<tr>
+<td>Exceso de alcance: el prototipo sugiere 20 pantallas</td>
+<td>Sprints que abren frentes sin cerrar H1</td>
+<td>Aplicar los criterios de salida de <code>03-roadmap.md</code></td>
+</tr>
+</tbody></table>
+</article></body></html>

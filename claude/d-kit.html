@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · sistema visual</title>
+<link rel="stylesheet" href="ui.css">
+<script src="data.js"></script>
+<script src="app.js"></script>
+</head>
+<body data-role="ENGINEER" data-active="" data-title="Sistema visual" data-sub="Tokens, componentes y reglas de procedencia compartidas por todas las pantallas">
+<div id="act"><button class="btn btn-secondary">Secundaria</button><button class="btn btn-primary">Acción primaria</button></div>
+<div id="page">
+  <div class="grid g4">
+    <div class="card kpi"><span class="eyebrow">Tableros</span><strong>7</strong><small>4 planos · TS-P tipo ×4</small></div>
+    <div class="card kpi kpi-brand"><span class="eyebrow">Mejor referencia</span><strong id="k-ref">—</strong><small>Precio de catálogo, no confirmado</small></div>
+    <div class="card kpi kpi-copper"><span class="eyebrow">Margen</span><strong>22 %</strong><small>Escenario base</small></div>
+    <div class="card kpi"><span class="eyebrow">IA del mes</span><strong id="k-ai">—</strong><div class="meter ok"><i style="width:12%"></i></div></div>
+  </div>
+  <div class="section-t"><h2>Procedencia y capacidad</h2></div>
+  <div class="card card-b row" id="tags"></div>
+  <div class="section-t"><h2>Estados</h2></div>
+  <div class="grid g2">
+    <div class="note"><svg class="ic" width="16" height="16"></svg><p>Nota informativa con una acción concreta.</p></div>
+    <div class="note note-warn"><svg class="ic" width="16" height="16"></svg><p>La oferta de Norte Materiales vence el 3 oct.</p></div>
+    <div class="note note-err"><svg class="ic" width="16" height="16"></svg><p>No pudimos procesar el TDE. Recortalo en partes o volvé a intentar; el resto de la obra queda como estaba.</p></div>
+    <div class="note note-ai"><svg class="ic" width="16" height="16"></svg><p>Sugerencia de IA: revisala antes de aplicarla.</p></div>
+  </div>
+  <div class="section-t"><h2>Formulario y tabla</h2></div>
+  <div class="grid g2">
+    <form class="card card-b col" id="f" novalidate>
+      <div class="field"><label for="n">Nombre de la obra</label><input class="input" id="n" required><span class="hint">Como la conoce el cliente.</span></div>
+      <div class="field"><label for="m">Repeticiones</label><input class="input num" id="m" type="number" min="1" max="1000" value="1"></div>
+      <label class="switch"><input type="checkbox" checked> Permitir alternativas</label>
+      <div class="row"><button class="btn btn-primary">Guardar obra</button><button type="button" class="btn btn-ghost" id="dl">Descargar XLSX de prueba</button></div>
+    </form>
+    <div class="card tbl-wrap"><table class="tbl" id="t"><thead><tr><th data-sort="m">Material</th><th data-sort="q" class="num">Cant.</th><th>Origen</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+<script>
+L.ready(() => {
+  document.querySelectorAll('.note > svg').forEach((s, i) => s.outerHTML = L.icon(['info', 'alert', 'alertc', 'sparkles'][i], 16));
+  document.getElementById('k-ref').textContent = L.arsShort(L.referenceQuote('p1').bestTotal);
+  document.getElementById('k-ai').textContent = L.usd(L.aiSpent());
+  document.getElementById('tags').innerHTML = [L.srcTag('DETECTOR'), L.srcTag('RULE'), L.srcTag('MANUAL'), L.priceTag('referencia'), L.priceTag('oferta'), L.cap('existe'), L.cap('planificado'), L.cap('propuesto'), L.sim(), L.ai(), L.badge('Stock confirmado', 'ok'), L.badge('A pedido', 'warn'), L.badge('Vencida', 'err')].join(' ');
+  let rows = L.linesOf('p1').map(l => ({ m: L.lineLabel(l), q: L.qty(l), s: l.src }));
+  const t = document.getElementById('t'); const draw = () => t.tBodies[0].innerHTML = rows.slice(0, 8).map(r => `<tr><td>${L.esc(r.m)}</td><td class="num">${r.q}</td><td>${L.srcTag(r.s)}</td></tr>`).join('');
+  L.sortable(t, (k, d) => { rows.sort((a, b) => (a[k] > b[k] ? 1 : -1) * d); draw(); }); draw();
+  document.getElementById('f').onsubmit = e => { e.preventDefault(); const n = document.getElementById('n'); if (!n.value.trim()) return L.fieldError(n, 'Escribí el nombre de la obra.'); L.fieldError(n, null); L.toast('Obra guardada'); };
+  document.getElementById('dl').onclick = () => L.download('prueba.xlsx', L.xlsx([{ name: 'BOM', rows: [['Material', 'Cantidad'], ...rows.map(r => [r.m, r.q])] }]));
+});
+</script>
+</body>
+</html>

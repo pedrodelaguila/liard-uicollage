@@ -1,0 +1,109 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · Pedidos</title><link rel="stylesheet" href="ui.css"><script src="data.js"></script><script src="app.js"></script>
+<style>
+  .mt { margin-top: var(--sp-4); }
+  .po { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: var(--sp-4); align-items: start; }
+  .po-list a { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-bottom: 1px solid var(--line); text-decoration: none; color: var(--ink); }
+  .po-list a:last-child { border-bottom: 0; } .po-list a:hover { background: var(--surface-2); }
+  .po-list a[aria-current='true'] { background: var(--volt-soft); box-shadow: inset 3px 0 0 var(--volt); }
+  .po-list .po-top { display: flex; align-items: center; gap: 8px; } .po-list small { color: var(--ink-3); }
+  .po-h { display: flex; gap: var(--sp-4); align-items: flex-start; }
+  .po-h h2 { font-size: var(--fs-2xl); }
+  .po-meta { display: flex; flex-wrap: wrap; gap: 6px 20px; font-size: var(--fs-sm); color: var(--ink-2); margin-top: 6px; } .po-meta b { color: var(--ink); }
+  .contact dl { display: grid; grid-template-columns: 120px 1fr; gap: 6px 12px; margin: 0; font-size: var(--fs-sm); } .contact dt { color: var(--ink-3); } .contact dd { margin: 0; }
+  .tbl td small { display: block; color: var(--ink-3); }
+  @media (max-width: 1100px) { .po { grid-template-columns: 1fr; } }
+</style></head>
+<body data-role="SUPPLIER" data-active="prov-pedidos" data-title="Pedidos" data-sub="Materiales que te adjudicaron: confirmalos o rechazalos">
+<div id="act"></div>
+<div id="page"></div>
+<script>
+L.ready(() => {
+  if (L.param('demo') === 'ejemplos') { { const rest = new URLSearchParams(location.search); rest.delete('demo'); location.replace('d-prov-solicitudes.html?demo=ejemplos&volver=d-prov-pedidos.html' + (rest.toString() ? '&resto=' + encodeURIComponent(rest.toString()) : '') + (rest.get('frame') ? '&frame=' + rest.get('frame') : '')); return; } }
+  const S = () => L.store.get(); const SID = S().session.supplierId;
+  const page = document.getElementById('page'), act = document.getElementById('act');
+  const mine = () => S().orders.filter(o => o.supplierId === SID).sort((a, b) => (a.status === 'SENT' ? 0 : 1) - (b.status === 'SENT' ? 0 : 1) || (a.createdAt < b.createdAt ? 1 : -1));
+  let oid = L.param('o'); let dialogShown = false;
+  const statusText = o => o.status === 'SENT' ? 'Esperando tu respuesta' : L.orderStatusLabel[o.status];
+  const buyer = () => { const s = S(); const c = s.team.find(u => u.area === 'Compras'); return { company: s.company, person: c }; };
+  const offLine = (o, id) => { const of = L.offer(o.requestId, SID); return of && of.lines.find(x => x.lineId === id); };
+  const codeOf = (o, l) => { if (l.isAlt) return l.altCode; const ol = offLine(o, l.lineId); return ol ? ol.code : ''; };
+
+  function respond(o, status, reason) {
+    const res = L.respondOrder(o.id, status, reason);
+    if (!res.ok) { L.toast(res.err, { kind: 'err' }); render(); return false; }
+    L.toast(status === 'CONFIRMED' ? 'Pedido ' + o.code + ' confirmado' : 'Pedido ' + o.code + ' rechazado', { detail: status === 'CONFIRMED' ? 'Ya ves el contacto de compras de ' + S().company.name + '.' : 'El comprador ya ve el motivo.' });
+    return true;
+  }
+  function confirmDlg(o) {
+    L.dialog({ title: 'Confirmar ' + o.code, body: `<p>Confirmás que entregás <b>${o.lines.length} ${o.lines.length === 1 ? 'material' : 'materiales'}</b> por <b>${L.ars(L.orderTotal(o))}</b> a los precios de tu oferta.</p>
+      <p class="muted">Se responde una sola vez. Al confirmar, ${L.esc(S().company.name)} ve tu contacto y vos ves el de su área de compras. El pago y el flete se acuerdan fuera de liard.</p>`,
+      actions: [{ label: 'Cancelar' }, { label: 'Confirmar pedido', kind: 'primary', onClick: () => { respond(o, 'CONFIRMED'); } }] });
+  }
+  function rejectDlg(o) {
+    L.dialog({ title: 'Rechazar ' + o.code, body: `<p>El comprador ve el motivo y puede adjudicar estos materiales a otro distribuidor. <b>Se responde una sola vez.</b></p>
+      <div class="field"><label for="rr">Motivo</label><select class="select" id="rr"><option value="">Elegí un motivo</option>${['Me quedé sin stock', 'Cambió el precio del fabricante', 'No llego con el plazo', 'Otro motivo'].map(x => `<option>${x}</option>`).join('')}</select></div>
+      <div class="field mt"><label for="rrt">Detalle</label><textarea class="textarea" id="rrt" placeholder="Opcional salvo en «Otro motivo»"></textarea></div>`,
+      actions: [{ label: 'Cancelar' }, { label: 'Rechazar pedido', kind: 'danger', onClick: d => { const s = d.querySelector('#rr'), t = d.querySelector('#rrt');
+        if (!s.value) { L.fieldError(s, 'Elegí un motivo: el comprador lo ve.'); s.focus(); return false; }
+        if (s.value === 'Otro motivo' && !t.value.trim()) { L.fieldError(t, 'Contá el motivo.'); t.focus(); return false; }
+        respond(o, 'REJECTED', s.value === 'Otro motivo' ? t.value.trim() : s.value + (t.value.trim() ? '. ' + t.value.trim() : '')); } }] });
+  }
+  function pdf(o) {
+    const r = L.request(o.requestId); const pr = L.project(o.projectId); const sup = L.supplier(SID); const b = buyer(); const W = [24, 190, 40, 120, 60, 65];
+    const blocks = [{ h1: 'Pedido ' + o.code }, { p: S().company.name + ' → ' + sup.name }, { p: 'Obra ' + pr.name + ' · ' + pr.city + ' · solicitud ' + r.code + ' · emitido ' + L.date(o.createdAt.slice(0, 10)) },
+      { p: 'Estado: ' + statusText(o) + (o.respondedAt ? ' (' + L.date(o.respondedAt.slice(0, 10)) + ')' : '') + (o.reason ? ' · Motivo: ' + o.reason : '') }, { hr: true },
+      { row: ['#', 'Material', 'Cant.', 'Artículo', 'Unit.', 'Subtotal'], widths: W, bold: true, align: ['l', 'l', 'r', 'l', 'r', 'r'] },
+      ...o.lines.map((l, i) => ({ row: [i + 1, L.lineLabel(L.line(l.lineId)), l.qty, (l.brand || '') + ' ' + (codeOf(o, l) || '') + (l.isAlt ? ' (alt.)' : ''), L.ars(l.unitPrice), L.ars(l.qty * l.unitPrice)], widths: W, align: ['l', 'l', 'r', 'l', 'r', 'r'] })),
+      { hr: true }, { row: ['', 'Total', '', '', '', L.ars(L.orderTotal(o))], widths: W, bold: true, align: ['l', 'l', 'r', 'l', 'r', 'r'] }, { gap: 8 },
+      o.status === 'CONFIRMED' ? { p: 'Contacto de compras: ' + b.person.name + ' · ' + b.person.email + ' · ' + b.company.name } : { small: 'El contacto del comprador se incluye cuando el pedido está confirmado.' },
+      { small: 'El pago de los materiales y el flete se acuerdan fuera de liard.' }];
+    L.download('Pedido-' + o.code + '.pdf', L.pdf(blocks, { title: 'Pedido ' + o.code }));
+  }
+
+  function render() {
+    const estado = L.param('estado'); const list = mine();
+    let o = list.find(x => x.id === oid) || list[0];
+    act.innerHTML = o && estado !== 'vacio' ? `<button class="btn btn-secondary btn-sm" data-pdf>${L.icon('download', 14)}Pedido PDF</button>` : '';
+    if (estado === 'cargando') { page.innerHTML = `<div class="po"><div class="card card-b col">${'<div class="skel" style="height:44px"></div>'.repeat(3)}</div><div class="card card-b col"><div class="skel" style="height:30px;width:40%"></div>${'<div class="skel" style="height:36px"></div>'.repeat(4)}</div></div>`; return; }
+    if (estado === 'error') { page.innerHTML = `<div class="note note-err" role="alert">${L.icon('alertc', 16)}<div><p><b>No pudimos traer tus pedidos.</b> Si ya respondiste uno, la respuesta quedó registrada.</p><a class="btn btn-secondary btn-sm" href="d-prov-pedidos.html">${L.icon('refresh', 14)}Reintentar</a></div></div>`; return; }
+    if (!o || estado === 'vacio') { page.innerHTML = `<div class="card">${L.empty({ icon: 'truck', title: 'Todavía no te adjudicaron pedidos', text: 'Cuando un tablerista elige tu oferta para uno o más materiales, el pedido aparece acá para que lo confirmes o lo rechaces.', action: `<a class="btn btn-secondary" href="${L.link('d-prov-solicitudes.html')}">Ver solicitudes</a> <a class="btn btn-ghost" href="d-prov-solicitudes.html?demo=ejemplos&volver=d-prov-pedidos.html">Demo: cargar pedidos de ejemplo</a>` })}</div>`; return; }
+    oid = o.id;
+    const r = L.request(o.requestId); const pr = L.project(o.projectId); const b = buyer(); const sup = L.supplier(SID);
+    const lines = o.lines.map((l, i) => { const bl = L.line(l.lineId); const t = L.type(bl.typeId);
+      return `<tr><td class="tight mono">${i + 1}</td><td><strong>${L.esc(L.lineLabel(bl))}</strong><small>${L.esc(t ? t.name : '')}</small></td><td class="num">${L.num(l.qty)}</td>
+        <td>${L.esc(l.brand || '')} <span class="mono">${L.esc(codeOf(o, l) || '')}</span>${l.isAlt ? ' ' + L.badge('alternativa aprobada', 'ok', 'split') : ''}</td><td class="num">${L.ars(l.unitPrice)}</td><td class="num">${L.ars(l.qty * l.unitPrice)}</td></tr>`; }).join('');
+    const contact = o.status === 'CONFIRMED'
+      ? `<section class="card mt contact" aria-labelledby="ct"><div class="card-h"><h3 id="ct">Contacto del comprador</h3>${L.cap('existe')}${L.badge('Compartido al confirmar', 'ok', 'check')}</div><div class="card-b"><dl>
+          <dt>Empresa</dt><dd><b>${L.esc(b.company.name)}</b> · ${L.esc(b.company.city)}</dd><dt>CUIT</dt><dd class="mono">${L.esc(b.company.cuit)}</dd>
+          <dt>Compras</dt><dd>${L.esc(b.person.name)}</dd><dt>Correo</dt><dd><a href="mailto:${L.esc(b.person.email)}">${L.esc(b.person.email)}</a></dd>
+          <dt>Tu contacto</dt><dd>${L.esc(sup.contact)} · ${L.esc(sup.email)} · ${L.esc(sup.phone)} <small class="muted">(lo ve el comprador)</small></dd></dl>
+          <p class="muted" style="margin:12px 0 0;font-size:var(--fs-xs)">Datos de la cuenta del comprador en liard, no de ejemplo fijo.</p></div></section>`
+      : `<section class="card mt contact" aria-labelledby="ct"><div class="card-h"><h3 id="ct">Contacto del comprador</h3>${L.cap('existe')}</div><div class="card-b row">${L.icon('lock', 18)}<p style="margin:0">${o.status === 'SENT' ? 'Aparece cuando confirmes el pedido. Hasta entonces ves solo la empresa: ' + L.esc(b.company.name) + '.' : 'Rechazaste el pedido: no se comparten contactos.'}</p></div></section>`;
+    page.innerHTML = `<div class="po">
+      <nav class="card po-list" aria-label="Tus pedidos"><div class="card-h"><h3>Tus pedidos</h3><span class="spacer"></span>${L.badge(list.filter(x => x.status === 'SENT').length + ' por responder', list.some(x => x.status === 'SENT') ? 'warn' : 'muted')}</div>
+        ${list.map(x => `<a href="${L.link('d-prov-pedidos.html', { o: x.id })}" data-o="${x.id}" aria-current="${x.id === o.id}"><span class="po-top"><strong class="mono">${L.esc(x.code)}</strong><span class="spacer"></span>${L.badge(statusText(x), L.orderStatusTone[x.status])}</span>
+          <span>${L.esc(L.project(x.projectId).name)}</span><small>${x.lines.length} ${x.lines.length === 1 ? 'material' : 'materiales'} · ${L.ars(L.orderTotal(x))} · ${L.dateShort(x.createdAt)}</small></a>`).join('')}</nav>
+      <div>
+        <section class="card card-b" aria-labelledby="ph"><div class="po-h"><div style="flex:1"><div class="row"><span class="eyebrow">Pedido de compra</span>${L.cap('existe')}</div>
+          <h2 id="ph" class="mono" style="margin-top:6px">${L.esc(o.code)}</h2>
+          <div class="po-meta"><span>Comprador <b>${L.esc(b.company.name)}</b></span><span>Obra <b>${L.esc(pr.name)}</b> · ${L.esc(pr.city)}</span><span>De la solicitud <a href="${L.link('d-prov-oferta.html', { r: r.id })}">${L.esc(r.code)}</a></span><span>Emitido ${L.date(o.createdAt.slice(0, 10))}</span></div></div>
+          <div style="text-align:right">${L.badge(statusText(o), L.orderStatusTone[o.status], o.status === 'CONFIRMED' ? 'check' : o.status === 'REJECTED' ? 'x' : 'clock')}<div class="kpi" style="padding:8px 0 0"><strong class="num">${L.ars(L.orderTotal(o))}</strong></div></div></div>
+          ${o.status === 'SENT' ? `<div class="note note-warn mt">${L.icon('clock', 16)}<div><p><b>Respondé una sola vez.</b> Confirmar comparte los contactos; rechazar libera los materiales para que el comprador los adjudique a otro.</p>
+            <div class="row"><button class="btn btn-primary" data-confirm>${L.icon('check', 15)}Confirmar pedido</button><button class="btn btn-secondary" data-reject>${L.icon('x', 15)}Rechazar</button></div></div></div>`
+          : `<div class="note ${o.status === 'CONFIRMED' ? 'note-ok' : 'note-err'} mt">${L.icon(o.status === 'CONFIRMED' ? 'check' : 'x', 16)}<p>${o.status === 'CONFIRMED' ? 'Confirmaste' : 'Rechazaste'} el pedido el ${L.date(o.respondedAt.slice(0, 10))} a las ${L.time(o.respondedAt)}${o.reason ? '. Motivo: «' + L.esc(o.reason) + '»' : ''}. Ya no se puede cambiar la respuesta.</p></div>`}
+        </section>
+        <section class="card mt" aria-labelledby="lt"><div class="card-h"><h3 id="lt">Materiales adjudicados</h3><span class="spacer"></span><small class="muted">A los precios de tu oferta, con descuento aplicado</small></div>
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Material</th><th class="num">Cant.</th><th>Artículo</th><th class="num">Precio unit.</th><th class="num">Subtotal</th></tr></thead><tbody>${lines}</tbody>
+          <tfoot><tr><td colspan="5">Total del pedido</td><td class="num">${L.ars(L.orderTotal(o))}</td></tr></tfoot></table></div></section>
+        ${contact}
+        <div class="note mt">${L.icon('info', 16)}<p>liard registra el pedido y la respuesta. <b>El pago de los materiales y el flete se acuerdan fuera de liard</b>, entre vos y el comprador.</p></div>
+      </div></div>`;
+    const c = page.querySelector('[data-confirm]'); if (c) c.onclick = () => confirmDlg(o);
+    const j = page.querySelector('[data-reject]'); if (j) j.onclick = () => rejectDlg(o);
+    act.querySelector('[data-pdf]').onclick = () => pdf(o);
+    if (!dialogShown && L.param('dialogo') && o.status === 'SENT') { dialogShown = true; (L.param('dialogo') === 'rechazar' ? rejectDlg : confirmDlg)(o); }
+  }
+  L.store.subscribe(render); render();
+});
+</script></body></html>

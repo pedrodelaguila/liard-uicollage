@@ -1,0 +1,20 @@
+﻿Material;Componente base;Atributos;Marca;Cantidad dibujada;Repeticiones;Cantidad a comprar;Origen
+Caja moldeada 4P · 400 A · 50 kA · Termomagnética;Interruptor automático en caja moldeada;4P · 400 A · 50 kA · Termomagnética;Schneider;1;TGBT 1;1;detectado
+Seccionador 4P · 400 A;Seccionador bajo carga;4P · 400 A;Schneider;1;TGBT 1;1;detectado
+Descargador 4P · 40 kA;Descargador de sobretensión;4P · 40 kA;Cualquier marca;2;TGBT 1 + TDE 1;2;detectado
+Multimedidor Modbus RTU;Multimedidor;Modbus RTU;Schneider;2;TGBT 1 + TDE 1;2;detectado
+Térmica 4P · 63 A · curva C;Interruptor termomagnético;4P · 63 A · curva C;Schneider;5;TGBT 4 + TS-PB 1;5;detectado
+Térmica 4P · 32 A · curva C;Interruptor termomagnético;4P · 32 A · curva C;Schneider;8;TGBT 6 + TDE 2;8;detectado
+Diferencial 4P · 63 A · 300 mA;Interruptor diferencial;4P · 63 A · 300 mA;Schneider;1;TGBT 1;1;detectado
+Diferencial 4P · 40 A · 30 mA;Interruptor diferencial;4P · 40 A · 30 mA;Schneider;3;TS-PB 2 + TS-P tipo 1×4;6;detectado
+Diferencial 2P · 25 A · 30 mA · A;Interruptor diferencial;2P · 25 A · 30 mA · A;Schneider;9;TS-PB 4 + TS-P tipo 3×4 + TDE 2;18;detectado
+Térmica 1P+N · 10 A · curva C;Interruptor termomagnético;1P+N · 10 A · curva C;Chint;18;TS-PB 8 + TS-P tipo 6×4 + TDE 4;36;detectado
+Térmica 1P+N · 16 A · curva C;Interruptor termomagnético;1P+N · 16 A · curva C;Chint;11;TS-PB 6 + TS-P tipo 5×4;26;detectado
+Térmica 2P · 20 A · curva C;Interruptor termomagnético;2P · 20 A · curva C;Cualquier marca;2;TS-P tipo 2×4;8;detectado
+Contactor 4P · 25 A · 220 Vca;Contactor;4P · 25 A · 220 Vca;Schneider;2;TS-PB 1 + TDE 1;2;detectado
+Ojo de buey Rojo · 220 V;Ojo de buey (señalización);Rojo · 220 V;Chint;9;TGBT 3 + TS-PB 3 + TS-P tipo 3×4;18;detectado
+Ojo de buey Verde · 220 V;Ojo de buey (señalización);Verde · 220 V;Cualquier marca;3;TGBT 3;3;detectado
+Gabinete IP55 · 2000×800 mm;Gabinete metálico;IP55 · 2000×800 mm;Schneider;1;TGBT 1;1;inferido
+Gabinete IP43 · 800×600 mm;Gabinete metálico;IP43 · 800×600 mm;Cualquier marca;3;TS-PB 1 + TS-P tipo 1×4 + TDE 1;6;inferido
+Borne 4 mm²;Borne de riel DIN;4 mm²;Cualquier marca;106;TGBT 24 + TS-PB 36 + TS-P tipo 28×4 + TDE 18;190;inferido
+Borne 10 mm²;Borne de riel DIN;10 mm²;Cualquier marca;12;TGBT 12;12;manual

@@ -1,0 +1,386 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>liard · 03 · Roadmap por dependencias</title><link rel="stylesheet" href="../ui.css"><style>body{margin:0;display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+aside{position:sticky;top:0;height:100vh;overflow:auto;background:var(--stage);color:var(--stage-ink);padding:20px 14px}
+aside a{display:block;color:var(--stage-ink-2);text-decoration:none;padding:6px 10px;border-radius:6px;font-size:13px}
+aside a.on,aside a:hover{background:var(--stage-3);color:#fff} aside h4{font:600 10.5px var(--font-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--stage-ink-2);margin:18px 10px 6px}
+article{max-width:1060px;padding:40px 48px 80px;background:var(--surface);min-height:100vh;box-shadow:var(--shadow-1)}
+article h1{font-size:32px;margin-bottom:18px} article h2{margin:34px 0 12px;padding-top:12px;border-top:1px solid var(--line)} article h3{margin:22px 0 8px}
+article table{border-collapse:collapse;width:100%;font-size:12.5px;margin:12px 0 18px;display:block;overflow-x:auto}
+article th,article td{border:1px solid var(--line);padding:6px 8px;vertical-align:top;text-align:left} article th{background:var(--surface-2);font-family:var(--font-mono);font-size:11px}
+article code{font-family:var(--font-mono);font-size:.9em;background:var(--surface-3);padding:1px 4px;border-radius:4px} article pre{background:var(--stage);color:var(--stage-ink);padding:14px;border-radius:10px;overflow:auto;font-size:12px}
+article pre code{background:none;color:inherit} article blockquote{border-left:3px solid var(--volt);margin:12px 0;padding:6px 14px;background:var(--volt-soft)}
+article li{margin:3px 0} .back{display:inline-flex;margin:0 10px 14px;color:var(--volt)!important}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{position:static;height:auto}article{padding:20px}}</style></head><body><aside><a class="back" href="../index.html">← Galería</a><h4>Estrategia, oportunidades y roadmap</h4><a href="01-estrategia.html" class="">01 · Estrategia de liard</a><a href="02-oportunidades.html" class="">02 · Backlog priorizado de oportunidades</a><a href="03-roadmap.html" class="on">03 · Roadmap por dependencias</a><a href="04-supuestos-y-no-verificado.html" class="">04 · Supuestos y lo que no está verificado</a><h4>Investigación y auditoría</h4><a href="../research/01-producto.html" class="">01 — Producto LIARD: lo que dice la documentación</a><a href="../research/02-backend.html" class="">02 — What the LIARD backend actually implements</a><a href="../research/03-frontend.html" class="">03 — LIARD frontend: journeys, rules, copy, visual system</a><a href="../research/04-estado.html" class="">04 — Estado real de entrega de LIARD (Sprint 4, Sprint 5, issues abiertos, números medidos)</a><a href="../research/05-mercado.html" class="">05 - Market, competitors and pricing (LIARD)</a></aside><article><h1>03 · Roadmap por dependencias</h1>
+<p>El orden sale de las dependencias y de criterios de entrada y salida, no de fechas. Los IDs O-xx son los de
+<code>02-oportunidades.md</code>. Etiquetas de cifras: las de <code>01-estrategia.md</code>.</p>
+<blockquote>
+<p><strong>Que un flujo funcione en el prototipo no significa que su sprint de producción esté completo.</strong> El prototipo
+(<code>liard-horizon</code>) corre sobre un store local con datos ficticios, IA simulada (<code>L.sim()</code>, &quot;nunca llamadas reales&quot;,
+<code>CONTRATOS.md</code>) y funciones de dominio (<code>L.createRequest</code>, <code>L.submitOffer</code>, <code>L.award</code>, <code>L.decideApproval</code>…) <strong>que no
+tienen equivalente en el backend</strong>. Cada pantalla <code>propuesto</code> es un documento de diseño que se puede probar con
+usuarios, no código que se pueda desplegar. §5 lista el trabajo de producción que implica cada flujo.</p>
+</blockquote>
+<hr>
+<h2>1. Lo que queda del Sprint 4 (evidencia: <code>research/04 §1</code>)</h2>
+<table>
+<thead>
+<tr>
+<th>Pendiente</th>
+<th>Evidencia</th>
+<th>Criterio de &quot;hecho&quot;</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Deploy de prueba (#985) y su prerrequisito COLA-01/02 (#1000)</td>
+<td>#985 con 0 casillas marcadas; no hay artefactos de deploy; ARQ:75 dice &quot;Preparada, no desplegada&quot;. Fecha que se había previsto: 04/10</td>
+<td>URL pública con TLS, 5 cuentas reales creadas (≥ 3 de ingeniería y ≥ 1 distribuidor), backup diario verificado con una restauración y un plano procesado de punta a punta en la VM</td>
+</tr>
+<tr>
+<td>Corregir <code>Roadmap.md</code> §Sprint 4.11</td>
+<td>Dice &quot;Se desplegó&quot;</td>
+<td>El texto dice lo que es cierto</td>
+</tr>
+<tr>
+<td>Mostrar <code>unmatchedReason</code> (O-02)</td>
+<td>Ningún componente lo muestra</td>
+<td>Cada línea NOT_FOUND muestra su motivo y lleva al editor</td>
+</tr>
+<tr>
+<td>Cerrar #832, #930, #931, #970, #987 y #988</td>
+<td>Código ya en <code>dev</code></td>
+<td>Issues cerrados con referencia al PR</td>
+</tr>
+<tr>
+<td>Videos #787 y #788</td>
+<td>Bloqueados por el nombre comercial (#834)</td>
+<td>Decisión de nombre tomada y un video por rol grabado <strong>sobre la instancia desplegada</strong></td>
+</tr>
+<tr>
+<td>Avatar y renombrado (#824–#826)</td>
+<td>Parciales</td>
+<td><strong>Recomendación: sacarlos del Sprint 4.</strong> No bloquean el piloto</td>
+</tr>
+</tbody></table>
+<h2>2. Sprint 5: lo planificado y los ajustes que recomiendo</h2>
+<table>
+<thead>
+<tr>
+<th>Ítem del Sprint 5 (Roadmap)</th>
+<th>Recomendación</th>
+<th>Motivo</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Extender el deploy (serverless) a más usuarios</td>
+<td><strong>Posponer lo serverless</strong>: primero sostener la VM con 5–10 usuarios</td>
+<td>Con pocos usuarios, la VM cuesta USD 15–154 por mes [medido]. ARQ:233 dice que se migra cuando el costo fijo pese o haga falta escalar, y hoy no pasa ninguna de las dos</td>
+</tr>
+<tr>
+<td>Matching para todos los componentes</td>
+<td><strong>Mantener (O-03)</strong>, medido con O-04</td>
+<td>Es el mayor generador de NOT_FOUND</td>
+</tr>
+<tr>
+<td>BOM alternativo (#828–#831)</td>
+<td><strong>Consolidar</strong> con O-06 y O-16</td>
+<td>Ver <code>02 §Consolidadas</code></td>
+</tr>
+<tr>
+<td>Pagos: suscripción + comisión por lead</td>
+<td><strong>Reemplazar</strong> por la validación de precio (V1/V2) + facturación manual del piloto</td>
+<td>No hay evidencia de disposición a pagar ni de aceptación de la comisión</td>
+</tr>
+<tr>
+<td>Control de gasto de IA</td>
+<td><strong>Mantener y adelantar (O-09)</strong></td>
+<td>Es la condición para cualquier precio por tablero</td>
+</tr>
+<tr>
+<td>Notificaciones por email</td>
+<td><strong>Mantener y adelantar (O-08)</strong></td>
+<td>S y de alta confianza</td>
+</tr>
+<tr>
+<td>Observabilidad (#836)</td>
+<td><strong>Mantener (O-10)</strong>, lo mínimo para el piloto</td>
+<td>Sin trazas, un piloto con problemas no se diagnostica</td>
+</tr>
+<tr>
+<td>Evaluar DWG</td>
+<td><strong>Solo el spike</strong> de licencia y costo del conversor</td>
+<td>Valor incierto: el PDF ya entra</td>
+</tr>
+<tr>
+<td>Iterar detección y dataset (#1002, #901, #813)</td>
+<td><strong>Condicionarlo</strong> a los errores que aparezcan en el piloto</td>
+<td>Priorizar por fallas observadas, no por hipótesis</td>
+</tr>
+<tr>
+<td>— (no estaba)</td>
+<td><strong>Agregar O-23</strong> (confidencialidad), <strong>O-04</strong> (medición de punta a punta), <strong>O-25</strong> (plazos) y <strong>O-06</strong> (oferta editable)</td>
+<td>Sin O-23 no entra ningún distribuidor real; sin O-06, el marketplace sigue siendo &quot;precio de lista&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. Oleadas</h2>
+<h3>H1 · Piloto confiable (Argentina, segmento A + 3 distribuidores)</h3>
+<ul>
+<li><strong>Entrada:</strong> Sprint 4 cerrado con los criterios de §1.</li>
+<li><strong>Contenido:</strong> O-01, O-23, O-02, O-04, O-08, O-25, O-09, O-10, O-03, O-06, O-24.</li>
+<li><strong>Salida (todas):</strong> (a) ≥ 5 empresas usando la instancia desplegada durante 4 semanas y ≥ 3 activas en la semana 4;
+(b) acierto del matching de punta a punta medido y publicado, por encima del umbral acordado en V4; (c) minutos por
+tablero <strong>con revisión incluida</strong> ≥ 60 % por debajo de la línea base de cada empresa, en ≥ 5 planos reales por empresa
+(<code>research/05 §4</code>) [estimación, umbral propuesto]; (d) costo de IA por tablero medido en la base (no en
+<code>runs/…/components.json</code>); (e) ≥ 50 % de los pedidos respondidos por el distribuidor dentro de la plataforma; (f) V1 y
+V2 terminadas, con resultado.</li>
+</ul>
+<h3>H2 · Marketplace con ofertas reales y costeo (se suma el segmento B)</h3>
+<ul>
+<li><strong>Entrada:</strong> salida de H1, y V1/V2 con un rango de precio que tenga al menos 3 compromisos de pago.</li>
+<li><strong>Contenido:</strong> O-07 (RFQ), O-16 (comparación y adjudicación persistente), O-15 (incremental e historial), O-19, O-20,
+O-12 (presupuesto con FX), O-11 (cobro según V1/V2), O-26 (espacio de trabajo), O-17 (aprobaciones por monto).</li>
+<li><strong>Salida:</strong> (a) ≥ 5 empresas pagando durante 3 meses seguidos; (b) mediana de respuesta del proveedor &lt; 30 min (hoy
+2–3 h [entrevista]); (c) ≥ 80 % de las líneas de catálogo de los proveedores activos actualizadas hace menos de 7 días;
+(d) retención de los proveedores sin que haya comisión de por medio.</li>
+</ul>
+<h3>H3 · Escala y datos (condicionado)</h3>
+<ul>
+<li><strong>Entrada:</strong> las 5 condiciones de expansión de <code>01-estrategia.md §7</code>.</li>
+<li><strong>Contenido:</strong> región LatAm IEC con un socio local, O-22 (índice), O-21 (fabricantes), H-M4/H-M5 si V2 lo habilita,
+O-18 si el spike da un costo razonable, arquitectura serverless (ARQ:233) cuando la carga lo justifique, y O-13 solo si
+cumple su condición de diferimiento.</li>
+<li><strong>Salida:</strong> unit economics positivos por cuenta en ≥ 2 países. Esto es <strong>hipótesis</strong>, no meta comprometida.</li>
+</ul>
+<hr>
+<h2>4. Grafo de dependencias</h2>
+<pre class="mermaid-src" aria-label="Diagrama de dependencias (fuente mermaid)"><code>flowchart LR
+  subgraph S4[Cierre Sprint 4]
+    C1000[&quot;#1000 COLA-01/02&quot;] --&gt; O01[&quot;O-01 Deploy #985&quot;]
+    O02[O-02 unmatchedReason + higiene]
+  end
+  subgraph H1[H1 · Piloto confiable]
+    O23[O-23 Confidencialidad]
+    O04[O-04 Medición punta a punta]
+    O08[O-08 Email]
+    O25[O-25 Plazos y vencimiento]
+    O09[O-09 Costo de IA]
+    O10[O-10 Observabilidad]
+    O03[O-03 Matching de todos los tipos]
+    O06[O-06 Oferta editable]
+    O24[O-24 Zona y confianza]
+  end
+  subgraph H2[H2 · Marketplace y costeo]
+    O07[O-07 RFQ]
+    O16[O-16 Comparar y adjudicar]
+    O15[O-15 Incremental e historial]
+    O19[O-19 Reglas de accesorios]
+    O20[O-20 Reglas por empresa]
+    O12[O-12 Presupuesto FX]
+    O26[O-26 Espacio de trabajo]
+    O11[O-11 Cobro]
+    O17[O-17 Aprobaciones y automatizaciones]
+  end
+  subgraph H3[H3 · Escala y datos]
+    O22[O-22 Índice de precios]
+    O21[O-21 Datos de fabricante]
+    LATAM[LatAm IEC]
+  end
+  V1{{V1 Precio}} --&gt; O11
+  V2{{V2 Proveedor}} --&gt; O11
+  V4{{V4 Umbral}} --&gt; O04
+  O01 --&gt; O08 &amp; O09 &amp; O10 &amp; O26
+  O04 --&gt; O03
+  O23 --&gt; O06
+  O08 --&gt; O06
+  O06 --&gt; O07 &amp; O16
+  O25 --&gt; O07
+  O08 --&gt; O07
+  O03 --&gt; O19 &amp; O20
+  O15 --&gt; O12
+  O16 --&gt; O12
+  O09 --&gt; O11
+  O26 --&gt; O11 &amp; O17
+  O08 --&gt; O17
+  O15 --&gt; O22
+  O07 --&gt; O22
+  O04 --&gt; LATAM
+  O11 --&gt; LATAM
+</code></pre>
+<hr>
+<h2>5. Del prototipo a los tickets de producción</h2>
+<h3>5.1 Qué pantallas se convierten primero en tickets</h3>
+<table>
+<thead>
+<tr>
+<th>Orden</th>
+<th>Pantalla del prototipo</th>
+<th>Cap</th>
+<th>Ticket de producción que abre</th>
+<th>Por qué primero</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td><code>d-cotizacion.html</code> (motivo del no-match)</td>
+<td>existe</td>
+<td>O-02</td>
+<td>S, sin backend nuevo</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>d-prov-oferta.html</code> / <code>m-prov-oferta.html</code></td>
+<td>propuesto</td>
+<td>O-06</td>
+<td>Es la mayor brecha de valor del lado comercial; probarla con 3 distribuidores <strong>antes</strong> de construir</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>d-cuenta.html</code> (uso y tope de IA)</td>
+<td>planificado</td>
+<td>O-09 (solo la parte de uso y tope; la facturación espera a V1)</td>
+<td>Protege el margen</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>d-pedidos.html</code> / <code>d-prov-solicitudes.html</code> (plazo, VENCIDO)</td>
+<td>existe</td>
+<td>O-25 + O-08</td>
+<td>Usa columnas que ya existen</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>d-directorio.html</code></td>
+<td>existe</td>
+<td>O-24</td>
+<td>Datos ya guardados</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>d-comparar.html</code></td>
+<td>propuesto</td>
+<td>O-16</td>
+<td>Después de O-06</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>d-presupuesto.html</code></td>
+<td>propuesto</td>
+<td>O-12</td>
+<td>H2, para el segmento B</td>
+</tr>
+<tr>
+<td>—</td>
+<td><code>d-tablero-3d.html</code>, <code>d-asistentes.html</code>, <code>d-automatizaciones.html</code>, <code>d-inicio.html</code>, <code>d-prov-inicio.html</code></td>
+<td>propuesto</td>
+<td>Ninguno por ahora</td>
+<td>Sirven como material de discovery, no como backlog</td>
+</tr>
+</tbody></table>
+<h3>5.2 Trabajo de producción que implica cada flujo del prototipo</h3>
+<table>
+<thead>
+<tr>
+<th>Flujo del prototipo (<code>CONTRATOS.md</code>)</th>
+<th>Qué falta en producción (modelos, rutas, procesos)</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Solicitud → oferta (<code>L.createRequest</code>, <code>L.prefillOffer</code>, <code>L.saveOffer</code>, <code>L.submitOffer</code>, <code>L.declineOffer</code>)</td>
+<td>Modelos <code>QuoteRequest</code> (obra, líneas, distribuidores, plazo, nota, alternativas permitidas), <code>SupplierOffer</code> (estado, vigencia, condición de pago, versión) y <code>SupplierOfferLine</code> (modo CATALOGO/AJUSTADO/ALTERNATIVA/SIN_OFERTA, stock CONFIRMADO/PARCIAL/A_PEDIDO/DESCONOCIDO, cantidad en stock, plazo, alternativa con tipo, atributos y equivalencia). Rutas nuevas bajo <code>/orders/supplier/*</code> o un módulo propio, con input/dto/mapper. Validación del lado del servidor equivalente a <code>L.validateOffer</code>. Actualizar <code>api-endpoints.md</code> y <code>front/src/service/api/</code> en el mismo cambio (regla del repo). Matriz de acceso: un distribuidor nunca ve a otro</td>
+</tr>
+<tr>
+<td>Plazos y vencimiento</td>
+<td>Escribir <code>responseDeadlineAt</code> y los estados <code>EXPIRED</code> (hoy inertes), más un barrido programado con lease, en el mismo estilo que <code>PlanProcessingRecoveryService</code>. Definir qué pasa con la adjudicación de un pedido vencido</td>
+</tr>
+<tr>
+<td>Comparar y adjudicar (<code>L.compare</code>, <code>L.allocate</code>, <code>L.award</code>)</td>
+<td>Persistir la adjudicación en el servidor (hoy <code>sessionStorage</code>); escribir <code>selectedOfferId</code> o crear un modelo <code>Award</code>; estado de equivalencia por línea (SUGERIDA/APROBADA/RECHAZADA) con quién la aprobó y cuándo; la generación de pedidos pasa a salir de la adjudicación. Hoy sale de <code>POST orders/projects/:projectId/quotes/:quoteId</code></td>
+</tr>
+<tr>
+<td>Aprobaciones (<code>L.decideApproval</code>, regla &quot;si supera ARS 30.000.000&quot;)</td>
+<td>Modelos <code>ApprovalRequest</code> y <code>ApprovalRule</code> (monto, rol aprobador). Requiere O-26: hoy no existe un segundo usuario en la obra. Bloquear la emisión mientras la aprobación esté pendiente</td>
+</tr>
+<tr>
+<td>Notificaciones y correos (<code>s.notifications</code>, <code>s.outbox</code>)</td>
+<td>Modelo <code>Notification</code> (in-app) y cola de envío, con plantillas en español sobre <code>IMailer</code>. Idempotencia por evento; preferencias por usuario. Hoy el mailer solo lo usa <code>auth</code></td>
+</tr>
+<tr>
+<td>Automatizaciones (<code>s.automations</code>)</td>
+<td>Motor de reglas &quot;cuando… entonces…&quot; sobre eventos de dominio. Depende de Notification y de O-26</td>
+</tr>
+<tr>
+<td>Comentarios y actividad (<code>L.addComment</code>, <code>s.activity</code>)</td>
+<td>Modelos <code>Comment</code> (entidad <code>line:</code>/<code>plan:</code>/<code>request:</code>) y <code>ActivityLog</code>, con alcance por obra y miembros</td>
+</tr>
+<tr>
+<td>Presupuesto (<code>L.budget</code>, <code>L.scenarios</code>)</td>
+<td>Modelo <code>SaleBudget</code> (horas por tablero, tarifa, extras, contingencia, margen, validez, inflación, escenario), la procedencia del costo (pedido &gt; oferta vigente &gt; referencia) y una fuente de FX con fecha. <strong>No usar el TC ficticio del prototipo</strong> (ver <code>04</code>)</td>
+</tr>
+<tr>
+<td>IA con tope (<code>L.aiCan</code>, <code>L.aiSpend</code>)</td>
+<td>Persistir el costo de la detección, que hoy solo está en <code>runs/…/components.json</code>; modelo <code>AiUsage</code> por espacio de trabajo; chequeo <strong>antes</strong> de encolar un plano y antes de cada lectura; alerta al 80 %; qué hacer con un plano a medio procesar cuando se alcanza el tope</td>
+</tr>
+<tr>
+<td>Plan, uso y facturación (<code>s.billing</code>)</td>
+<td>Modelos <code>Plan</code>, <code>Subscription</code>, <code>UsageRecord</code> e <code>Invoice</code>, y la decisión de pasarela o factura manual (AFIP). <strong>Todo condicionado a V1/V2</strong></td>
+</tr>
+<tr>
+<td>Espacio de trabajo y equipo</td>
+<td>Modelos <code>Company</code> y <code>Membership</code> con roles internos; migrar todas las consultas que filtran por <code>ownerId</code>. Es L y toca las 14 carpetas de módulos</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. Plan de validación de los huecos del discovery</h2>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Hueco (fuente)</th>
+<th>Método</th>
+<th>Criterio de decisión</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>V1</strong></td>
+<td>Disposición a pagar de las empresas: nunca se preguntó (<code>research/01 §3</code>)</td>
+<td>Entrevistas de precio (Van Westendorp) con las 4 empresas del discovery y 4 nuevas, más una <strong>oferta de piloto pago</strong> con 3 niveles (referencias de <code>research/05 §3.3</code>: USD 60 / 150 / 400 por mes, o por plano) [estimación]</td>
+<td>≥ 3 compromisos firmados (carta de intención o primer pago) en el mismo nivel. Si no aparecen, se revisa la propuesta de valor antes de construir el cobro</td>
+</tr>
+<tr>
+<td><strong>V2</strong></td>
+<td>¿El proveedor acepta comisión o prefiere suscripción? Nunca se preguntó (<code>research/01 §3</code>)</td>
+<td>Con los 3 distribuidores del discovery y 3 nuevos: comparar suscripción, tarifa por RFQ calificada y % del pedido</td>
+<td>Elegir el modelo que acepten ≥ 3 de 6. Si nadie acepta el %, queda descartado para H2</td>
+</tr>
+<tr>
+<td><strong>V3</strong></td>
+<td>Confidencialidad y miedo competitivo (VIS §1.5)</td>
+<td>En cada piloto, preguntar qué datos no subirían, a quién no querrían que vea su lista y qué exigen por escrito; revisar la política de datos con una empresa fuera del círculo de Liard</td>
+<td>Política de datos firmada por ≥ 2 empresas que no sean Liard</td>
+</tr>
+<tr>
+<td><strong>V4</strong></td>
+<td>Umbral de precisión que genera confianza (DISC §Hipótesis)</td>
+<td>Medir O-04 y, en paralelo, preguntar qué error aceptan por tablero (faltantes con precio)</td>
+<td>Umbral acordado por escrito con ≥ 3 empresas; propuesta de partida: faltantes con precio ≤ 1 por tablero y ≥ 90 % de líneas aceptadas sin editar en tableros simples (<code>research/05 §4</code>) [estimación]</td>
+</tr>
+<tr>
+<td><strong>V5</strong></td>
+<td>Rol de CADIME (<code>research/01 §8.8</code>; no hay entrevista con Adrián Gutman)</td>
+<td>Entrevista con Adrián Gutman y con la cámara: ¿canal de acceso a distribuidores, fuente de catálogo (la API en Zoho no se construyó) o accionista con conflicto?</td>
+<td>Rol escrito (canal / datos / ninguno) y conflicto de interés declarado</td>
+</tr>
+<tr>
+<td><strong>V6</strong></td>
+<td>¿El segmento B paga por costeo y FX?</td>
+<td>Mostrarle <code>d-presupuesto.html</code> a GRAMONT y a otras 2 empresas maduras</td>
+<td>≥ 40 % dice que pagaría aparte (<code>research/05 §4</code>) [estimación]</td>
+</tr>
+<tr>
+<td><strong>V7</strong></td>
+<td>Oferta editable</td>
+<td>Probar <code>d-prov-oferta.html</code> con 3 distribuidores, con una solicitud real de una obra piloto</td>
+<td>Completan una oferta en &lt; 30 min y ≥ 2 de 3 dicen que la usarían en lugar del email</td>
+</tr>
+</tbody></table>
+<p>El prototipo sirve para V6 y V7 <strong>porque</strong> está hecho con datos ficticios: se valida la forma sin exponer precios reales.</p>
+</article></body></html>
