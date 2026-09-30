@@ -1,0 +1,859 @@
+{
+  "results": [
+    {
+      "id": "demo",
+      "height": 1200,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-demo.html",
+          "h": "1079",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-demo.html?rol=proveedor",
+          "h": "1080",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "account",
+      "height": 1200,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-account.html",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-account.html?paso=guardado",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "catalog",
+      "height": 1705,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-catalog.html",
+          "h": "1126",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-catalog.html?paso=previa",
+          "h": "1115",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-catalog.html?paso=resultado",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "ingenieria",
+      "height": 1844,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-engineering.html?paso=ingreso",
+          "h": "1099",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-engineering.html?paso=referencia",
+          "h": "1022",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-engineering.html?paso=cola",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-engineering.html?paso=resultado",
+          "h": "1231",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "polos",
+      "height": 1330,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-engineering.html?paso=polos",
+          "h": "1072",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-engineering.html?paso=resumen",
+          "h": "1686",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "cobertura",
+      "height": 1935,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-matching.html?paso=cobertura",
+          "h": "1491",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-matching.html?paso=atributos",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-matching.html?paso=cotizar",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "dwg",
+      "height": 1699,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-dwg.html?paso=archivo",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-dwg.html?paso=comparar",
+          "h": "1086",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-dwg.html?paso=listo",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "alternatives",
+      "height": 1788,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-alternatives.html",
+          "h": "1268",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-alternatives.html?paso=comparar",
+          "h": "1151",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-alternatives.html?paso=orden&estado=aprobado",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "procurement",
+      "height": 2014,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-procurement.html",
+          "h": "1580",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-procurement.html?paso=confirmar",
+          "h": "1034",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-procurement.html?paso=ordenes",
+          "h": "1041",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "rollout",
+      "height": 1818,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-rollout.html?paso=preparacion",
+          "h": "1144",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-rollout.html?paso=invitacion",
+          "h": "1018",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-rollout.html?paso=fallo",
+          "h": "1140",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "billing",
+      "height": 1930,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-billing.html?paso=planes",
+          "h": "1195",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-billing.html?paso=pago&estado=error",
+          "h": "1191",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-billing.html?paso=leads",
+          "h": "1281",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-billing.html?paso=reclamo",
+          "h": "1009",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "ai-cost",
+      "height": 1818,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-ai-cost.html?paso=consumo",
+          "h": "1234",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-ai-cost.html?paso=limite",
+          "h": "1215",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-ai-cost.html?paso=ampliar",
+          "h": "1051",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "height": 1888,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-notifications.html?paso=preferencias",
+          "h": "1225",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-notifications.html?paso=entregas",
+          "h": "1266",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-notifications.html?paso=reintento",
+          "h": "1138",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "observability",
+      "height": 1893,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-observability.html?paso=estado",
+          "h": "1274",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-observability.html?paso=traza",
+          "h": "1261",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-observability.html?paso=recuperar",
+          "h": "1139",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "dataset",
+      "height": 1952,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-dataset.html?paso=consentimiento",
+          "h": "1018",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-dataset.html?paso=anotacion",
+          "h": "1228",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-dataset.html?paso=evaluacion",
+          "h": "1287",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-dataset.html?paso=publicacion",
+          "h": "1154",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "asistente-revision",
+      "height": 1969,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-review-ai.html?paso=revision&vista=ia",
+          "h": "1227",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-review-ai.html?paso=aprobado&vista=ia",
+          "h": "1328",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-review-ai.html?vista=manual&estado=limite",
+          "h": "1216",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "reglas",
+      "height": 1915,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-rules.html?paso=reglas",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-rules.html?paso=simular",
+          "h": "1240",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-rules.html?paso=aprobada",
+          "h": "1240",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "revisiones",
+      "height": 1784,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-revisions.html?paso=comparar",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-revisions.html?paso=impacto",
+          "h": "1233",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-revisions.html?paso=aprobada",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "tablero-3d",
+      "height": 1995,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-panel.html?vista=visual&item=QF-02",
+          "h": "1294",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-panel.html?vista=2d&item=QF-02",
+          "h": "1294",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-panel.html?vista=tabla&item=QF-02",
+          "h": "1294",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "estimate",
+      "height": 2000,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-estimate.html",
+          "h": "1400",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-estimate.html?paso=aprobacion&vista=guiada",
+          "h": "1540",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-estimate.html?paso=propuesta",
+          "h": "1057",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "supplier",
+      "height": 1641,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-supplier.html",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-supplier.html?paso=revision",
+          "h": "1016",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-supplier.html?paso=confirmado",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "commercial",
+      "height": 1721,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-commercial.html",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-commercial.html?paso=propuesta",
+          "h": "1154",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-commercial.html?paso=ejecucion",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "colaboracion",
+      "height": 1656,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-collaboration.html?paso=revision",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-collaboration.html?paso=conflicto",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-collaboration.html?paso=aprobacion",
+          "h": "1043",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "fabricacion",
+      "height": 2391,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-fabrication.html?paso=liberacion",
+          "h": "1330",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-fabrication.html?paso=kit",
+          "h": "1326",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-workshop.html?paso=armado",
+          "h": "1188",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-fabrication.html?paso=calidad",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "logistica",
+      "height": 2430,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-logistics.html?paso=seguimiento",
+          "h": "1096",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-field.html?paso=recepcion",
+          "h": "1366",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-logistics.html?paso=reclamo",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-logistics.html?paso=reserva",
+          "h": "1054",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "obra",
+      "height": 1814,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "m-field.html?paso=instalacion",
+          "h": "1407",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-field.html?paso=sat",
+          "h": "1138",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-field.html?paso=entrega",
+          "h": "1179",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-field.html?paso=instalacion&estado=offline",
+          "h": "1508",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "mantenimiento",
+      "height": 2420,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-maintenance.html?paso=expediente",
+          "h": "1138",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-maintenance.html?paso=plan",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-service.html?paso=intervencion",
+          "h": "1329",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "m-service.html?paso=cierre",
+          "h": "1312",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "automatizacion",
+      "height": 1632,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-automation.html?paso=regla",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-automation.html?paso=simulacion",
+          "h": "1001",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-automation.html?paso=historial",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-automation.html?paso=historial&estado=error",
+          "h": "994",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    },
+    {
+      "id": "integraciones",
+      "height": 1901,
+      "width": 1840,
+      "frames": [
+        {
+          "src": "d-integrations.html?paso=mapeo",
+          "h": "1089",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-integrations.html?paso=preview",
+          "h": "1179",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-integrations.html?paso=conciliacion",
+          "h": "1008",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        },
+        {
+          "src": "d-integrations.html?paso=preview&estado=error",
+          "h": "1315",
+          "empty": false,
+          "overflow": false,
+          "missing": 0
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

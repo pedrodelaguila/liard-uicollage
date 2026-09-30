@@ -1,0 +1,225 @@
+{
+  "checks": [
+    {
+      "label": "d-estimate meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-estimate no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-procurement meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-procurement no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-alternatives meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-alternatives no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-supplier meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-supplier no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-catalog meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-catalog no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-commercial meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-commercial no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-account meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-account no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "d-demo meaningful render",
+      "passed": true
+    },
+    {
+      "label": "d-demo no horizontal overflow",
+      "passed": true
+    },
+    {
+      "label": "margin recalculates",
+      "passed": true
+    },
+    {
+      "label": "unreviewed estimate denied",
+      "passed": true
+    },
+    {
+      "label": "estimate approval persisted",
+      "passed": true
+    },
+    {
+      "label": "technical alternative unreviewed denied",
+      "passed": true
+    },
+    {
+      "label": "alternative savings quantity validated",
+      "passed": true
+    },
+    {
+      "label": "provider selection updates",
+      "passed": true
+    },
+    {
+      "label": "purchase review denied unchecked",
+      "passed": true
+    },
+    {
+      "label": "selected item lead snapshot",
+      "passed": true
+    },
+    {
+      "label": "reject modal opens",
+      "passed": true
+    },
+    {
+      "label": "reject modal cancels",
+      "passed": true
+    },
+    {
+      "label": "reject modal escape reopens without blocking",
+      "passed": true
+    },
+    {
+      "label": "contact after acceptance",
+      "passed": true
+    },
+    {
+      "label": "catalog replacement warning explicit",
+      "passed": true
+    },
+    {
+      "label": "unchecked catalog confirm denied",
+      "passed": true
+    },
+    {
+      "label": "catalog snapshot confirmation",
+      "passed": true
+    },
+    {
+      "label": "name rename preview saved",
+      "passed": true
+    },
+    {
+      "label": "all29features",
+      "passed": true
+    },
+    {
+      "label": "all93frames",
+      "passed": true
+    },
+    {
+      "label": "9Sprint5workstreams",
+      "passed": true
+    },
+    {
+      "label": "gallery zero search state",
+      "passed": true
+    },
+    {
+      "label": "gallery demo reset all persistent data",
+      "passed": true
+    },
+    {
+      "label": "fullheight picker",
+      "passed": true
+    },
+    {
+      "label": "mobile gallery overflow",
+      "passed": true
+    },
+    {
+      "label": "d-estimate390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-procurement390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-alternatives390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-supplier390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-catalog390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-commercial390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-account390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "d-demo390 no overflow",
+      "passed": true
+    },
+    {
+      "label": "file d-estimate.html?paso=aprobacion",
+      "passed": true
+    },
+    {
+      "label": "file d-procurement.html?paso=confirmar",
+      "passed": true
+    },
+    {
+      "label": "file d-alternatives.html?paso=comparar",
+      "passed": true
+    },
+    {
+      "label": "file d-supplier.html?paso=revision",
+      "passed": true
+    },
+    {
+      "label": "file d-catalog.html?paso=previa",
+      "passed": true
+    },
+    {
+      "label": "file d-account.html?paso=guardado",
+      "passed": true
+    },
+    {
+      "label": "file d-demo.html?rol=proveedor",
+      "passed": true
+    },
+    {
+      "label": "zeroJavaScriptErrors",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

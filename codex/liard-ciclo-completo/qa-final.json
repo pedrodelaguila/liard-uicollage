@@ -1,0 +1,1076 @@
+{
+  "states": [
+    {
+      "src": "d-demo.html",
+      "title": "Preparar el primer encuentro · liard",
+      "status": "Planificado",
+      "length": 1132,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-demo.html?rol=proveedor",
+      "title": "Preparar el primer encuentro · liard",
+      "status": "Planificado",
+      "length": 1150,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-account.html",
+      "title": "Una cuenta reconocible · liard",
+      "status": "Planificado",
+      "length": 648,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-account.html?paso=guardado",
+      "title": "Una cuenta reconocible · liard",
+      "status": "Planificado",
+      "length": 736,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-catalog.html",
+      "title": "Actualizar sin perder el catálogo · liard",
+      "status": "Planificado",
+      "length": 802,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-catalog.html?paso=previa",
+      "title": "Actualizar sin perder el catálogo · liard",
+      "status": "Planificado",
+      "length": 695,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-catalog.html?paso=resultado",
+      "title": "Actualizar sin perder el catálogo · liard",
+      "status": "Planificado",
+      "length": 654,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=ingreso",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Existe",
+      "length": 1044,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=referencia",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Planificado",
+      "length": 759,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=cola",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Planificado",
+      "length": 995,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=resultado",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Existe",
+      "length": 844,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=cola&estado=error",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Planificado",
+      "length": 1008,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=polos",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Planificado",
+      "length": 914,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-engineering.html?paso=resumen",
+      "title": "Ingreso y revisión técnica · liard",
+      "status": "Planificado",
+      "length": 1416,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-matching.html?paso=cobertura",
+      "title": "Cobertura del matching · liard",
+      "status": "Planificado",
+      "length": 1261,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-matching.html?paso=atributos",
+      "title": "Cobertura del matching · liard",
+      "status": "Planificado",
+      "length": 894,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-matching.html?paso=cotizar",
+      "title": "Cobertura del matching · liard",
+      "status": "Planificado",
+      "length": 931,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-matching.html?estado=cargando",
+      "title": "Cobertura del matching · liard",
+      "status": "Planificado",
+      "length": 691,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-matching.html?estado=error",
+      "title": "Cobertura del matching · liard",
+      "status": "Planificado",
+      "length": 710,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dwg.html?paso=archivo",
+      "title": "Ingreso de DWG · liard",
+      "status": "Planificado",
+      "length": 592,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dwg.html?paso=comparar",
+      "title": "Ingreso de DWG · liard",
+      "status": "Planificado",
+      "length": 591,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dwg.html?paso=listo",
+      "title": "Ingreso de DWG · liard",
+      "status": "Planificado",
+      "length": 197,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dwg.html?paso=error",
+      "title": "Ingreso de DWG · liard",
+      "status": "Planificado",
+      "length": 558,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dwg.html?paso=manual",
+      "title": "Ingreso de DWG · liard",
+      "status": "Planificado",
+      "length": 558,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-alternatives.html",
+      "title": "Una necesidad, dos soluciones · liard",
+      "status": "Planificado",
+      "length": 1291,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-alternatives.html?paso=comparar",
+      "title": "Una necesidad, dos soluciones · liard",
+      "status": "Planificado",
+      "length": 1027,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-alternatives.html?paso=orden&estado=aprobado",
+      "title": "Una necesidad, dos soluciones · liard",
+      "status": "Planificado",
+      "length": 640,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-procurement.html",
+      "title": "Comprar con un criterio claro · liard",
+      "status": "Planificado",
+      "length": 1759,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-procurement.html?paso=confirmar",
+      "title": "Comprar con un criterio claro · liard",
+      "status": "Planificado",
+      "length": 946,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-procurement.html?paso=ordenes",
+      "title": "Comprar con un criterio claro · liard",
+      "status": "Planificado",
+      "length": 734,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-procurement.html?vista=ia",
+      "title": "Comprar con un criterio claro · liard",
+      "status": "Planificado",
+      "length": 1991,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rollout.html?paso=preparacion",
+      "title": "Ampliar el piloto · liard",
+      "status": "Planificado",
+      "length": 1065,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rollout.html?paso=invitacion",
+      "title": "Ampliar el piloto · liard",
+      "status": "Planificado",
+      "length": 878,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rollout.html?paso=fallo",
+      "title": "Ampliar el piloto · liard",
+      "status": "Planificado",
+      "length": 987,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rollout.html?paso=listo",
+      "title": "Ampliar el piloto · liard",
+      "status": "Planificado",
+      "length": 724,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-billing.html?paso=planes",
+      "title": "Plan y oportunidades · liard",
+      "status": "Planificado",
+      "length": 1345,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-billing.html?paso=pago&estado=error",
+      "title": "Plan y oportunidades · liard",
+      "status": "Planificado",
+      "length": 1121,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-billing.html?paso=leads",
+      "title": "Plan y oportunidades · liard",
+      "status": "Planificado",
+      "length": 1072,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-billing.html?paso=reclamo",
+      "title": "Plan y oportunidades · liard",
+      "status": "Planificado",
+      "length": 980,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-billing.html?paso=contrato",
+      "title": "Plan y oportunidades · liard",
+      "status": "Planificado",
+      "length": 642,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-billing.html?paso=devolucion",
+      "title": "Plan y oportunidades · liard",
+      "status": "Planificado",
+      "length": 598,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-ai-cost.html?paso=consumo",
+      "title": "Consumo de IA · liard",
+      "status": "Planificado",
+      "length": 1204,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-ai-cost.html?paso=limite",
+      "title": "Consumo de IA · liard",
+      "status": "Planificado",
+      "length": 1192,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-ai-cost.html?paso=ampliar",
+      "title": "Consumo de IA · liard",
+      "status": "Planificado",
+      "length": 1054,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-ai-cost.html?paso=reservado",
+      "title": "Consumo de IA · liard",
+      "status": "Planificado",
+      "length": 864,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-notifications.html?paso=preferencias",
+      "title": "Avisos de pedidos · liard",
+      "status": "Planificado",
+      "length": 1457,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-notifications.html?paso=entregas",
+      "title": "Avisos de pedidos · liard",
+      "status": "Planificado",
+      "length": 1130,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-notifications.html?paso=reintento",
+      "title": "Avisos de pedidos · liard",
+      "status": "Planificado",
+      "length": 1065,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-notifications.html?paso=entregado",
+      "title": "Avisos de pedidos · liard",
+      "status": "Planificado",
+      "length": 604,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-observability.html?paso=estado",
+      "title": "Estado de la plataforma · liard",
+      "status": "Planificado",
+      "length": 1279,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-observability.html?paso=traza",
+      "title": "Estado de la plataforma · liard",
+      "status": "Planificado",
+      "length": 1156,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-observability.html?paso=recuperar",
+      "title": "Estado de la plataforma · liard",
+      "status": "Planificado",
+      "length": 1343,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-observability.html?paso=resuelto",
+      "title": "Estado de la plataforma · liard",
+      "status": "Planificado",
+      "length": 781,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-observability.html?paso=estado&estado=vacio",
+      "title": "Estado de la plataforma · liard",
+      "status": "Planificado",
+      "length": 386,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dataset.html?paso=consentimiento",
+      "title": "Calidad de detección · liard",
+      "status": "Planificado",
+      "length": 1269,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dataset.html?paso=anotacion",
+      "title": "Calidad de detección · liard",
+      "status": "Planificado",
+      "length": 1371,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dataset.html?paso=evaluacion",
+      "title": "Calidad de detección · liard",
+      "status": "Planificado",
+      "length": 1468,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dataset.html?paso=publicacion",
+      "title": "Calidad de detección · liard",
+      "status": "Planificado",
+      "length": 1298,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dataset.html?paso=publicado",
+      "title": "Calidad de detección · liard",
+      "status": "Planificado",
+      "length": 677,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-dataset.html?paso=revertido",
+      "title": "Calidad de detección · liard",
+      "status": "Planificado",
+      "length": 637,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-review-ai.html?paso=revision&vista=ia",
+      "title": "Revisión asistida · liard",
+      "status": "Propuesto",
+      "length": 949,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-review-ai.html?paso=aprobado&vista=ia",
+      "title": "Revisión asistida · liard",
+      "status": "Propuesto",
+      "length": 1104,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-review-ai.html?vista=manual&estado=limite",
+      "title": "Revisión asistida · liard",
+      "status": "Propuesto",
+      "length": 1005,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-review-ai.html?vista=manual",
+      "title": "Revisión asistida · liard",
+      "status": "Propuesto",
+      "length": 872,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rules.html?paso=reglas",
+      "title": "Reglas de ingeniería · liard",
+      "status": "Propuesto",
+      "length": 643,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rules.html?paso=simular",
+      "title": "Reglas de ingeniería · liard",
+      "status": "Propuesto",
+      "length": 1210,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-rules.html?paso=aprobada",
+      "title": "Reglas de ingeniería · liard",
+      "status": "Propuesto",
+      "length": 1340,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-revisions.html?paso=comparar",
+      "title": "Revisiones e impacto · liard",
+      "status": "Propuesto",
+      "length": 581,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-revisions.html?paso=impacto",
+      "title": "Revisiones e impacto · liard",
+      "status": "Propuesto",
+      "length": 869,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-revisions.html?paso=aprobada",
+      "title": "Revisiones e impacto · liard",
+      "status": "Propuesto",
+      "length": 263,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-revisions.html?paso=impacto&estado=conflicto",
+      "title": "Revisiones e impacto · liard",
+      "status": "Propuesto",
+      "length": 1053,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-panel.html?vista=visual&item=QF-02",
+      "title": "Tablero físico · concepto 3D · liard",
+      "status": "Propuesto",
+      "length": 1028,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-panel.html?vista=2d&item=QF-02",
+      "title": "Tablero físico · concepto 3D · liard",
+      "status": "Propuesto",
+      "length": 1019,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-panel.html?vista=tabla&item=QF-02",
+      "title": "Tablero físico · concepto 3D · liard",
+      "status": "Propuesto",
+      "length": 1129,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-panel.html?vista=visual&item=ID-01&explosion=1",
+      "title": "Tablero físico · concepto 3D · liard",
+      "status": "Propuesto",
+      "length": 1024,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-estimate.html",
+      "title": "Costear antes de prometer · liard",
+      "status": "Propuesto",
+      "length": 1269,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-estimate.html?paso=aprobacion&vista=guiada",
+      "title": "Costear antes de prometer · liard",
+      "status": "Propuesto",
+      "length": 1486,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-estimate.html?paso=propuesta",
+      "title": "Costear antes de prometer · liard",
+      "status": "Propuesto",
+      "length": 869,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-estimate.html?vista=ia",
+      "title": "Costear antes de prometer · liard",
+      "status": "Propuesto",
+      "length": 1490,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-supplier.html",
+      "title": "Responder con condiciones reales · liard",
+      "status": "Propuesto",
+      "length": 580,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-supplier.html?paso=revision",
+      "title": "Responder con condiciones reales · liard",
+      "status": "Propuesto",
+      "length": 1136,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-supplier.html?paso=confirmado",
+      "title": "Responder con condiciones reales · liard",
+      "status": "Propuesto",
+      "length": 556,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-commercial.html",
+      "title": "De la oportunidad a la ejecución · liard",
+      "status": "Propuesto",
+      "length": 807,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-commercial.html?paso=propuesta",
+      "title": "De la oportunidad a la ejecución · liard",
+      "status": "Propuesto",
+      "length": 1075,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-commercial.html?paso=ejecucion",
+      "title": "De la oportunidad a la ejecución · liard",
+      "status": "Propuesto",
+      "length": 743,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-collaboration.html?paso=revision",
+      "title": "Decisiones del proyecto · liard",
+      "status": "Propuesto",
+      "length": 1165,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-collaboration.html?paso=conflicto",
+      "title": "Decisiones del proyecto · liard",
+      "status": "Propuesto",
+      "length": 838,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-collaboration.html?paso=aprobacion",
+      "title": "Decisiones del proyecto · liard",
+      "status": "Propuesto",
+      "length": 863,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-fabrication.html?paso=liberacion",
+      "title": "Fabricación · liard",
+      "status": "Propuesto",
+      "length": 1287,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-fabrication.html?paso=kit",
+      "title": "Fabricación · liard",
+      "status": "Propuesto",
+      "length": 1098,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-workshop.html?paso=armado",
+      "title": "Mi puesto de trabajo · liard",
+      "status": "Propuesto",
+      "length": 515,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-fabrication.html?paso=calidad",
+      "title": "Fabricación · liard",
+      "status": "Propuesto",
+      "length": 1016,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-logistics.html?paso=seguimiento",
+      "title": "Materiales y entregas · liard",
+      "status": "Propuesto",
+      "length": 983,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-field.html?paso=recepcion",
+      "title": "Obra y puesta en servicio · liard",
+      "status": "Propuesto",
+      "length": 555,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-logistics.html?paso=reclamo",
+      "title": "Materiales y entregas · liard",
+      "status": "Propuesto",
+      "length": 720,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-logistics.html?paso=reserva",
+      "title": "Materiales y entregas · liard",
+      "status": "Propuesto",
+      "length": 741,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-field.html?paso=instalacion",
+      "title": "Obra y puesta en servicio · liard",
+      "status": "Propuesto",
+      "length": 626,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-field.html?paso=sat",
+      "title": "Obra y puesta en servicio · liard",
+      "status": "Propuesto",
+      "length": 546,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-field.html?paso=entrega",
+      "title": "Obra y puesta en servicio · liard",
+      "status": "Propuesto",
+      "length": 532,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-field.html?paso=instalacion&estado=offline",
+      "title": "Obra y puesta en servicio · liard",
+      "status": "Propuesto",
+      "length": 754,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-maintenance.html?paso=expediente",
+      "title": "Activos y mantenimiento · liard",
+      "status": "Propuesto",
+      "length": 901,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-maintenance.html?paso=plan",
+      "title": "Activos y mantenimiento · liard",
+      "status": "Propuesto",
+      "length": 866,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-service.html?paso=intervencion",
+      "title": "Intervención de mantenimiento · liard",
+      "status": "Propuesto",
+      "length": 518,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "m-service.html?paso=cierre",
+      "title": "Intervención de mantenimiento · liard",
+      "status": "Propuesto",
+      "length": 526,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-automation.html?paso=regla",
+      "title": "Automatizaciones · liard",
+      "status": "Propuesto",
+      "length": 836,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-automation.html?paso=simulacion",
+      "title": "Automatizaciones · liard",
+      "status": "Propuesto",
+      "length": 696,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-automation.html?paso=historial",
+      "title": "Automatizaciones · liard",
+      "status": "Propuesto",
+      "length": 787,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-automation.html?paso=historial&estado=error",
+      "title": "Automatizaciones · liard",
+      "status": "Propuesto",
+      "length": 805,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-integrations.html?paso=mapeo",
+      "title": "Integraciones · liard",
+      "status": "Propuesto",
+      "length": 1083,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-integrations.html?paso=preview",
+      "title": "Integraciones · liard",
+      "status": "Propuesto",
+      "length": 1022,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-integrations.html?paso=conciliacion",
+      "title": "Integraciones · liard",
+      "status": "Propuesto",
+      "length": 912,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    },
+    {
+      "src": "d-integrations.html?paso=preview&estado=error",
+      "title": "Integraciones · liard",
+      "status": "Propuesto",
+      "length": 1166,
+      "overflow": false,
+      "invalidText": false,
+      "missing": 0
+    }
+  ],
+  "checks": [
+    {
+      "check": "6kA compare conserves cost",
+      "passed": true
+    },
+    {
+      "check": "selected technical spec updates compare",
+      "passed": true
+    },
+    {
+      "check": "same-spec no invented savings",
+      "passed": true
+    },
+    {
+      "check": "10kA savings36*2",
+      "passed": true
+    },
+    {
+      "check": "supplier gets selected10kA spec",
+      "passed": true
+    },
+    {
+      "check": "accent insensitive engineering role filter",
+      "passed": true
+    },
+    {
+      "check": "supplier role filter",
+      "passed": true
+    },
+    {
+      "check": "combined role and horizon",
+      "passed": true
+    },
+    {
+      "check": "accent insensitive search",
+      "passed": true
+    },
+    {
+      "check": "all state links exist",
+      "passed": true
+    },
+    {
+      "check": "all state renders nonempty no overflow images labels",
+      "passed": true
+    },
+    {
+      "check": "every screen explicit product status",
+      "passed": true
+    },
+    {
+      "check": "zeroJSerrors",
+      "passed": true
+    },
+    {
+      "check": "file control localized",
+      "passed": true
+    },
+    {
+      "check": "supplier role primary action correct",
+      "passed": true
+    }
+  ],
+  "badLinks": [],
+  "errors": []
+}

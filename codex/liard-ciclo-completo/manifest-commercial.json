@@ -1,0 +1,315 @@
+[
+  {
+    "id": "demo",
+    "title": "Demo comercial y cierre del piloto",
+    "role": "Dirección",
+    "horizon": "Cierre S4",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      787,
+      788,
+      985
+    ],
+    "description": "Preparar un relato reproducible para ingeniería y proveedores; distinguir demo desplegada reportada de operación verificada. El video editado continúa pendiente.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-demo.html",
+        "caption": "Historia de ingeniería",
+        "note": "Guion con acceso a cada paso",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-demo.html?rol=proveedor",
+        "caption": "Historia del proveedor",
+        "note": "Catálogo → solicitud → contacto",
+        "status": "Planificado"
+      }
+    ],
+    "dependencies": [
+      "rollout"
+    ],
+    "production": "Grabar los flujos existentes en dev, editar ambos videos, validar narrativa y confirmar readiness del piloto; no crear funciones que ya existen."
+  },
+  {
+    "id": "account",
+    "title": "Identidad y referencias que faltan",
+    "role": "Ingeniería",
+    "horizon": "Backlog pendiente",
+    "status": "Planificado",
+    "priority": "P1",
+    "issues": [
+      824,
+      825,
+      826
+    ],
+    "description": "Conservar la cuenta existente y completar subida de avatar/logo con previsualización y renombrado de proyecto/pedido. No hay milestones: asociación a cierre S4 es hipótesis.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-account.html",
+        "caption": "Editar bordes pendientes",
+        "note": "Imagen local validada, nombres y referencias",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-account.html?paso=guardado",
+        "caption": "Confirmación y previsualización",
+        "note": "Solo datos de este navegador",
+        "status": "Planificado"
+      }
+    ],
+    "dependencies": [],
+    "production": "Agregar upload en StorageService, DTO de imagen y PATCH de referencias; validar MIME/tamaño/ownership. Preservar todas las secciones existentes de cuenta."
+  },
+  {
+    "id": "catalog",
+    "title": "Catálogo incremental, sin borrados silenciosos",
+    "role": "Proveedor",
+    "horizon": "Backlog pendiente",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      835
+    ],
+    "description": "Elegir actualización o reemplazo, mapear, revisar altas/cambios/ausentes y excluir errores antes de confirmar. El asistente y lectura IA actuales se preservan.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-catalog.html",
+        "caption": "Elegir política de importación",
+        "note": "Incremental nuevo / reemplazo existe",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-catalog.html?paso=previa",
+        "caption": "Revisar diferencias y errores",
+        "note": "Ausentes conservados o despublicados explícitamente",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-catalog.html?paso=resultado",
+        "caption": "Confirmación y nueva lectura",
+        "note": "Cache de textos sin cambios",
+        "status": "Planificado"
+      }
+    ],
+    "dependencies": [
+      "matching"
+    ],
+    "production": "Modo de confirmación incremental por código de proveedor único, transacción + idempotencia y diferencias auditadas; solo re-leer texto nuevo/modificado."
+  },
+  {
+    "id": "alternatives",
+    "title": "BOM alternativo → comparación → orden",
+    "role": "Ingeniería · Compras · Proveedor",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      828,
+      829,
+      830,
+      831
+    ],
+    "description": "Conservar el BOM base, definir alternativa técnica por línea, aprobarla, comparar conjuntos y congelar la opción efectivamente comprada. No sumar variantes mutuamente excluyentes.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-alternatives.html",
+        "caption": "Definir la alternativa",
+        "note": "Base R03 conservada",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-alternatives.html?paso=comparar",
+        "caption": "Validar y comparar",
+        "note": "Mismo resto del BOM; firma técnica explícita",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-alternatives.html?paso=orden&estado=aprobado",
+        "caption": "Comprado con procedencia",
+        "note": "Estado ilustrado aprobado; la aprobación real en demo se hace en el paso anterior",
+        "status": "Planificado"
+      }
+    ],
+    "dependencies": [
+      "matching",
+      "revisions"
+    ],
+    "production": "Campos/entidad de alternativa por revisión, aprobación técnica, quote alternativo con fallback base y PurchaseOrderLine versión congelada de especificación/marca/SKU/origen."
+  },
+  {
+    "id": "procurement",
+    "title": "Plazos y escenarios de adjudicación",
+    "role": "Compras",
+    "horizon": "Backlog pendiente",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      827
+    ],
+    "description": "Usar la matriz existente y completar selección por plazo de ítem, cuello de botella y versión congelada de entrega al emitir. Precio y stock de catálogo siguen siendo referencias.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-procurement.html",
+        "caption": "Comparación y criterios",
+        "note": "Matriz existe; escenarios preservan R03",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-procurement.html?paso=confirmar",
+        "caption": "Revisión antes de emitir",
+        "note": "Plazo conocido o desconocido explícito",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-procurement.html?paso=ordenes",
+        "caption": "Seguimiento por proveedor",
+        "note": "Solicitud y contacto existentes como contexto",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Compras asistidas · inferencias y costo",
+        "src": "d-procurement.html?vista=ia"
+      }
+    ],
+    "dependencies": [
+      "alternatives"
+    ],
+    "production": "Hacer fastest por selected item, guardar min/max de entrega por línea/orden, resumen conservador y motivos para sin stock/desconocido; mantener adjudicación actual."
+  },
+  {
+    "id": "estimate",
+    "title": "Costeo de obra y margen comercial",
+    "role": "Presupuestador · Dirección",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Tomar el costo de compras, sumar mano de obra/gastos/contingencia, comparar escenarios, aprobar margen sobre venta y producir propuesta versionada. Diferenciar margen de recargo.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-estimate.html",
+        "caption": "Costo completo y escenarios",
+        "note": "Valores editables; fórmula visible",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-estimate.html?paso=aprobacion&vista=guiada",
+        "caption": "Revisión de dirección",
+        "note": "La aprobación se invalida al cambiar costo",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-estimate.html?paso=propuesta",
+        "caption": "Propuesta y privacidad del margen",
+        "note": "El proveedor no ve el margen",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [
+      {
+        "label": "Estimación asistida",
+        "src": "d-estimate.html?vista=ia"
+      }
+    ],
+    "dependencies": [
+      "procurement",
+      "collaboration"
+    ],
+    "production": "Modelo EstimateRevision + CostLine y supuestos TC/IVA; calcular costo/(1-margen), permisos separados para costo/precio/margen, aprobación comercial y exportador de propuesta."
+  },
+  {
+    "id": "supplier",
+    "title": "Respuesta comercial y contacto con contexto",
+    "role": "Proveedor",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Recibir solicitud existente, revisar la variante elegida, declarar condiciones por línea, aceptar o rechazar con motivo y habilitar contacto. La respuesta comercial editable es propuesta.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-supplier.html",
+        "caption": "Bandeja de solicitudes",
+        "note": "La bandeja y aceptar/rechazar existen",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-supplier.html?paso=revision",
+        "caption": "Stock, plazo y alternativa",
+        "note": "Propuesta de condiciones confirmadas",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-supplier.html?paso=confirmado",
+        "caption": "Confirmación y contacto",
+        "note": "Contacto permanece protegido si no se aceptó",
+        "status": "Propuesto"
+      }
+    ],
+    "dependencies": [
+      "alternatives",
+      "notifications"
+    ],
+    "production": "OfferResponse versionada con vigencia/moneda/stock/plazo y validación técnica de contrapropuesta. Mantener guardas proveedor y contacto post-aceptación."
+  },
+  {
+    "id": "commercial",
+    "title": "Oportunidad → propuesta → ejecución",
+    "role": "Comercial · Dirección",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P2",
+    "issues": [],
+    "description": "Calificar licitación, reunir revisión y presupuesto, registrar ganado/perdido con motivo y traspasar alcance a compras/taller. Comparar luego margen previsto y real.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-commercial.html",
+        "caption": "Cartera y estados comerciales",
+        "note": "Lectura de etapas del mismo caso ficticio",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-commercial.html?paso=propuesta",
+        "caption": "Decisión comercial",
+        "note": "No puede ganar sin presupuesto aprobado",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-commercial.html?paso=ejecucion",
+        "caption": "Traspaso a fabricación",
+        "note": "Revisión y alcance acompañan ejecución",
+        "status": "Propuesto"
+      }
+    ],
+    "dependencies": [
+      "estimate",
+      "fabrication"
+    ],
+    "production": "Opportunity + Proposal ligados a proyecto/revisiones; decision log y requisitos de traspaso. Integrar CRM vía adapter antes de duplicar un sistema comercial completo."
+  }
+]

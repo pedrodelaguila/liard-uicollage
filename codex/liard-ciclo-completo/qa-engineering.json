@@ -1,0 +1,433 @@
+{
+  "date": "2026-09-30",
+  "errors": [],
+  "fileProtocol": {
+    "errors": [],
+    "pages": [
+      {
+        "src": "d-engineering.html?paso=ingreso",
+        "length": 1095,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-engineering.html?paso=referencia",
+        "length": 801,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-engineering.html?paso=cola",
+        "length": 1040,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-engineering.html?paso=resultado",
+        "length": 859,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-engineering.html?paso=cola&estado=error",
+        "length": 1053,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-matching.html?paso=cobertura",
+        "length": 1356,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-matching.html?paso=atributos",
+        "length": 928,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-matching.html?paso=cotizar",
+        "length": 967,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-matching.html?estado=cargando",
+        "length": 744,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-matching.html?estado=error",
+        "length": 766,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-dwg.html?paso=archivo",
+        "length": 617,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-dwg.html?paso=comparar",
+        "length": 622,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-dwg.html?paso=listo",
+        "length": 207,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-dwg.html?paso=error",
+        "length": 577,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-dwg.html?paso=manual",
+        "length": 577,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-engineering.html?paso=polos",
+        "length": 942,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-engineering.html?paso=resumen",
+        "length": 1482,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-panel.html?vista=visual&item=QF-02",
+        "length": 1103,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-panel.html?vista=2d&item=QF-02",
+        "length": 1094,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-panel.html?vista=tabla&item=QF-02",
+        "length": 1204,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-panel.html?vista=visual&item=ID-01&explosion=1",
+        "length": 1099,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-review-ai.html?paso=revision&vista=ia",
+        "length": 989,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-review-ai.html?paso=aprobado&vista=ia",
+        "length": 1146,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-review-ai.html?vista=manual&estado=limite",
+        "length": 1046,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-review-ai.html?vista=manual",
+        "length": 911,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-revisions.html?paso=comparar",
+        "length": 602,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-revisions.html?paso=impacto",
+        "length": 896,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-revisions.html?paso=aprobada",
+        "length": 266,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-revisions.html?paso=impacto&estado=conflicto",
+        "length": 1082,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-rules.html?paso=reglas",
+        "length": 667,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-rules.html?paso=simular",
+        "length": 1253,
+        "horizontalOverflow": false
+      },
+      {
+        "src": "d-rules.html?paso=aprobada",
+        "length": 1385,
+        "horizontalOverflow": false
+      }
+    ],
+    "interactions": [
+      "matching required evidence and save",
+      "DWG approval",
+      "3D rotation explode and ID selection",
+      "rule approval and revert"
+    ]
+  },
+  "httpPages": [
+    {
+      "src": "d-engineering.html?paso=ingreso",
+      "status": 200,
+      "length": 1095,
+      "overflow": false
+    },
+    {
+      "src": "d-engineering.html?paso=referencia",
+      "status": 200,
+      "length": 801,
+      "overflow": false
+    },
+    {
+      "src": "d-engineering.html?paso=cola",
+      "status": 200,
+      "length": 1040,
+      "overflow": false
+    },
+    {
+      "src": "d-engineering.html?paso=resultado",
+      "status": 200,
+      "length": 896,
+      "overflow": false
+    },
+    {
+      "src": "d-engineering.html?paso=cola&estado=error",
+      "status": 200,
+      "length": 1053,
+      "overflow": false
+    },
+    {
+      "src": "d-matching.html?paso=cobertura",
+      "status": 200,
+      "length": 1356,
+      "overflow": false
+    },
+    {
+      "src": "d-matching.html?paso=atributos",
+      "status": 200,
+      "length": 928,
+      "overflow": false
+    },
+    {
+      "src": "d-matching.html?paso=cotizar",
+      "status": 200,
+      "length": 967,
+      "overflow": false
+    },
+    {
+      "src": "d-matching.html?estado=cargando",
+      "status": 200,
+      "length": 744,
+      "overflow": false
+    },
+    {
+      "src": "d-matching.html?estado=error",
+      "status": 200,
+      "length": 766,
+      "overflow": false
+    },
+    {
+      "src": "d-dwg.html?paso=archivo",
+      "status": 200,
+      "length": 617,
+      "overflow": false
+    },
+    {
+      "src": "d-dwg.html?paso=comparar",
+      "status": 200,
+      "length": 622,
+      "overflow": false
+    },
+    {
+      "src": "d-dwg.html?paso=listo",
+      "status": 200,
+      "length": 207,
+      "overflow": false
+    },
+    {
+      "src": "d-dwg.html?paso=error",
+      "status": 200,
+      "length": 577,
+      "overflow": false
+    },
+    {
+      "src": "d-dwg.html?paso=manual",
+      "status": 200,
+      "length": 577,
+      "overflow": false
+    },
+    {
+      "src": "d-engineering.html?paso=polos",
+      "status": 200,
+      "length": 942,
+      "overflow": false
+    },
+    {
+      "src": "d-engineering.html?paso=resumen",
+      "status": 200,
+      "length": 1482,
+      "overflow": false
+    },
+    {
+      "src": "d-panel.html?vista=visual&item=QF-02",
+      "status": 200,
+      "length": 1103,
+      "overflow": false
+    },
+    {
+      "src": "d-panel.html?vista=2d&item=QF-02",
+      "status": 200,
+      "length": 1094,
+      "overflow": false
+    },
+    {
+      "src": "d-panel.html?vista=tabla&item=QF-02",
+      "status": 200,
+      "length": 1204,
+      "overflow": false
+    },
+    {
+      "src": "d-panel.html?vista=visual&item=ID-01&explosion=1",
+      "status": 200,
+      "length": 1099,
+      "overflow": false
+    },
+    {
+      "src": "d-review-ai.html?paso=revision&vista=ia",
+      "status": 200,
+      "length": 989,
+      "overflow": false
+    },
+    {
+      "src": "d-review-ai.html?paso=aprobado&vista=ia",
+      "status": 200,
+      "length": 1146,
+      "overflow": false
+    },
+    {
+      "src": "d-review-ai.html?vista=manual&estado=limite",
+      "status": 200,
+      "length": 1046,
+      "overflow": false
+    },
+    {
+      "src": "d-review-ai.html?vista=manual",
+      "status": 200,
+      "length": 911,
+      "overflow": false
+    },
+    {
+      "src": "d-revisions.html?paso=comparar",
+      "status": 200,
+      "length": 602,
+      "overflow": false
+    },
+    {
+      "src": "d-revisions.html?paso=impacto",
+      "status": 200,
+      "length": 896,
+      "overflow": false
+    },
+    {
+      "src": "d-revisions.html?paso=aprobada",
+      "status": 200,
+      "length": 266,
+      "overflow": false
+    },
+    {
+      "src": "d-revisions.html?paso=impacto&estado=conflicto",
+      "status": 200,
+      "length": 1082,
+      "overflow": false
+    },
+    {
+      "src": "d-rules.html?paso=reglas",
+      "status": 200,
+      "length": 667,
+      "overflow": false
+    },
+    {
+      "src": "d-rules.html?paso=simular",
+      "status": 200,
+      "length": 1253,
+      "overflow": false
+    },
+    {
+      "src": "d-rules.html?paso=aprobada",
+      "status": 200,
+      "length": 1385,
+      "overflow": false
+    }
+  ],
+  "mobile390": [
+    {
+      "src": "d-engineering.html",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "src": "d-matching.html",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "src": "d-dwg.html",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "src": "d-panel.html",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "src": "d-review-ai.html",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "src": "d-revisions.html",
+      "overflow": false,
+      "width": 390
+    },
+    {
+      "src": "d-rules.html",
+      "overflow": false,
+      "width": 390
+    }
+  ],
+  "interactionsHTTP": [
+    "reference refuses unconfirmed source then queues",
+    "AI refuses unconfirmed 10 kA then accepts 6 kA from matching source",
+    "revision conflict reload and meaningful note approval",
+    "poles 2→4 recomputes fragment total 46→70",
+    "coordinator aliases bom and carga"
+  ],
+  "limitations": [
+    "Prototype only; backend tickets and sprint completion not verified",
+    "Geometry conceptual; engineering calculations not certified"
+  ],
+  "finalCopyPolish": {
+    "nodeCheck": "pass",
+    "termsTranslated": [
+      "snapshot",
+      "preflight",
+      "checkpoint",
+      "rollback",
+      "handoff"
+    ],
+    "preserved": [
+      "routes",
+      "saved-state keys",
+      "DOM identifiers"
+    ],
+    "mobileRotateButtons": "390 px verification already passed"
+  }
+}

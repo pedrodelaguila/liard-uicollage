@@ -1,0 +1,810 @@
+{
+  "date": "2026-09-30",
+  "browser": "Google Chrome via bundled Playwright",
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 994
+    }
+  ],
+  "states": [
+    {
+      "protocol": "file",
+      "feature": "rollout",
+      "step": "preparacion",
+      "text": 1095,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "rollout",
+      "step": "invitacion",
+      "text": 915,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "rollout",
+      "step": "fallo",
+      "text": 1024,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "rollout",
+      "step": "listo",
+      "text": 751,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "billing",
+      "step": "planes",
+      "text": 1394,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "billing",
+      "step": "pago&estado=error",
+      "text": 1166,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "billing",
+      "step": "leads",
+      "text": 1119,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "billing",
+      "step": "reclamo",
+      "text": 946,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "billing",
+      "step": "contrato",
+      "text": 667,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "billing",
+      "step": "devolucion",
+      "text": 622,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "ai-cost",
+      "step": "consumo",
+      "text": 1235,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "ai-cost",
+      "step": "limite",
+      "text": 1233,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "ai-cost",
+      "step": "ampliar",
+      "text": 1073,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "ai-cost",
+      "step": "reservado",
+      "text": 869,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "notifications",
+      "step": "preferencias",
+      "text": 1501,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "notifications",
+      "step": "entregas",
+      "text": 1164,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "notifications",
+      "step": "reintento",
+      "text": 1098,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "notifications",
+      "step": "entregado",
+      "text": 628,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "observability",
+      "step": "estado",
+      "text": 1301,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "observability",
+      "step": "traza",
+      "text": 1189,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "observability",
+      "step": "recuperar",
+      "text": 1302,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "observability",
+      "step": "resuelto",
+      "text": 798,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "observability",
+      "step": "estado&estado=vacio",
+      "text": 399,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "dataset",
+      "step": "consentimiento",
+      "text": 1294,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "dataset",
+      "step": "anotacion",
+      "text": 1408,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "dataset",
+      "step": "evaluacion",
+      "text": 1476,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "dataset",
+      "step": "publicacion",
+      "text": 1341,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "dataset",
+      "step": "publicado",
+      "text": 702,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "file",
+      "feature": "dataset",
+      "step": "revertido",
+      "text": 657,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "rollout",
+      "step": "preparacion",
+      "text": 1095,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "rollout",
+      "step": "invitacion",
+      "text": 915,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "rollout",
+      "step": "fallo",
+      "text": 1024,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "rollout",
+      "step": "listo",
+      "text": 751,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "billing",
+      "step": "planes",
+      "text": 1394,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "billing",
+      "step": "pago&estado=error",
+      "text": 1166,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "billing",
+      "step": "leads",
+      "text": 1119,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "billing",
+      "step": "reclamo",
+      "text": 946,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "billing",
+      "step": "contrato",
+      "text": 667,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "billing",
+      "step": "devolucion",
+      "text": 622,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "ai-cost",
+      "step": "consumo",
+      "text": 1235,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "ai-cost",
+      "step": "limite",
+      "text": 1233,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "ai-cost",
+      "step": "ampliar",
+      "text": 1073,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "ai-cost",
+      "step": "reservado",
+      "text": 869,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "notifications",
+      "step": "preferencias",
+      "text": 1501,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "notifications",
+      "step": "entregas",
+      "text": 1164,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "notifications",
+      "step": "reintento",
+      "text": 1098,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "notifications",
+      "step": "entregado",
+      "text": 628,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "observability",
+      "step": "estado",
+      "text": 1301,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "observability",
+      "step": "traza",
+      "text": 1189,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "observability",
+      "step": "recuperar",
+      "text": 1302,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "observability",
+      "step": "resuelto",
+      "text": 798,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "observability",
+      "step": "estado&estado=vacio",
+      "text": 399,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "dataset",
+      "step": "consentimiento",
+      "text": 1294,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "dataset",
+      "step": "anotacion",
+      "text": 1408,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "dataset",
+      "step": "evaluacion",
+      "text": 1476,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "dataset",
+      "step": "publicacion",
+      "text": 1341,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "dataset",
+      "step": "publicado",
+      "text": 702,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    },
+    {
+      "protocol": "http",
+      "feature": "dataset",
+      "step": "revertido",
+      "text": 657,
+      "width": 1440,
+      "viewport": 1440,
+      "undefined": false,
+      "images": [],
+      "pass": true
+    }
+  ],
+  "interactions": [
+    {
+      "name": "Invalid invite email blocks progression",
+      "pass": true
+    },
+    {
+      "name": "Invite choice survives navigation",
+      "pass": true
+    },
+    {
+      "name": "Failed provisioning recovers with same role",
+      "pass": true
+    },
+    {
+      "name": "Plan decision persists on reload",
+      "pass": true
+    },
+    {
+      "name": "Failed payment can complete simulated contract",
+      "pass": true
+    },
+    {
+      "name": "Short lead dispute blocks resolution",
+      "pass": true
+    },
+    {
+      "name": "Lead duplicate dispute yields referenced reversal",
+      "pass": true
+    },
+    {
+      "name": "Budget cannot go below spent plus reserved",
+      "pass": true
+    },
+    {
+      "name": "Zero extension does not reserve",
+      "pass": true
+    },
+    {
+      "name": "Reservation subtracts authorized amount from availability",
+      "pass": true
+    },
+    {
+      "name": "Repeating same task authorization does not double raise budget",
+      "pass": true
+    },
+    {
+      "name": "Email preference persists on reload",
+      "pass": true
+    },
+    {
+      "name": "Invalid corrected destination blocks retry",
+      "pass": true
+    },
+    {
+      "name": "Email retry preserves order and corrected destination",
+      "pass": true
+    },
+    {
+      "name": "Recovery requires human precondition review",
+      "pass": true
+    },
+    {
+      "name": "Reviewed recovery reaches same job completion",
+      "pass": true
+    },
+    {
+      "name": "Dataset entry requires explicit permission",
+      "pass": true
+    },
+    {
+      "name": "Evaluation requires annotation review",
+      "pass": true
+    },
+    {
+      "name": "Symbol annotation selection visibly changes detail",
+      "pass": true
+    },
+    {
+      "name": "Publication requires human review",
+      "pass": true
+    },
+    {
+      "name": "Candidate version can be reverted without rewriting existing BOM",
+      "pass": true
+    },
+    {
+      "name": "Demo reset clears all persisted choices",
+      "pass": true
+    },
+    {
+      "name": "Reset returns screen to initial query",
+      "pass": true
+    },
+    {
+      "name": "file:// plan persistence on reload",
+      "pass": true
+    },
+    {
+      "name": "file:// complete payment transition retains selection",
+      "pass": true
+    },
+    {
+      "name": "file:// reset clears plan decision",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "summary": {
+    "states": 58,
+    "statePasses": 58,
+    "interactions": 26,
+    "interactionPasses": 26,
+    "jsErrors": 0,
+    "responsiveChecks": 6,
+    "responsivePasses": 6
+  },
+  "responsive": [
+    {
+      "feature": "rollout",
+      "width": 390,
+      "viewport": 390,
+      "body": 1095,
+      "pass": true
+    },
+    {
+      "feature": "billing",
+      "width": 390,
+      "viewport": 390,
+      "body": 1394,
+      "pass": true
+    },
+    {
+      "feature": "ai-cost",
+      "width": 390,
+      "viewport": 390,
+      "body": 1235,
+      "pass": true
+    },
+    {
+      "feature": "notifications",
+      "width": 390,
+      "viewport": 390,
+      "body": 1501,
+      "pass": true
+    },
+    {
+      "feature": "observability",
+      "width": 390,
+      "viewport": 390,
+      "body": 1301,
+      "pass": true
+    },
+    {
+      "feature": "dataset",
+      "width": 390,
+      "viewport": 390,
+      "body": 1294,
+      "pass": true
+    }
+  ]
+}

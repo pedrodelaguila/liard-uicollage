@@ -1,0 +1,362 @@
+[
+  {
+    "id": "ingenieria",
+    "title": "Ingreso, referencias y revisión técnica",
+    "role": "ingenieria",
+    "horizon": "Cierre S4",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      1002,
+      1000,
+      970
+    ],
+    "description": "DXF/PDF, multiplicadores, cola y revisión del BOM ya existen. El recorrido propone resolver marcas numeradas contra la tabla de referencia y dar visibilidad del procesamiento. El backlog no tiene milestone confirmado: su agrupación aquí no asigna un sprint.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-engineering.html?paso=ingreso",
+        "caption": "1 · Documentación del proyecto",
+        "note": "DXF/PDF y multiplicador existen. DWG lleva a la evaluación de Sprint 5.",
+        "status": "Existe"
+      },
+      {
+        "kind": "d",
+        "src": "d-engineering.html?paso=referencia",
+        "caption": "2 · Marca 7 → especificación",
+        "note": "Confirmá la fuente antes de clasificar; el número no es la especificación.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-engineering.html?paso=cola",
+        "caption": "3 · Cola y continuidad",
+        "note": "Cola existente; progreso detallado y recuperación propuestos.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-engineering.html?paso=resultado",
+        "caption": "4 · Símbolo → BOM validado",
+        "note": "Revisión humana y distinción de unidades dibujadas y compradas.",
+        "status": "Existe"
+      }
+    ],
+    "states": [
+      {
+        "src": "d-engineering.html?paso=cola&estado=error",
+        "label": "504 sin reintento automático"
+      }
+    ],
+    "dependencies": [],
+    "production": "Reutilizar uploads, cola y símbolo/BOM existentes. #1002 requiere evaluación de tabla cacheada y resolución auditada. #1000 necesita protocolo de latido/liberación. #970 requiere arreglar y verificar el diálogo real; el mock no cambia React."
+  },
+  {
+    "id": "cobertura",
+    "title": "Todos los componentes, atributos y coincidencias",
+    "role": "ingenieria",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      988,
+      987,
+      945
+    ],
+    "description": "El vinculación por igualdad ya existe en dev, aunque #987 sigue abierto. Sprint 5 extiende cobertura de familias y evidencia de atributos; conserva líneas no cotizables y las deriva a revisión. Los colores de la matriz son un escenario ficticio.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-matching.html?paso=cobertura",
+        "caption": "1 · Cobertura visible",
+        "note": "Matriz de familias y faltantes, sin un puntaje de parecido textual.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-matching.html?paso=atributos",
+        "caption": "2 · Completar un esencial",
+        "note": "Confirmar 6 kA desde la fila 7; valores sin fuente siguen pendientes.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-matching.html?paso=cotizar",
+        "caption": "3 · Productos comerciales",
+        "note": "Coincidencias de todos los proveedores → adjudicación y alternativas.",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "src": "d-matching.html?estado=cargando",
+        "label": "Consulta en curso"
+      },
+      {
+        "src": "d-matching.html?estado=error",
+        "label": "Error con edición manual"
+      }
+    ],
+    "dependencies": [
+      "ingenieria"
+    ],
+    "production": "Completar y medir seed/tipos/atributos y casos por familia. Mantener igualdad canónica implementada, motivos de NOT_FOUND y filtros marca/gama. El issue #945 de potencia/MT requiere validar alcance y vigencia; no certificar todas familias por este prototipo."
+  },
+  {
+    "id": "dwg",
+    "title": "DWG con revisión de fidelidad",
+    "role": "ingenieria",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P1",
+    "issues": [],
+    "description": "Evalúa DWG → validación inicial y conversión → comparación de textos/capas/unidades → aprobación → detección existente. Ante pérdida de información conserva el original y ofrece preparar DXF manualmente.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-dwg.html?paso=archivo",
+        "caption": "1 · Evaluar DWG",
+        "note": "DXF/PDF existen; conversor DWG, licencia y fidelidad pendientes.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-dwg.html?paso=comparar",
+        "caption": "2 · Comparar antes de detectar",
+        "note": "Textos SHX y capas deben revisarse, sin prometer fidelidad perfecta.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-dwg.html?paso=listo",
+        "caption": "3 · Conversión aprobada",
+        "note": "Continuidad a la cola y la revisión del BOM existentes.",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "src": "d-dwg.html?paso=error",
+        "label": "Conversión no aprobada"
+      },
+      {
+        "src": "d-dwg.html?paso=manual",
+        "label": "Preparación DXF manual"
+      }
+    ],
+    "dependencies": [
+      "ingenieria"
+    ],
+    "production": "Exploración de conversor/licencia, límites y sandbox de archivos, asociación original→convertido, unidad/layout, fidelidad de texto y métricas comparadas. Reutilizar pipeline DXF/PDF, child-process deadline y budgets."
+  },
+  {
+    "id": "polos",
+    "title": "Polos propios, herencia y resumen físico",
+    "role": "ingenieria",
+    "horizon": "Backlog técnico",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      1010,
+      1007,
+      1008,
+      1009
+    ],
+    "description": "Backlog sin asignación de sprint confirmada. Polos propios desde texto o trazos; herencia solo desde un aparato conectado y con revisión. Resumen con cobertura: desconocidos no cuentan como cero. No recomienda gabinete ni accesorios.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-engineering.html?paso=polos",
+        "caption": "1 · Confirmar origen de polos",
+        "note": "Texto → trazos → herencia conectada. El ingeniero puede dejar sin determinar.",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-engineering.html?paso=resumen",
+        "caption": "2 · Resumen con límites",
+        "note": "Cantidad del tablero, sin multiplicador; módulos solo con ancho conocido.",
+        "status": "Planificado"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "ingenieria",
+      "cobertura"
+    ],
+    "production": "#1007 esquema polos/origen y agrupación; #1008 postproceso conectado con confianza reducida y medición; #1009 factores por tipo con fuentes, cobertura y definición de vías. Nunca usar cercanía como topología ni afirmar recomendación de gabinete."
+  },
+  {
+    "id": "tablero-3d",
+    "title": "Tablero seleccionable en 3D, 2D y tabla",
+    "role": "ingenieria",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P2",
+    "issues": [
+      1010,
+      1009
+    ],
+    "description": "El mismo BOM se explora por ID en 3D conceptual, vista frontal 2D y tabla. Aparatos seleccionables, giro y separación; ficha lateral mantiene fuente, cantidad dibujada y cantidad de compra. La geometría no se infiere de bboxes.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-panel.html?vista=visual&item=QF-02",
+        "caption": "3D · QF-02 seleccionado",
+        "note": "Girá el gabinete, separá aparatos y seleccioná piezas. Posiciones ilustrativas.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-panel.html?vista=2d&item=QF-02",
+        "caption": "2D · mismo componente",
+        "note": "Alternativa frontal con los mismos IDs y cantidades.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-panel.html?vista=tabla&item=QF-02",
+        "caption": "Tabla · medidas pendientes",
+        "note": "Navegación accesible y cantidades sin dependencia de 3D.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [
+      {
+        "src": "d-panel.html?vista=visual&item=ID-01&explosion=1",
+        "label": "Vista separada y diferencial"
+      }
+    ],
+    "dependencies": [
+      "polos",
+      "reglas"
+    ],
+    "production": "Modelo físico separado de detección; dimensiones fabricante, montaje/espacio/holguras, relación instancia→BOM, posición versionada y permisos. CSS 3D de esta demo no es CAD ni validación de ingeniería. #1009 es solo conteo; expansión 3D es propuesta."
+  },
+  {
+    "id": "asistente-revision",
+    "title": "Asistente de revisión con fuentes y control humano",
+    "role": "ingenieria",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Recomendación → fuentes y etiqueta de inferencia → confirmación del valor → registro → cobertura. El presupuesto visible limita consultas. Rechazar o trabajar manualmente conserva la revisión y no envía compras.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-review-ai.html?paso=revision&vista=ia",
+        "caption": "1 · Recomendación con evidencia",
+        "note": "Plano, tabla y catálogo canónico como fuentes ficticias.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-review-ai.html?paso=aprobado&vista=ia",
+        "caption": "2 · Decisión registrada",
+        "note": "Aprobación de Martina y vínculo al atributo manual.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-review-ai.html?vista=manual&estado=limite",
+        "caption": "Manual · presupuesto agotado",
+        "note": "Fuentes visibles y edición disponible sin otra llamada de IA.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [
+      {
+        "src": "d-review-ai.html?vista=manual",
+        "label": "Modo manual con los mismos datos"
+      }
+    ],
+    "dependencies": [
+      "cobertura",
+      "ia-costos"
+    ],
+    "production": "Modelo de propuesta/aceptación separado de dato canónico, fuentes/citas por símbolo y revisions, límite/reserva de gasto, permisos, caché y auditoría. Nunca inventar un SKU crítico ni aplicar/escalar una compra automáticamente."
+  },
+  {
+    "id": "revisiones",
+    "title": "Revisiones con impacto en BOM y pedidos",
+    "role": "ingenieria",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Diferencias semánticas de R02→R03 → costo/unidades afectados → revisión de conflicto → aprobación → nueva base. Las órdenes emitidas conservan versiones congeladas; la enmienda de compra tiene su propio acuerdo.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-revisions.html?paso=comparar",
+        "caption": "1 · Diferencias semánticas",
+        "note": "Atributos, cantidad dibujada y multiplicador se distinguen.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-revisions.html?paso=impacto",
+        "caption": "2 · Costo y órdenes afectadas",
+        "note": "6 unidades adicionales de QF-02, costo ficticio USD 144.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-revisions.html?paso=aprobada",
+        "caption": "3 · Nueva base aprobada",
+        "note": "Historial, versiones congeladas y pase al equipo.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [
+      {
+        "src": "d-revisions.html?paso=impacto&estado=conflicto",
+        "label": "Conflicto de edición"
+      }
+    ],
+    "dependencies": [
+      "cobertura",
+      "colaboracion"
+    ],
+    "production": "Identidad estable símbolo/línea, revisiones inmutables, diff semántico, baseline y control optimista. Separar revisión de ingeniería de enmienda de OC; conservar SKU/cantidad/precio comprados y aprobación proveedor."
+  },
+  {
+    "id": "reglas",
+    "title": "Materiales derivados por reglas de empresa",
+    "role": "ingenieria",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Definir una regla con alcance/factor → simular sobre el BOM → revisar origen y cantidades → aprobar con fuente → aplicar sin duplicar → retirar conservando historial. Borneras inferidas permanecen separadas de aparatos detectados.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-rules.html?paso=reglas",
+        "caption": "1 · Criterio configurable",
+        "note": "Factor ficticio, responsable y alcance explícitos.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-rules.html?paso=simular",
+        "caption": "2 · Vista previa con origen",
+        "note": "QF-02 → X-01: 24 por tablero, 72 por proyecto; mismo conjunto de datos.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-rules.html?paso=aprobada",
+        "caption": "3 · Aplicación y reversión",
+        "note": "Origen y revisión trazables; no duplica la fila ya propuesta.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "cobertura"
+    ],
+    "production": "Reglas versionadas y propiedad organización/proyecto, factores validados, linaje de cada derivado, simulación sin escritura, upsert/reversión auditados e idempotencia. El caso R-04 es ficticio, no una regla universal."
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "result": "pass",
+  "method": "Chrome CLI headless:new; medición dump-dom; prueba en copia temporal",
+  "flags": [
+    "--hide-scrollbars",
+    "--allow-file-access-from-files",
+    "--virtual-time-budget=15000"
+  ],
+  "captures": [
+    {
+      "name": "0-galeria.png",
+      "width": 1840,
+      "height": 1200
+    },
+    {
+      "name": "tablero-3d.png",
+      "width": 1840,
+      "height": 1995
+    },
+    {
+      "name": "estimate-full.png",
+      "width": 1440,
+      "height": 1400
+    },
+    {
+      "name": "panel-full.png",
+      "width": 1440,
+      "height": 1294
+    }
+  ],
+  "scope": "Smoke test del script. Las 32 capturas entregadas se generaron mediante Playwright con Chrome y se inspeccionaron."
+}

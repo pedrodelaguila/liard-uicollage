@@ -1,0 +1,525 @@
+{
+  "frames": [
+    {
+      "protocol": "http",
+      "src": "d-fabrication.html?paso=liberacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1358,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-fabrication.html?paso=kit",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1165,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "m-workshop.html?paso=armado",
+      "width": 390,
+      "scroll": 390,
+      "content": 537,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-fabrication.html?paso=calidad",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1043,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-logistics.html?paso=seguimiento",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1050,
+      "invalid": false,
+      "buttons": 0
+    },
+    {
+      "protocol": "http",
+      "src": "m-field.html?paso=recepcion",
+      "width": 390,
+      "scroll": 390,
+      "content": 582,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-logistics.html?paso=reclamo",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 761,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-logistics.html?paso=reserva",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 782,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "m-field.html?paso=instalacion",
+      "width": 390,
+      "scroll": 390,
+      "content": 651,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "m-field.html?paso=sat",
+      "width": 390,
+      "scroll": 390,
+      "content": 570,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "m-field.html?paso=entrega",
+      "width": 390,
+      "scroll": 390,
+      "content": 556,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "m-field.html?paso=instalacion&estado=offline",
+      "width": 390,
+      "scroll": 390,
+      "content": 781,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-maintenance.html?paso=expediente",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 945,
+      "invalid": false,
+      "buttons": 0
+    },
+    {
+      "protocol": "http",
+      "src": "d-maintenance.html?paso=plan",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 919,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "m-service.html?paso=intervencion",
+      "width": 390,
+      "scroll": 390,
+      "content": 538,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "m-service.html?paso=cierre",
+      "width": 390,
+      "scroll": 390,
+      "content": 551,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-collaboration.html?paso=revision",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1207,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-collaboration.html?paso=conflicto",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 874,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-collaboration.html?paso=aprobacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 909,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-automation.html?paso=regla",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 867,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-automation.html?paso=simulacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 736,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-automation.html?paso=historial",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 824,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-automation.html?paso=historial&estado=error",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 840,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-integrations.html?paso=mapeo",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1132,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-integrations.html?paso=preview",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1084,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "http",
+      "src": "d-integrations.html?paso=conciliacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 963,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "http",
+      "src": "d-integrations.html?paso=preview&estado=error",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1232,
+      "invalid": false,
+      "buttons": 4
+    },
+    {
+      "protocol": "file",
+      "src": "d-fabrication.html?paso=liberacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1358,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-fabrication.html?paso=kit",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1165,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "m-workshop.html?paso=armado",
+      "width": 390,
+      "scroll": 390,
+      "content": 537,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-fabrication.html?paso=calidad",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1043,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-logistics.html?paso=seguimiento",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1050,
+      "invalid": false,
+      "buttons": 0
+    },
+    {
+      "protocol": "file",
+      "src": "m-field.html?paso=recepcion",
+      "width": 390,
+      "scroll": 390,
+      "content": 582,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-logistics.html?paso=reclamo",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 761,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-logistics.html?paso=reserva",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 782,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "m-field.html?paso=instalacion",
+      "width": 390,
+      "scroll": 390,
+      "content": 651,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "m-field.html?paso=sat",
+      "width": 390,
+      "scroll": 390,
+      "content": 570,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "m-field.html?paso=entrega",
+      "width": 390,
+      "scroll": 390,
+      "content": 556,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "m-field.html?paso=instalacion&estado=offline",
+      "width": 390,
+      "scroll": 390,
+      "content": 781,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-maintenance.html?paso=expediente",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 945,
+      "invalid": false,
+      "buttons": 0
+    },
+    {
+      "protocol": "file",
+      "src": "d-maintenance.html?paso=plan",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 919,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "m-service.html?paso=intervencion",
+      "width": 390,
+      "scroll": 390,
+      "content": 538,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "m-service.html?paso=cierre",
+      "width": 390,
+      "scroll": 390,
+      "content": 551,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-collaboration.html?paso=revision",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1207,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-collaboration.html?paso=conflicto",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 874,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-collaboration.html?paso=aprobacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 909,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-automation.html?paso=regla",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 867,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-automation.html?paso=simulacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 736,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-automation.html?paso=historial",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 824,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-automation.html?paso=historial&estado=error",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 840,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-integrations.html?paso=mapeo",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1132,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-integrations.html?paso=preview",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1084,
+      "invalid": false,
+      "buttons": 2
+    },
+    {
+      "protocol": "file",
+      "src": "d-integrations.html?paso=conciliacion",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 963,
+      "invalid": false,
+      "buttons": 1
+    },
+    {
+      "protocol": "file",
+      "src": "d-integrations.html?paso=preview&estado=error",
+      "width": 1440,
+      "scroll": 1440,
+      "content": 1232,
+      "invalid": false,
+      "buttons": 4
+    }
+  ],
+  "workflows": [
+    {
+      "name": "Fabrication release, kit, workshop, FAT",
+      "pass": true
+    },
+    {
+      "name": "Receipt partial, claim, replenishment, reservation",
+      "pass": true
+    },
+    {
+      "name": "Field installation, SAT, handoff, sticky footer",
+      "pass": true
+    },
+    {
+      "name": "Asset plan, intervention, spare draft",
+      "pass": true
+    },
+    {
+      "name": "Collaboration decision, conflict, approval",
+      "pass": true
+    },
+    {
+      "name": "Automation validation, simulation, activation, pause, retry",
+      "pass": true
+    },
+    {
+      "name": "Integration mapping validation, preview, reconcile",
+      "pass": true
+    },
+    {
+      "name": "File URL cross-screen persistence and reset",
+      "pass": true
+    }
+  ],
+  "errors": []
+}

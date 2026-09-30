@@ -1,0 +1,317 @@
+[
+  {
+    "id": "fabricacion",
+    "title": "Del diseño al taller",
+    "role": "operaciones",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "La revisión aprobada se libera, el material se reserva y cada paso de armado deja evidencia. Un cambio técnico requiere revisar las tareas afectadas.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-fabrication.html?paso=liberacion",
+        "caption": "Liberar R03 para fabricar",
+        "note": "La geometría del prototipo es ilustrativa; aprobación técnica simulada.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-fabrication.html?paso=kit",
+        "caption": "Preparar el kit por tablero",
+        "note": "Cantidades por tablero y por lote, sin duplicar el multiplicador.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-workshop.html?paso=armado",
+        "caption": "Armado en el puesto",
+        "note": "Lista de verificación, consulta a ingeniería y registro de evidencia.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-fabrication.html?paso=calidad",
+        "caption": "FAT y liberación",
+        "note": "Una lista de verificación no es certificación ni reemplaza los ensayos.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "tablero-3d",
+      "colaboracion",
+      "logistica"
+    ],
+    "production": "Orden de fabricación versionada, reservas de stock, tareas/evidencias y permisos de firma. Integrar datos físicos reales antes de usar posiciones para fabricar."
+  },
+  {
+    "id": "logistica",
+    "title": "Recepción, faltantes y reservas",
+    "role": "compras",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Desde la orden existente se registran cantidades aceptadas y dañadas, se abre un reclamo y se asigna material al kit. La recepción parcial no se convierte en recepción completa.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-logistics.html?paso=seguimiento",
+        "caption": "Seguir OC-026",
+        "note": "Orden existente; recepción y reservas propuestas.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-field.html?paso=recepcion",
+        "caption": "Recibir en depósito u obra",
+        "note": "Carga manual de remito y faltantes; escaneo simulado.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-logistics.html?paso=reclamo",
+        "caption": "Resolver una entrega parcial",
+        "note": "Reclamo y reposición con responsable.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-logistics.html?paso=reserva",
+        "caption": "Reservar para TGBT-01",
+        "note": "Un mismo material no puede asignarse dos veces.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "procurement"
+    ],
+    "production": "Modelo de recepción por línea, unidades, lotes/ubicaciones, discrepancias y reservas transaccionales. Conciliar con ERP mediante operaciones idempotentes."
+  },
+  {
+    "id": "obra",
+    "title": "Instalación, pruebas y entrega",
+    "role": "obra",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "La cuadrilla recibe documentación de la revisión liberada, completa tareas y pruebas, eleva incidencias y entrega el expediente conforme a obra.",
+    "frames": [
+      {
+        "kind": "m",
+        "src": "m-field.html?paso=instalacion",
+        "caption": "Instalar con R03",
+        "note": "Pasos técnicos de ejemplo, responsables y fotos simuladas.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-field.html?paso=sat",
+        "caption": "Registrar pruebas de sitio",
+        "note": "Resultados cargados por una persona competente.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-field.html?paso=entrega",
+        "caption": "Entregar conforme a obra",
+        "note": "Paquete y acceso del cliente; firma simulada.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-field.html?paso=instalacion&estado=offline",
+        "caption": "Trabajo sin conexión",
+        "note": "Distingue guardado en dispositivo de sincronizado.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "fabricacion",
+      "colaboracion"
+    ],
+    "production": "Paquetes versionados, incidencias, evidencias y firma autorizada; sincronización sin conexión con conflictos y auditoría. Los criterios técnicos reales se validan con especialistas."
+  },
+  {
+    "id": "mantenimiento",
+    "title": "Del tablero al activo mantenible",
+    "role": "mantenimiento",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P2",
+    "issues": [],
+    "description": "El expediente une plano, BOM, revisión, ensayos y manuales. Una intervención registra evidencia y abre una solicitud de repuesto cuando corresponde.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-maintenance.html?paso=expediente",
+        "caption": "Expediente de ACT-TGBT-01",
+        "note": "Vínculos al BOM y al plano; acceso sujeto a permisos.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-maintenance.html?paso=plan",
+        "caption": "Plan de mantenimiento",
+        "note": "Fechas y responsables definidos por el equipo técnico.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-service.html?paso=intervencion",
+        "caption": "Registrar una intervención",
+        "note": "Trabajo simulado; no habilita acciones eléctricas reales.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "m",
+        "src": "m-service.html?paso=cierre",
+        "caption": "Cerrar y publicar reporte",
+        "note": "Hallazgo, responsable y trazabilidad del repuesto.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "obra",
+      "logistica"
+    ],
+    "production": "Activo persistente, jerarquía, planes, órdenes de trabajo, documentos accesibles y exportables. QR con autorización; mantenimiento definido por especialistas, no por IA autónoma."
+  },
+  {
+    "id": "colaboracion",
+    "title": "Revisiones, decisiones y aprobaciones",
+    "role": "ingenieria",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P1",
+    "issues": [],
+    "description": "Los comentarios se vinculan a materiales y revisión. Ingeniería valida el criterio técnico; Dirección aprueba el costo. Un conflicto exige comparar versiones antes de guardar.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-collaboration.html?paso=revision",
+        "caption": "Resolver un pendiente de R03",
+        "note": "Bornera X-01 con fuente, responsable y evidencia.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-collaboration.html?paso=conflicto",
+        "caption": "Comparar cambios simultáneos",
+        "note": "Ninguna edición sobrescribe la otra en silencio.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-collaboration.html?paso=aprobacion",
+        "caption": "Aprobar el traspaso",
+        "note": "Decisión técnica y comercial con responsables diferentes.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "ingenieria",
+      "revisiones"
+    ],
+    "production": "Roles por empresa/proyecto, comentarios anclados, control de concurrencia por versión, bitácora inmutable y versiones firmadas. Auth actual no presume nuevos roles de taller o mantenimiento."
+  },
+  {
+    "id": "automatizacion",
+    "title": "Reglas que se pueden explicar",
+    "role": "direccion",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P2",
+    "issues": [],
+    "description": "Cada regla declara evento, alcance y acción. Una simulación muestra el efecto antes de activarla; las acciones comerciales externas quedan en borrador para revisión humana.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-automation.html?paso=regla",
+        "caption": "Definir seguimiento de ofertas",
+        "note": "Oferta por vencer → crear borrador de re-cotización.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-automation.html?paso=simulacion",
+        "caption": "Simular con R03",
+        "note": "Dos borradores; no se envían correos.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-automation.html?paso=historial",
+        "caption": "Revisar la ejecución",
+        "note": "Bitácora y aprobación de un responsable.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-automation.html?paso=historial&estado=error",
+        "caption": "Reintentar un evento fallido",
+        "note": "El reintento conserva la clave para evitar duplicados.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "notifications",
+      "colaboracion"
+    ],
+    "production": "Motor de eventos idempotente, permisos y presupuestos por regla; vista previa, aprobación, pausa, reintento y auditoría. No automatizar órdenes sin autoridad explícita."
+  },
+  {
+    "id": "integraciones",
+    "title": "Catálogos y sistemas conectados",
+    "role": "proveedor",
+    "horizon": "Visión",
+    "status": "Propuesto",
+    "priority": "P2",
+    "issues": [],
+    "description": "El proveedor mapea columnas, valida unidades y precios, previsualiza cambios y concilia fallos. Una simulación no escribe sobre el catálogo productivo.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-integrations.html?paso=mapeo",
+        "caption": "Mapear Electrobase / ERP",
+        "note": "Adaptador propuesto; archivo ficticio, sin conexión real.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-integrations.html?paso=preview",
+        "caption": "Validar antes de importar",
+        "note": "Duplicados y precios inválidos se aíslan.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-integrations.html?paso=conciliacion",
+        "caption": "Conciliar la sincronización",
+        "note": "Reintentos seguros y decisiones por fila.",
+        "status": "Propuesto"
+      },
+      {
+        "kind": "d",
+        "src": "d-integrations.html?paso=preview&estado=error",
+        "caption": "Conector temporalmente caído",
+        "note": "Importación manual disponible.",
+        "status": "Propuesto"
+      }
+    ],
+    "states": [],
+    "dependencies": [
+      "catalog",
+      "ai-cost"
+    ],
+    "production": "Adaptadores con contratos verificados, unidad/moneda/IDs, pertenencia por proveedor, secretos fuera del cliente, vistas previas e inserciones o actualizaciones idempotentes. Integraciones SAP/Odoo/Electrobase no están validadas ni implementadas por este prototipo."
+  }
+]

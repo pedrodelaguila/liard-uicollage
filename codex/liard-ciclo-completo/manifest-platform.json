@@ -1,0 +1,298 @@
+[
+  {
+    "id": "rollout",
+    "title": "Ampliación del piloto y puesta en marcha",
+    "role": "Operaciones · ingeniería · proveedor",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      985,
+      1000
+    ],
+    "description": "La demo con cinco usuarios está reportada en el Roadmap. Este flujo propone invitar a ambos perfiles, comprobar su preparación y recuperar un alta fallida; la disponibilidad operativa real sigue sin verificarse.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-rollout.html?paso=preparacion",
+        "caption": "01 · Preparación de los dos perfiles",
+        "note": "Demo reportada / comprobaciones simuladas",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-rollout.html?paso=invitacion",
+        "caption": "02 · Invitación y acceso por rol",
+        "note": "Sin email real; alta progresiva",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-rollout.html?paso=fallo",
+        "caption": "03 · Alta fallida y recuperación",
+        "note": "Volver a intentar conserva el rol y los datos",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Alta lista",
+        "src": "d-rollout.html?paso=listo"
+      }
+    ],
+    "dependencies": [
+      "observability",
+      "ai-cost"
+    ],
+    "production": "Verificar despliegue actual, aislar roles y datos, robustecer cola #1000, implementar invitaciones y acceso gradual con métricas y reversión. El prototipo no despliega infraestructura."
+  },
+  {
+    "id": "billing",
+    "title": "Suscripción y oportunidades del proveedor",
+    "role": "Dirección · proveedor",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P1",
+    "issues": [],
+    "description": "La suscripción y la comisión por oportunidad son hipótesis de Sprint 5. Se prueban plan, pago, liquidación de oportunidades y reclamo de una duplicada, con precios ficticios y decisiones comerciales visibles.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-billing.html?paso=planes",
+        "caption": "01 · Elegir plan",
+        "note": "Tarifas ilustrativas: validar disposición a pagar",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-billing.html?paso=pago&estado=error",
+        "caption": "02 · Pago fallido, sin duplicar el cargo",
+        "note": "Ningún pago real ni datos de tarjeta",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-billing.html?paso=leads",
+        "caption": "03 · Oportunidades y cargos",
+        "note": "Comisión propuesta, separada de la compra",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-billing.html?paso=reclamo",
+        "caption": "04 · Reclamar oportunidad duplicada",
+        "note": "Resolución y devolución simuladas",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Suscripción activa",
+        "src": "d-billing.html?paso=contrato"
+      },
+      {
+        "label": "Devolución",
+        "src": "d-billing.html?paso=devolucion"
+      }
+    ],
+    "dependencies": [
+      "ai-cost",
+      "notifications"
+    ],
+    "production": "Validar pricing y momento de cargo, elegibilidad de oportunidads y política de devolución; después implementar registro contable, proveedor de pago, confirmaciones de pago sin duplicados y conciliación. No guardar tarjeta en LIARD."
+  },
+  {
+    "id": "ai-cost",
+    "title": "Presupuesto de IA y límites por usuario",
+    "role": "Dirección · ingeniería · proveedor",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [],
+    "description": "Unifica consumo de detección, lectura de BOM y catálogo. La reserva previa evita exceder el límite; con presupuesto insuficiente se conserva el trabajo y se ofrece revisión manual o ampliación explícita.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-ai-cost.html?paso=consumo",
+        "caption": "01 · Consumo y responsables",
+        "note": "Existe: costos parciales de lectura / nuevo: cuenta completa",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-ai-cost.html?paso=limite",
+        "caption": "02 · Procesamiento detenido por límite",
+        "note": "Datos conservados, alternativa manual",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-ai-cost.html?paso=ampliar",
+        "caption": "03 · Autorizar presupuesto adicional",
+        "note": "Estimación con reserva y liberación de sobrante",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Presupuesto reservado",
+        "src": "d-ai-cost.html?paso=reservado"
+      }
+    ],
+    "dependencies": [
+      "observability"
+    ],
+    "production": "Ledger de uso por cuenta/usuario/tarea, reserva atómica antes de llamadas, costo real al terminar y liberación del sobrante. Integrar costos existentes sin duplicar llamadas ni facturar reintentos cacheados."
+  },
+  {
+    "id": "notifications",
+    "title": "Pedidos comunicados a ambas partes",
+    "role": "Compras · proveedor",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [],
+    "description": "Los pedidos ya existen. Se suma un flujo de preferencias, avisos de envío y respuesta, estado de entrega y recuperación de email fallido. Cada aviso lleva a la orden correcta; el contacto sigue condicionado a aceptación.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-notifications.html?paso=preferencias",
+        "caption": "01 · Preferencias por evento y rol",
+        "note": "Los emails de pedidos aún no existen",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-notifications.html?paso=entregas",
+        "caption": "02 · Pedido y respuesta trazados",
+        "note": "Compras y proveedor: mismo OC-026",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-notifications.html?paso=reintento",
+        "caption": "03 · Revisar entrega fallida",
+        "note": "Corregir destinatario y reenviar solo en demo",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Reenvío entregado",
+        "src": "d-notifications.html?paso=entregado"
+      }
+    ],
+    "dependencies": [
+      "rollout"
+    ],
+    "production": "Bandeja de eventos transaccional al emitir/responder órdenes, plantillas y preferencias por usuario, reintentos idempotentes, rebotes y verificación del destinatario. Reutilizar mail de auth sin mezclar eventos."
+  },
+  {
+    "id": "observability",
+    "title": "Observabilidad, incidentes y recuperación",
+    "role": "Operaciones",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P0",
+    "issues": [
+      836,
+      1000
+    ],
+    "description": "Desde la salud de servicios se recorre un incidente hasta su traza y un plan de recuperación. Los registros contienen modelo, tokens, costo y jobId, sin instrucciones al modelo ni imágenes de clientes.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-observability.html?paso=estado",
+        "caption": "01 · Estado operativo y alerta",
+        "note": "Métricas de demostración",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-observability.html?paso=traza",
+        "caption": "02 · Traza y costo del plano",
+        "note": "Correlación de servicios sin contenido privado",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-observability.html?paso=recuperar",
+        "caption": "03 · Recuperación con precondiciones",
+        "note": "Reanudar desde punto de reanudación es plan de #1000",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Incidente resuelto",
+        "src": "d-observability.html?paso=resuelto"
+      },
+      {
+        "label": "Sin datos",
+        "src": "d-observability.html?paso=estado&estado=vacio"
+      }
+    ],
+    "dependencies": [],
+    "production": "Instrumentación opcional APM y trazas IA, jobId común, métricas sin contenido de clientes y alertas accionables. Adoptar cola con punto de reanudación #1000 antes de prometer recuperación sin costo duplicado."
+  },
+  {
+    "id": "dataset",
+    "title": "Conjunto de planos, evaluación y publicación controlada",
+    "role": "Operaciones · ingeniería",
+    "horizon": "Sprint 5",
+    "status": "Planificado",
+    "priority": "P1",
+    "issues": [
+      813,
+      1007,
+      1008
+    ],
+    "description": "La mejora con planos nuevos requiere permiso, procedencia, cuarentena y evaluación separada de entrenamiento. Se bloquean los símbolos de QElectroTech como entrenamiento. Una nueva versión se publica solo tras revisión de errores y presupuesto.",
+    "frames": [
+      {
+        "kind": "d",
+        "src": "d-dataset.html?paso=consentimiento",
+        "caption": "01 · Permiso y procedencia",
+        "note": "Planos ficticios, autorización granular",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-dataset.html?paso=anotacion",
+        "caption": "02 · Cuarentena y anotación",
+        "note": "QElectroTech excluido de entrenamiento",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-dataset.html?paso=evaluacion",
+        "caption": "03 · Evaluación por familia",
+        "note": "Resultados ficticios, conjuntos separados",
+        "status": "Planificado"
+      },
+      {
+        "kind": "d",
+        "src": "d-dataset.html?paso=publicacion",
+        "caption": "04 · Publicación y reversión",
+        "note": "Validación humana, costos y regresiones",
+        "status": "Planificado"
+      }
+    ],
+    "states": [
+      {
+        "label": "Nueva versión publicada",
+        "src": "d-dataset.html?paso=publicado"
+      },
+      {
+        "label": "Versión revertida",
+        "src": "d-dataset.html?paso=revertido"
+      }
+    ],
+    "dependencies": [
+      "observability",
+      "ai-cost",
+      "matching"
+    ],
+    "production": "Consentimiento revocable, custodia externa de planos privados, conjuntos sin filtración entre ajuste y validación, métricas por familia y despliegue reversible. No entrenar con QElectroTech. UI de consentimiento/registro es propuesta de implementación del plan S5, no ticket aprobado por sí sola."
+  }
+]
