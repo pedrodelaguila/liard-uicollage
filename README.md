@@ -21,4 +21,6 @@ Copia íntegra de la galería revisada; carpeta independiente que conserva los o
 
 [Galería interactiva: 35 funcionalidades, 103 marcos y 54 pantallas](https://pedrodelaguila.github.io/liard-uicollage/claude/liard-ciclo-completo/index.html).
 
+[LIARD Horizon: propuesta de producto y galería interactiva](https://pedrodelaguila.github.io/liard-uicollage/claude/index.html).
+
 Hecha desde cero en `claude/liard-ciclo-completo/`, sin tocar la galería anterior de `claude/`: tokens y componentes de la rama `dev`, horizonte de cada pantalla (existe en dev, Sprint 4 pendiente, Sprint 5, propuesta), estado compartido con «Reiniciar demo», tablero 3D vinculado al BOM, capturas, [QA](claude/liard-ciclo-completo/QA.md) y [plan de construcción](claude/liard-ciclo-completo/PLAN.md).
