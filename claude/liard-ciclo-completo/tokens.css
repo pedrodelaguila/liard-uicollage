@@ -1,0 +1,181 @@
+/* LIARD — tokens reales, copiados de front/src/styles/index.css, styles/landing.css y src/dxf-viewer/style.css (rama dev).
+   Lista para pegar en un mock estático (sin Tailwind). Los nombres coinciden con los de la app; los valores
+   de Tailwind usados por clase (emerald/amber/rose/sky/slate) se expanden a hex al final. */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400..800&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+/* La app usa @fontsource-variable/inter ('Inter Variable') y @fontsource/jetbrains-mono 400/500/600/700. */
+
+:root {
+  /* ---- Tipografía ---- */
+  --sans: 'Inter Variable', 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: var(--sans);
+  --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font: 18px/1.45 var(--sans);  /* la app escribe 18px/145%; en CSS plano el % se hereda como px fijos */          /* base 18px > 1024px, 16px <= 1024px */
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+
+  /* Escala (rem sobre la base de 18px). Px crudos prohibidos fuera de components/ui. */
+  --text-display: 36px;  --text-display--line-height: 1.1;  --text-display--letter-spacing: -0.02em; /* hero landing */
+  --text-3xl: 1.875rem;  /* 34/41  h1 de pantalla */
+  --text-2xl: 1.5rem;    /* 27/36  h2 de sección (PageShell h1 usa text-2xl bold tracking-tight) */
+  --text-lg: 1.125rem;   /* 20/32  h3, título de tarjeta */
+  --text-base: 1rem;     /* 18/27  cuerpo largo */
+  --text-sm: 0.875rem;   /* 16/23  cuerpo de interfaz por defecto */
+  --text-xs: 0.75rem;    /* 14/18  secundario */
+  --text-2xs: 11px;      --text-2xs--line-height: 1.3; --text-2xs--letter-spacing: 0.01em; /* badge, cabecera de tabla */
+  --text-mono-sm: 13px;  --text-mono-sm--line-height: 1.4;
+
+  /* ---- Color (claro) ---- */
+  --background: #F4F4FC;                /* lienzo; hex a propósito (oklch se ve distinto en P3 vs sRGB) */
+  --foreground: #000000;
+  --card: #ffffff;                      /* oklch(1 0 0) */
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --primary: #0058BE;                   /* azul liard */
+  --primary-foreground: #ffffff;
+  --secondary-100: #E2E5EC;             /* = --border */
+  --secondary-400: #CDD2DC;
+  --secondary-600: #AEB6C4;
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);             /* ~#F5F5F5 */
+  --muted-foreground: oklch(0.42 0 0);  /* ~#555555 */
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325); /* ~#E7000B */
+  --success: oklch(0.596 0.145 163.2);       /* ~emerald-600 */
+  --success-foreground: oklch(0.432 0.095 166.9);
+  --warning: oklch(0.769 0.188 70.08);       /* ~amber-500 */
+  --warning-foreground: oklch(0.473 0.137 46.2);
+  --warning-solid-foreground: oklch(0.28 0.06 70);
+  --warning-surface: oklch(0.987 0.022 95.3);       /* opaco: la columna sticky de la matriz pasa por encima */
+  --warning-surface-hover: oklch(0.962 0.059 95.6);
+  --border: var(--secondary-100);
+  --input: oklch(0.922 0 0);
+  --ring: var(--primary);
+  --green-500: #16A34A;
+  --red-500: oklch(0.64 0.21 25);
+  --code-bg: #f4f3ec;
+  --text-h: #08060d;
+
+  --sidebar: #ffffff;
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-secondary-foreground: #424754;
+  --sidebar-border: var(--secondary-100);
+  --sidebar-width: 16rem;
+  --sidebar-width-icon: 3.5rem;         /* SIDEBAR_ICON_WIDTH, no los 3rem de shadcn */
+  --sidebar-width-mobile: 18rem;
+
+  /* Tabla del BOM (.bom-table): mono 14px, th 13px/500 sticky, celdas 10px 16px */
+  --bom-table-border: var(--secondary-100);
+  --bom-table-head-bg: var(--muted);
+  --bom-table-head-fg: var(--muted-foreground);
+  --bom-material: var(--primary);       /* material en azul bold 700 */
+  --bom-specification: var(--muted-foreground);
+  --bom-quantity: var(--text-h);        /* cantidad bold, tabular-nums */
+  --bom-notice-bg: var(--code-bg);
+
+  /* ---- Radio ---- */
+  --radius: 0.625rem;                   /* 10px = rounded-lg */
+  --radius-sm: calc(var(--radius) * 0.6);   /* 6px */
+  --radius-md: calc(var(--radius) * 0.8);   /* 8px */
+  --radius-lg: var(--radius);               /* 10px */
+  --radius-xl: calc(var(--radius) * 1.4);   /* 14px */
+  --radius-2xl: calc(var(--radius) * 1.8);  /* 18px  (dialog, skeleton) */
+  --radius-3xl: calc(var(--radius) * 2.2);  /* 22px  (input shadcn) */
+  --radius-4xl: calc(var(--radius) * 2.6);  /* 26px  (card shadcn) */
+  /* Button shadcn: `rounded` = 4px. Badges de estado: rounded-full. */
+
+  /* ---- Sombra ---- */
+  --shadow: rgba(0,0,0,.1) 0 10px 15px -3px, rgba(0,0,0,.05) 0 4px 6px -2px;
+  /* Más usadas en la app: shadow-2xs (48) y shadow-xs (48); dialog shadow-xl; card shadcn shadow-md + ring 1px foreground/5 */
+
+  /* ---- Movimiento ---- */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);   /* plegado de sidebar, 260ms (padding, width, gap) */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);  /* toasts (transform 350ms), landing, dxf-viewer (--ease-cad) */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);/* panel de detalle de pedido por proveedor, 500ms */
+  --ease-in-out-landing: cubic-bezier(0.7, 0, 0.2, 1);
+  --dur-fast: 150ms;    /* el más usado (duration-150 x44): hover, colores */
+  --dur-base: 200ms;    /* dialog, dropdown, barra de progreso */
+  --dur-sidebar: 260ms; /* rail; .sidebar-fade opacity 160ms ease-out; .sidebar-reveal opacity 140ms */
+  --dur-toast: 350ms;   /* stack de toasts; viewport height 350ms ease-out */
+  --dur-panel: 500ms;
+  /* Toasts: bottom-right; duración default/info/success 2000ms, warning 3000, error 4000, loading infinito;
+     +35ms por carácter sobre 30, mínimo 5000 con acción, máx 10000. */
+}
+
+/* Oscuro (.dark): existe pero la app se usa en claro */
+.dark {
+  --background: oklch(0.145 0 0);  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);        --muted: oklch(0.269 0 0); --muted-foreground: oklch(0.708 0 0);
+  --primary: #0058BE;              --border: oklch(1 0 0 / 10%); --input: oklch(1 0 0 / 15%);
+  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.696 0.17 162.48); --warning: oklch(0.828 0.189 84.43);
+  --warning-surface: oklch(0.268 0.032 74);
+  --bom-material: color-mix(in oklch, var(--primary), white 45%);
+}
+
+/* ---- Paleta de estado tal como la usan los componentes (clases Tailwind v4 → hex) ---- */
+:root {
+  --emerald-500: #10b981; --emerald-600: #059669; --emerald-700: #047857; /* Listo, cajas identificadas, cotización activa */
+  --amber-100: #fef3c7; --amber-400: #fbbf24; --amber-500: #f59e0b; --amber-600: #d97706; --amber-700: #b45309; /* Por revisar, EN ESPERA */
+  --rose-400: #fb7185; --rose-500: #f43f5e; --rose-600: #e11d48; --rose-700: #be123c; /* Error, cajas en error */
+  --green-100: #dcfce7; --green-700: #15803d;   /* CONFIRMADO */
+  --red-100: #fee2e2;   --red-700: #b91c1c;     /* RECHAZADO */
+  --gray-100: #f3f4f6;  --gray-500: #6b7280;    /* VENCIDO */
+  --sky-400: #38bdf8; --sky-500: #0ea5e9; --sky-700: #0369a1; /* foco del localizador de símbolos */
+  --slate-400: #94a3b8; --slate-500: #64748b;  /* caja descartada / fusionada (borde punteado) */
+}
+
+/* ---- Landing (styles/landing.css) ---- */
+:root {
+  --landing-ink: #f6f7fc; --landing-ink-raised: #ffffff; --landing-ink-sunken: #edeff7;
+  --landing-wire: #e2e5ee; --landing-wire-strong: #c9cfdd;
+  --landing-paper: #0b0d12; --landing-paper-muted: #545a66;
+  --landing-volt: #0058be; --landing-celeste: #0a4285; --landing-copper: #b45309;
+  --landing-live: #d92d20; --landing-detect: #22c55e;
+  --landing-volt-soft: #e5eefb; --landing-celeste-soft: #e0e9f6; --landing-copper-soft: #fbeddc;
+  --landing-gradient: linear-gradient(100deg, #0058be 0%, #04407f 100%); /* CTA "Crear cuenta" */
+  --landing-shadow: 0 24px 60px -28px rgb(0 60 130 / 0.3);
+  --landing-cta-shadow: 0 12px 30px -12px rgb(4 64 127 / 0.55);
+  --landing-cta-shadow-hover: 0 18px 40px -12px rgb(4 64 127 / 0.75);
+  --text-mega: clamp(3rem, 10.5vw, 11rem);  /* lh .84, ls -0.042em */
+  --text-huge: clamp(2.4rem, 6.4vw, 6rem);  /* lh .95, ls -0.04em */
+  --text-big: clamp(2rem, 4.2vw, 3.9rem);   /* lh 1, ls -0.035em */
+}
+
+/* ---- Visor DXF standalone (src/dxf-viewer/style.css) ---- */
+:root {
+  --bg-cad: #FFFFFF; --bg-app: #F5F6F8; --surface-panel: #FFFFFF; --surface-elevated: #F8F9FA;
+  --surface-border: #E4E7EC; --surface-border-subtle: #EEF0F4; --surface-border-focus: #0058BE;
+  --cobalt: #0058BE; --cobalt-hover: #00479E; --cobalt-active: #00367A;
+  --cobalt-tint: rgba(0,88,190,.08); --cobalt-ring: rgba(0,88,190,.22);
+  --accent-sky: #0284C7; --accent-emerald: #16A34A; --accent-amber: #D97706; --accent-rose: #DC2626;
+  --text-main: #0B0D12; --text-secondary: #3A404D; --text-muted: #6E7687; --text-dim: #9FA7B6;
+  --box-border: #0058BE; --box-bg: rgba(0,88,190,.08); --crosshair-color: #0058BE;
+  --ease-cad: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 150ms var(--ease-cad); --transition-normal: 250ms var(--ease-cad);
+}
+
+/* ---- Keyframes reales ---- */
+@keyframes toast-progress { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes catalog-reading-scan {           /* icono "Leyendo tu catálogo" */
+  0%, 100% { transform: translateY(-7px); opacity: .25; }
+  50%      { transform: translateY(7px);  opacity: 1; }
+}
+@keyframes catalog-reading-sheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } } /* brillo en la barra de lectura */
+/* Landing: landing-drift (glow, 26s ease-in-out infinite alternate), landing-hero-in (1100ms ease-out-expo,
+   escalonado 110ms * i + 100ms), landing-draw (trazo SVG 1400ms), landing-fade (700ms). */
+/* tw-animate-css: dialog/dropdown fade-in-0 + zoom-in-95 (200ms), dropdown slide-in-from-top-2;
+   overlay dialog bg-black/60; sheet overlay bg-black/30 + backdrop-blur-sm; skeleton animate-pulse rounded-2xl bg-muted;
+   spinner animate-spin (43 usos); "Leyendo…" = punto con animate-ping. */
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: color-mix(in srgb, currentColor 20%, transparent); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: color-mix(in srgb, currentColor 35%, transparent); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+}

@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Nuevo proyecto · liard</title>
+<link rel="stylesheet" href="ingenieria.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="h1" data-user="martina"
+  data-crumbs="Proyectos|d-ing-proyectos.html>Nuevo proyecto"
+  data-title="Nuevo proyecto" data-sub="Cuatro pasos: la obra, la tabla de referencia validada, los planos con sus repeticiones y la confirmación con el costo de detección.">
+<div id="act">
+  <button class="btn ghost" data-href="d-ing-proyectos.html">Cancelar</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const N = BI.nuevo;
+  const estado = L.q('estado');
+  const MAX = 15, MAXMB = 100;
+  const EXTRA = [
+    ['AUX', 'Contacto auxiliar', 'AUXILIARY_CONTACT'], ['QS', 'Seccionador bajo carga', 'LOAD_BREAK_SWITCH'], ['QF', 'Seccionador bajo carga con fusible', 'FUSED_LOAD_BREAK_SWITCH'],
+    ['FU', 'Fusible', 'FUSE'], ['SW', 'Conmutador', 'CHANGEOVER_SWITCH'], ['KT', 'Interruptor temporizado', 'TIMED_SWITCH'], ['FC', 'Fotocélula', 'PHOTOCELL'],
+    ['ATS', 'Tablero de transferencia automática', 'AUTOMATIC_TRANSFER_SWITCHBOARD'], ['PE', 'Puesta a tierra', 'GROUNDING'], ['W', 'Cable subterráneo LSOH', 'UNDERGROUND_CABLE_LSOH'],
+    ['GB', 'Gabinete metálico', null],
+  ];
+  const P0 = +(L.q('paso') || ({ error: 2, cargando: 2, 'sin-ia': 2, limite: 3 }[estado] || 1));
+  const s = {
+    paso: Math.min(4, Math.max(1, P0)),
+    obra: { n: N.n, cliente: N.cliente, entrega: N.entrega, desc: 'Tableros de guardia, quirófanos y aire acondicionado', dup: '' },
+    tabla: estado === 'cargando' ? 'leyendo' : estado === 'error' ? 'mala' : (P0 >= 2 ? 'ok' : 'nada'),
+    confirmada: P0 >= 3,
+    mats: N.tabla.muestra.concat(EXTRA).map((m, i) => ({ id: 'm' + i, cod: m[0], n: m[1], base: m[2], estado: m[2] ? 'ok' : 'sinbase' })),
+    dup: 'pendiente', fila14: 'pendiente', filtro: 'todos', manual: false,
+    archivos: N.archivos.map(a => ({ ...a })),
+    rechazos: [
+      { n: N.archivoGrande.n, mb: N.archivoGrande.mb, motivo: `Pesa ${L.num(N.archivoGrande.mb, 1)} MB y el máximo es ${MAXMB} MB por plano.`, hint: 'Recortá cada tablero con la tijera y subí los recortes.' },
+      { n: 'foto-tablero-guardia.jpg', mb: 3.2, motivo: 'Las fotos no se pueden procesar: solo .dxf, .pdf y .dwg (Sprint 5).', hint: 'Pedile el plano al estudio o escanealo a PDF.' },
+    ],
+    modo: 'uno',
+  };
+  if (estado === 'limite') {
+    s.archivos = Array.from({ length: MAX }, (_, i) => ({ id: 'l' + i, n: ['TS-PISO-', 'TS-LOCAL-', 'TS-AA-'][i % 3] + String(i + 1).padStart(2, '0') + '.dxf', fmt: 'DXF', mb: 2 + (i * 7 % 9) / 2, mult: 1 }));
+    s.rechazos = [{ n: 'TS-AA-16.dxf', mb: 2.4, motivo: `Límite de ${MAX} planos por subida alcanzado.`, hint: 'Subí los que faltan en una segunda tanda, desde el detalle del proyecto.' }];
+  }
+  const sync = () => { const p = new URLSearchParams(location.search); p.set('paso', s.paso); history.replaceState(null, '', '?' + p.toString()); };
+  const PASOS = [['Obra', 'Datos del proyecto'], ['Tabla de referencia', 'Validala antes de procesar'], ['Planos', 'DXF, PDF y DWG con repeticiones'], ['Confirmar', 'Costo y cola']];
+
+  function steps() {
+    return `<nav class="steps" aria-label="Pasos">${PASOS.map(([t, d], i) => {
+      const n = i + 1; const cls = n === s.paso ? 'on' : n < s.paso ? 'ok' : '';
+      return `<button class="step ${cls}" data-go="${n}" ${n > s.paso + 1 || (n > 2 && !s.confirmada && n > s.paso) ? 'disabled' : ''} aria-current="${n === s.paso ? 'step' : 'false'}"><span class="n">${n < s.paso ? L.icon('check') : n}</span><span><b>${t}</b><small>${d}</small></span></button>`;
+    }).join('')}</nav>`;
+  }
+  function foot(prev, next, nextTxt, nextDis, extra = '') {
+    return `<div class="row" style="justify-content:space-between;border-top:1px solid var(--border);padding-top:18px">
+      ${prev ? `<button class="btn out" data-go="${prev}">${L.icon('arrow-left')}Atrás</button>` : '<span></span>'}
+      <div class="row gap8">${extra}${next ? `<button class="btn pri" id="next" ${nextDis ? 'disabled' : ''}>${nextTxt}${L.icon('arrow-right')}</button>` : ''}</div></div>`;
+  }
+
+  // ---------- Paso 1 ----------
+  function paso1() {
+    const ps = L.get('proyectos');
+    return `<div class="split"><div class="card"><div class="card-h"><div class="card-ico">${L.icon('folder-kanban')}</div><div><h3>Datos de la obra</h3><div class="sub">Hoy la app pide nombre y descripción <span class="tag-existe">existe</span>; cliente, entrega y responsable son nuevos <span class="tag-h1">h1</span></div></div></div>
+      <div class="card-b col gap16">
+        <div class="field"><label for="on">Nombre del proyecto</label><input class="inp" id="on" value="${L.esc(s.obra.n)}"></div>
+        <div class="field"><label for="od">Descripción</label><input class="inp" id="od" value="${L.esc(s.obra.desc)}"></div>
+        <div class="grid2" style="gap:16px">
+          <div class="field"><label for="oc">Cliente / comitente</label><input class="inp" id="oc" value="${L.esc(s.obra.cliente)}"><span class="help">Se usa para sugerir los símbolos que ya aprendiste de este estudio.</span></div>
+          <div class="field"><label for="oe">Entrega de tableros</label><input class="inp mono" id="oe" type="date" value="${s.obra.entrega}"></div>
+        </div>
+        <div class="field"><label for="odup">Duplicar de un proyecto existente <span class="tag-h1">h1</span></label>
+          <select class="inp" id="odup"><option value="">No, empezar de cero</option>${ps.filter(p => p.planos.total).map(p => `<option value="${p.id}" ${s.obra.dup === p.id ? 'selected' : ''}>${L.esc(p.n)} · hereda la tabla ya validada</option>`).join('')}</select>
+          <span class="help">Hereda la tabla de referencia confirmada y las marcas del proyecto; los planos no.</span></div>
+      </div></div>
+      <div class="col gap16">
+        <div class="note info">${L.icon('book-open')}<div><b>Antes de subir nada</b>Tené a mano la tabla de referencia del estudio (la lámina con los símbolos) y un DXF por tablero. Si el estudio te mandó un único plano con todos los tableros, lo recortás en el paso 3.</div></div>
+        <div class="card pad col gap8"><span class="lbl">Símbolos aprendidos para este cliente</span>
+          <div class="row gap8" style="font-size:var(--text-sm)"><span class="count" style="font-size:18px">3</span><span class="muted">reglas valen para <b>${L.esc(s.obra.cliente)}</b> o para toda la empresa</span></div>
+          <a class="btn out sm" href="d-ing-aprendizaje.html" style="align-self:flex-start">${L.icon('brain')}Ver el diccionario</a></div>
+      </div></div>
+      ${foot(0, 2, 'Siguiente: tabla de referencia', !s.obra.n.trim())}`;
+  }
+
+  // ---------- Paso 2 ----------
+  function render2Lista() {
+    const ms = s.mats.filter(m => m.estado !== 'quitado');
+    const dud = (s.dup === 'pendiente' ? 1 : 0) + (s.fila14 === 'pendiente' ? 1 : 0);
+    const sinb = ms.filter(m => !m.base).length;
+    const lista = s.filtro === 'dudosos' ? [] : s.filtro === 'sinbase' ? ms.filter(m => !m.base) : ms;
+    const dudosos = `
+      ${s.dup === 'pendiente' ? `<div class="note warn">${L.icon('copy')}<div class="grow"><b>Q-TM aparece dos veces con nombres distintos</b>«Termomagnética» en la fila 2 y «Llave térmica» en la fila 17. Si quedan los dos, la detección puede contarlos como materiales distintos. <a class="src" href="#" data-row="17">fila 17</a>
+        <div class="row gap8" style="margin-top:8px"><button class="btn xs pri" data-dup="unir">Unir como «Interruptor termomagnético»</button><button class="btn xs out" data-dup="separar">Son distintos</button></div></div></div>` : ''}
+      ${s.fila14 === 'pendiente' ? `<div class="note warn">${L.icon('file-question-mark')}<div class="grow"><b>La fila 14 tiene un símbolo sin descripción</b>No pudimos leer qué material es: no hay texto al lado del símbolo. <a class="src" href="#" data-row="14">fila 14</a>
+        <div class="row gap8" style="margin-top:8px"><input class="inp" id="f14" placeholder="Escribí el material, p. ej. Contactor" style="height:28px;max-width:260px;font-size:12px" aria-label="Material de la fila 14"><button class="btn xs pri" data-f14="ok">Agregar</button><button class="btn xs out" data-f14="quitar">Sacar la fila</button></div></div></div>` : ''}`;
+    return `
+      <div class="chips" role="tablist" aria-label="Filtrar materiales leídos">
+        <button class="chip ${s.filtro === 'todos' ? 'on' : ''}" data-f="todos">Leídos <small>${ms.length}</small></button>
+        <button class="chip ${s.filtro === 'dudosos' ? 'on' : ''}" data-f="dudosos">Dudosos <small>${dud}</small></button>
+        <button class="chip ${s.filtro === 'sinbase' ? 'on' : ''}" data-f="sinbase">Sin componente base <small>${sinb}</small></button>
+      </div>
+      ${s.filtro !== 'sinbase' ? dudosos : ''}
+      ${s.filtro === 'dudosos' && !dud ? `<div class="note ok">${L.icon('circle-check')}<div><b>No queda nada dudoso</b>Todo lo que leímos tiene nombre y no se repite.</div></div>` : ''}
+      ${lista.length ? `<div class="tbl-wrap" style="max-height:330px"><table class="tbl"><thead><tr><th>Símbolo</th><th>Material leído</th><th>Componente base</th><th class="r"><span class="sr">Acciones</span></th></tr></thead><tbody>
+        ${lista.map(m => `<tr><td class="mono" style="font-weight:600">${L.esc(m.cod)}</td><td>${L.esc(m.n)}${m.nuevo ? ' <span class="org man">Manual</span>' : ''}</td><td>${m.base ? `<span class="bdg mono">${m.base}</span>` : '<span class="bdg wa">Sin componente base · se cuenta, no se cotiza</span>'}</td><td class="r"><button class="btn icon sm ghost" data-quitar="${m.id}" aria-label="Sacar ${L.esc(m.n)}">${L.icon('x')}</button></td></tr>`).join('')}
+      </tbody></table></div>` : ''}`;
+  }
+  function paso2() {
+    if (s.tabla === 'nada') {
+      return `<div class="card pad col gap16"><div class="row"><div class="card-ico">${L.icon('file-code')}</div><div class="grow"><h3 style="font-size:var(--text-base)">Tabla de referencia</h3><p class="muted" style="font-size:var(--text-xs)">La lámina del estudio con cada símbolo y su material. La detección solo reconoce lo que esté en esta tabla. <span class="tag-existe">existe</span></p></div></div>
+        <div class="drop" id="dropT" role="button" tabindex="0" aria-label="Subir tabla de referencia">${L.icon('upload')}<div style="margin-top:8px"><b style="color:var(--foreground)">Arrastrá la tabla de referencia o elegila del disco</b></div><div style="font-size:var(--text-xs)">.dxf · también podés recortarla de un plano que ya subiste</div></div>
+        <div class="row gap8"><button class="btn out sm" id="cropT">${L.icon('scissors')}Recortarla de un plano</button><button class="btn ghost sm" id="skipT">Seguir sin tabla</button><span class="muted" style="font-size:12px">Opcional desde el Sprint 4: sin tabla, la detección usa los 33 componentes base.</span></div></div>
+        ${foot(1, 0)}`;
+    }
+    if (s.tabla === 'leyendo') {
+      return `<div class="card pad col gap16" aria-busy="true"><div class="row"><div class="card-ico">${L.icon('file-scan')}</div><div class="grow"><h3 style="font-size:var(--text-base)">Leyendo ${L.esc(N.tabla.archivo)}…</h3><p class="muted" style="font-size:var(--text-xs)">Buscamos cada símbolo y el texto que lo describe. Tarda unos segundos.</p></div><span class="ai-tag">${L.icon('sparkles')}IA</span><span class="cost">≈ US$ ${L.num(N.tabla.costo, 2)}</span></div>
+        <div class="bar sheen"><i style="width:62%"></i></div>
+        <div class="grid2"><div class="skel" style="height:260px"></div><div class="col gap8">${I.skel(5, 40)}</div></div></div>${foot(1, 0)}`;
+    }
+    if (estado === 'sin-ia') {
+      return `<div class="note bad">${L.icon('cloud-off')}<div><b>No pudimos leer la tabla ahora</b>La lectura con IA no está disponible en este momento. Tu tabla quedó subida: elegí cómo seguir.</div></div>
+        <div class="grid2"><div class="card pad col gap8"><span class="lbl">Como hoy</span><b>Seguir sin validar</b><p class="muted" style="font-size:var(--text-xs)">La detección lee la tabla igual al procesar cada plano. Si la tabla está mal, te vas a enterar recién con el BOM.</p><button class="btn out" id="sinval" style="align-self:flex-start">Seguir sin validar</button></div>
+        <div class="card pad col gap8"><span class="lbl">Manual</span><b>Escribir los materiales</b><p class="muted" style="font-size:var(--text-xs)">Uno por línea, con el código del símbolo si lo tiene. Vale como la tabla confirmada.</p><textarea class="inp mono" id="manual" aria-label="Materiales, uno por línea">Q-TM  Interruptor termomagnético\nQ-DD  Interruptor diferencial\nKM    Contactor\nQ-GM  Guardamotor</textarea><button class="btn pri" id="usarman" style="align-self:flex-start">${L.icon('check')}Usar esta lista</button></div></div>
+        ${foot(1, 0)}`;
+    }
+    const mala = s.tabla === 'mala'; const T = mala ? N.tablaMala : N.tabla;
+    const ms = s.mats.filter(m => m.estado !== 'quitado');
+    const pend = !mala && (s.dup === 'pendiente' || s.fila14 === 'pendiente');
+    const sheet = mala
+      ? `<div class="refsheet" style="grid-template-columns:1fr"><svg viewBox="0 0 260 200" style="width:100%;color:var(--text-secondary)" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 30h220M60 30v40M130 30v40M200 30v40"/><rect x="48" y="70" width="24" height="34"/><rect x="118" y="70" width="24" height="34"/><rect x="188" y="70" width="24" height="34"/><path d="M60 104v40M130 104v40M200 104v40"/><circle cx="60" cy="160" r="14"/><circle cx="130" cy="160" r="14"/><circle cx="200" cy="160" r="14"/></g></svg><span class="warn" style="text-align:center">Esto parece un unifilar, no una tabla de símbolos</span></div>`
+      : `<div class="refsheet">${N.tabla.muestra.slice(0, 9).map((m, i) => `<i class="${[3, 7, 8].includes(i) ? 'c' : ''}"></i><span>${m[0]} · ${L.esc(m[1])}</span>`).join('')}<i></i><span class="${s.fila14 === 'pendiente' ? 'warn' : ''}">fila 14 · ${s.fila14 === 'pendiente' ? 'sin texto' : s.fila14 === 'quitada' ? 'quitada' : L.esc(s.fila14txt || '')}</span><i></i><span class="${s.dup === 'pendiente' ? 'warn' : ''}">fila 17 · Q-TM «Llave térmica»</span></div>`;
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('file-code')}</div><div class="grow"><span class="lbl">Tabla de referencia</span><h3 class="mono" style="font-size:var(--text-sm)">${L.esc(T.archivo)}</h3><div class="sub">${L.num(T.mb, 1)} MB · subida recién</div></div>
+        <div class="r"><span class="tag-h1">Validación al subir · propuesta</span><span class="ai-tag">${L.icon('sparkles')}IA</span><span class="cost">US$ ${L.num(N.tabla.costo, 2)}</span><button class="btn out sm" id="reempl">${L.icon('refresh-cw')}Reemplazar</button></div></div>
+      <div class="reftbl"><div class="refrender"><span class="lbl" style="display:block;margin-bottom:8px">Lo que vimos</span>${sheet}
+          <p class="muted" style="font-size:11.5px;margin-top:8px">Render de la tabla tal como la lee la detección. Lo resaltado necesita una decisión tuya.</p></div>
+        <div class="card-b col gap16">
+          ${mala ? `<div class="note bad">${L.icon('triangle-alert')}<div><b>Leímos solo ${T.materiales} materiales: esto no parece una tabla de referencia</b>Con esta tabla, la detección solo reconocería termomagnéticas y contactores, y el BOM saldría casi vacío <b style="display:inline">sin ningún error</b>. No avanzamos en silencio: subí la lámina de símbolos del estudio o seguí sin tabla.</div></div>
+              <div class="row gap8"><button class="btn pri" id="reempl2">${L.icon('upload')}Subir otra tabla</button><button class="btn out" id="sintabla">Seguir sin tabla</button><button class="btn ghost" id="igual">Usarla igual</button></div>`
+            : `<div class="row" style="align-items:flex-end"><div class="grow"><span class="count">${ms.length}</span> <span style="font-size:var(--text-sm)">materiales leídos</span><div class="muted" style="font-size:12px">La detección solo va a reconocer estos materiales: lo que no esté acá no se cuenta.</div></div></div>
+              ${render2Lista()}`}
+        </div></div></div>
+      ${mala ? foot(1, 0) : foot(1, 3, pend ? 'Resolvé lo dudoso para confirmar' : `Confirmar tabla (${ms.length}) y seguir`, pend, `<span class="muted" style="font-size:12px">${pend ? 'Quedan decisiones abiertas' : 'Tabla lista'}</span>`)}`;
+  }
+
+  // ---------- Paso 3 ----------
+  function paso3() {
+    const lleno = s.archivos.length >= MAX;
+    const tableros = s.archivos.reduce((a, f) => a + f.mult, 0);
+    return `<div class="split"><div class="col gap16">
+      <div class="card pad col gap16">
+        <div class="row"><div class="card-ico">${L.icon('layers')}</div><div class="grow"><h3 style="font-size:var(--text-base)">Planos</h3><p class="muted" style="font-size:var(--text-xs)">Un archivo por tablero. Si un tablero se repite (el seccional de cada piso), indicá cuántas veces con las repeticiones.</p></div></div>
+        <div class="grid2" style="gap:12px" role="radiogroup" aria-label="Cómo vienen los planos">
+          ${[['uno', 'Ya tengo un archivo por tablero', 'Elegís uno o varios .dxf o .pdf de tu computadora y cada archivo entra como un plano. Los PDF se convierten a DXF al subirlos.'], ['varios', 'Tengo un plano con varios tableros', 'Abrís el plano completo y recortás cada tablero con la tijera. Sale un plano por recorte.']].map(([k, t, d]) => `<div class="scope"><label><input type="radio" name="modo" value="${k}" ${s.modo === k ? 'checked' : ''}><span><b>${t}</b><small>${d}</small></span></label></div>`).join('')}
+        </div>
+        <div class="drop ${lleno ? '' : ''}" id="dropP" role="button" tabindex="0" aria-label="Agregar planos" ${lleno ? 'aria-disabled="true" style="opacity:.6;pointer-events:none"' : ''}>${L.icon('upload')}<div style="margin-top:8px"><b style="color:var(--foreground)">${lleno ? `Límite de ${MAX} planos por subida alcanzado.` : 'Soltá los planos acá o elegilos del disco'}</b></div>
+          <div style="font-size:var(--text-xs)">.dxf · .pdf <span class="tag-existe">existe</span> · .dwg <span class="tag-s5">Sprint 5</span> · hasta ${MAX} por subida · ${MAXMB} MB cada uno</div></div>
+        ${s.modo === 'varios' ? `<div class="note info">${L.icon('scissors')}<div><b>Recortar modelo</b>Elegí el plano completo y marcá cada tablero con la tijera; cada recorte entra como un plano. Hasta ${MAX} tableros por vez. <span class="tag-existe">existe</span><div style="margin-top:8px"><button class="btn xs pri" id="tijera">${L.icon('scissors')}Abrir la tijera</button></div></div></div>` : ''}
+      </div>
+      ${s.rechazos.length ? `<div class="card"><div class="card-h"><div class="card-ico" style="color:var(--rose-600)">${L.icon('file-x')}</div><div><h3>No se pueden subir</h3><div class="sub">${s.rechazos.length} ${s.rechazos.length === 1 ? 'archivo quedó afuera' : 'archivos quedaron afuera'}: los demás siguen.</div></div></div>
+        ${s.rechazos.map((r, i) => `<div class="file bad"><span class="fi">${L.icon('ban')}</span><div><div class="nm trunc">${L.esc(r.n)}</div><div class="meta"><span style="color:var(--rose-600)">${L.esc(r.motivo)}</span> ${L.esc(r.hint)}</div></div><span class="meta mono">${L.num(r.mb, 1)} MB</span><span></span><button class="btn icon sm ghost" data-rq="${i}" aria-label="Quitar aviso de ${L.esc(r.n)}">${L.icon('x')}</button></div>`).join('')}</div>` : ''}
+    </div>
+    <div class="card"><div class="card-h"><div class="card-ico">${L.icon('file-stack')}</div><div class="grow"><h3>A subir</h3><div class="sub"><span class="mono">${s.archivos.length}/${MAX}</span> planos · <span class="mono">${tableros}</span> tableros físicos</div></div></div>
+      <div style="max-height:560px;overflow:auto">${s.archivos.map((f, i) => `<div class="file"><span class="fi ${f.fmt}">${f.fmt}</span>
+        <div style="min-width:0"><div class="nm trunc">${L.esc(f.n)}</div><div class="meta">${L.num(f.mb, 1)} MB${f.nota ? ' · ' + L.esc(f.nota) : ''}${f.fmt === 'DWG' ? ' <span class="tag-s5">s5</span>' : ''}</div></div>
+        <span class="mult" aria-label="Repeticiones de ${L.esc(f.n)}"><button data-m="${i}" data-d="-1" aria-label="Una repetición menos">${L.icon('minus')}</button><span>×${f.mult}</span><button data-m="${i}" data-d="1" aria-label="Una repetición más">${L.icon('plus')}</button></span>
+        <span></span><button class="btn icon sm ghost" data-rm="${i}" aria-label="Quitar ${L.esc(f.n)}">${L.icon('trash-2')}</button></div>`).join('')}</div>
+      ${s.archivos.some(f => f.fmt === 'DWG') ? `<div style="padding:12px 16px;border-top:1px solid var(--border)"><div class="note info" style="padding:10px 12px">${L.icon('flask-conical')}<div><b>DWG: conversión en evaluación <span class="tag-s5">Sprint 5</span></b>Se convertiría a DXF en el servidor antes de procesar. Si la conversión pierde bloques o textos, te lo mostramos antes de gastar la detección. Mientras tanto: en AutoCAD, Guardar como → DXF.</div></div></div>` : ''}
+      <div style="padding:12px 16px;border-top:1px solid var(--border)" class="muted"><span style="font-size:12px">Las repeticiones multiplican lo dibujado: un ×4 cuenta los aparatos del plano cuatro veces en «a comprar». <span class="tag-existe">existe</span></span></div>
+    </div></div>
+    ${foot(2, 4, `Revisar y confirmar (${s.archivos.length})`, !s.archivos.length)}`;
+  }
+
+  // ---------- Paso 4 ----------
+  function paso4() {
+    const n = s.archivos.length; const costo = n * N.costoPlano;
+    const ia = L.get('consumoIA'); const despues = ia.usadoUsd + costo; const pct = despues / ia.topeUsd;
+    const tableros = s.archivos.reduce((a, f) => a + f.mult, 0);
+    const ms = s.mats.filter(m => m.estado !== 'quitado').length;
+    return `<div class="split"><div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-checks')}</div><div><h3>Resumen</h3><div class="sub">Revisá antes de crear: después todo se puede editar desde el detalle del proyecto.</div></div></div>
+      <div class="list">
+        <div class="li"><span class="lbl" style="width:150px">Obra</span><div class="grow"><div class="t">${L.esc(s.obra.n)}</div><div class="d">${L.esc(s.obra.cliente)} · entrega ${L.fecha(s.obra.entrega)}</div></div><button class="btn xs ghost" data-go="1">Editar</button></div>
+        <div class="li"><span class="lbl" style="width:150px">Tabla de referencia</span><div class="grow"><div class="t">${s.manual ? 'Lista cargada a mano' : L.esc(N.tabla.archivo)}</div><div class="d"><span class="st ok" style="height:20px;font-size:11px">${L.icon('circle-check')}Confirmada</span> ${ms} materiales · la detección solo cuenta estos</div></div><button class="btn xs ghost" data-go="2">Editar</button></div>
+        <div class="li"><span class="lbl" style="width:150px">Planos</span><div class="grow"><div class="t"><span class="mono">${n}</span> planos · <span class="mono">${tableros}</span> tableros físicos</div><div class="d">${s.archivos.map(f => L.esc(f.n.replace(/\.(dxf|pdf|dwg)$/i, '')) + (f.mult > 1 ? ' ×' + f.mult : '')).join(' · ')}</div></div><button class="btn xs ghost" data-go="3">Editar</button></div>
+      </div></div>
+      <div class="col gap16">
+        <div class="card pad col gap8"><div class="row"><span class="lbl grow">Detección de planos</span><span class="ai-tag">${L.icon('sparkles')}IA</span></div>
+          <div class="row" style="align-items:baseline;gap:8px"><b class="mono" style="font-size:var(--text-lg)">≈ US$ ${L.num(costo, 2)}</b><span class="muted" style="font-size:12px">${n} × US$ ${L.num(N.costoPlano, 2)} (promedio de septiembre)</span></div>
+          <div class="muted" style="font-size:12px">Consumo del mes después de procesar: <b class="mono">US$ ${L.num(despues, 2)}</b> de US$ ${L.num(ia.topeUsd, 0)}</div>
+          <div class="bar ${pct >= ia.aviso ? 'warn' : ''}"><i style="width:${Math.min(100, pct * 100)}%"></i></div>
+          ${pct >= ia.aviso ? `<div class="note warn" style="padding:8px 10px">${L.icon('gauge')}<div>Pasás el ${L.pct(ia.aviso * 100)} del tope mensual. Dirección recibe un aviso. <a class="src" href="d-pla-plan.html">Plan y consumo</a></div></div>` : ''}
+          <span class="muted" style="font-size:12px">Cada plano consume una detección con IA. Se procesan de a pocos a la vez y podés cancelar lo que todavía no arrancó. <span class="tag-existe">existe</span></span>
+        </div>
+        <div class="card pad col gap8"><span class="lbl">Tiempo estimado</span><b class="mono">${Math.round(n * 3)}–${Math.round(n * 5)} min</b><span class="muted" style="font-size:12px">Un tablero chico tarda entre 3 y 5 minutos. Podés cerrar la pestaña: la cola sigue.</span></div>
+      </div></div>
+      <div class="row" style="justify-content:space-between;border-top:1px solid var(--border);padding-top:18px">
+        <button class="btn out" data-go="3">${L.icon('arrow-left')}Atrás</button>
+        <div class="row gap8"><button class="btn out" id="crearsin">Crear sin procesar</button><button class="btn pri" id="crear">${L.icon('play')}Crear y procesar ${n} ${n === 1 ? 'plano' : 'planos'}</button></div></div>`;
+  }
+
+  function render() {
+    page.innerHTML = steps() + [paso1, paso2, paso3, paso4][s.paso - 1]();
+    bind();
+  }
+  function go(n) { s.paso = n; sync(); render(); window.scrollTo(0, 0); }
+  function leer() { s.tabla = 'leyendo'; render(); setTimeout(() => { s.tabla = 'ok'; s.dup = 'pendiente'; s.fila14 = 'pendiente'; render(); L.toast('Tabla leída', { desc: `${s.mats.length} materiales · 2 dudosos para revisar` }); }, 1600); }
+  function crear(procesar) {
+    const id = 'n' + Date.now(); const n = s.archivos.length;
+    L.update(st => {
+      st.x ??= {}; st.x.ing ??= {}; st.x.ing.nuevos ??= [];
+      st.x.ing.nuevos.unshift({ id, n: s.obra.n, cliente: s.obra.cliente, estado: 'En proceso', planos: { total: n, completed: 0, processing: procesar ? Math.min(2, n) : 0, pending: procesar ? Math.max(0, n - 2) : n, error: 0, stale: 0 }, actualizado: L.get('HOY'), entrega: s.obra.entrega, monto: 0, resp: 'martina' });
+      st.avisos.unshift({ id: 'ai' + Date.now(), t: `Proyecto «${s.obra.n}» creado`, d: procesar ? `${n} planos en la cola de detección` : `${n} planos subidos, sin procesar`, i: 'folder-kanban', tipo: 'pr', cuando: 'recién', href: 'd-ing-proyectos.html' });
+    });
+    L.toast(procesar ? 'Proyecto creado · planos en cola' : 'Proyecto creado', { desc: procesar ? 'Arrancan los primeros dos; te avisamos cuando termine cada uno.' : 'Procesalos cuando quieras desde el detalle.' });
+    setTimeout(() => L.go('d-ing-proyectos.html'), 900);
+  }
+  function bind() {
+    page.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(+b.dataset.go));
+    const nx = page.querySelector('#next');
+    if (s.paso === 1) {
+      ['on', 'od', 'oc', 'oe'].forEach(k => page.querySelector('#' + k).oninput = e => { s.obra[{ on: 'n', od: 'desc', oc: 'cliente', oe: 'entrega' }[k]] = e.target.value; if (k === 'on') nx.disabled = !e.target.value.trim(); });
+      page.querySelector('#odup').onchange = e => { s.obra.dup = e.target.value; if (e.target.value) L.toast('Se hereda la tabla de referencia', { type: 'info', desc: 'Ya validada en ese proyecto: el paso 2 queda confirmado.' }); };
+      nx.onclick = () => { if (s.obra.dup) { s.tabla = 'ok'; s.dup = 'unido'; s.fila14 = 'quitada'; s.confirmada = true; go(2); } else if (s.tabla === 'nada') { go(2); } else go(2); };
+    }
+    if (s.paso === 2) {
+      const dt = page.querySelector('#dropT'); if (dt) { dt.onclick = leer; dt.onkeydown = e => e.key === 'Enter' && leer(); }
+      page.querySelector('#cropT')?.addEventListener('click', () => L.toast('Elegí el plano y marcá la tabla con la tijera', { type: 'info', desc: 'Recortar la tabla desde un plano ya subido existe en el detalle del proyecto.' }));
+      page.querySelector('#skipT')?.addEventListener('click', () => { s.confirmada = true; s.manual = false; go(3); L.toast('Seguís sin tabla de referencia', { type: 'warning', desc: 'La detección va a usar los 33 componentes base.' }); });
+      page.querySelectorAll('#reempl, #reempl2').forEach(b => b.onclick = () => { s.tabla = 'nada'; render(); });
+      page.querySelector('#sintabla')?.addEventListener('click', () => { s.confirmada = true; go(3); });
+      page.querySelector('#igual')?.addEventListener('click', () => L.dialog({ title: '¿Usar una tabla con 2 materiales?', icon: 'triangle-alert', desc: 'La detección solo va a contar termomagnéticas y contactores. Todo lo demás del plano no entra en el BOM.', actions: [{ t: 'Volver' }, { t: 'Usarla igual', cls: 'dan', fn: () => { s.confirmada = true; go(3); } }] }));
+      page.querySelector('#sinval')?.addEventListener('click', () => { s.confirmada = true; go(3); L.toast('Tabla sin validar', { type: 'warning', desc: 'Se va a leer al procesar cada plano.' }); });
+      page.querySelector('#usarman')?.addEventListener('click', () => { s.manual = true; s.confirmada = true; const lines = page.querySelector('#manual').value.split('\n').filter(x => x.trim()); s.mats = lines.map((l, i) => ({ id: 'mm' + i, cod: l.trim().split(/\s+/)[0], n: l.trim().split(/\s+/).slice(1).join(' '), base: null, estado: 'ok', nuevo: true })); go(3); L.toast('Lista manual guardada', { desc: lines.length + ' materiales' }); });
+      page.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { s.filtro = b.dataset.f; render(); });
+      page.querySelectorAll('[data-dup]').forEach(b => b.onclick = () => { s.dup = b.dataset.dup === 'unir' ? 'unido' : 'separado'; if (s.dup === 'separado') s.mats.push({ id: 'mdup', cod: 'Q-TM2', n: 'Llave térmica', base: 'THERMOMAGNETIC_BREAKER', estado: 'ok', nuevo: true }); render(); L.toast(s.dup === 'unido' ? 'Unidos como «Interruptor termomagnético»' : 'Quedan como dos materiales', { desc: 'Fila 17' }); });
+      page.querySelectorAll('[data-f14]').forEach(b => b.onclick = () => {
+        if (b.dataset.f14 === 'ok') { const v = page.querySelector('#f14').value.trim(); if (!v) { page.querySelector('#f14').classList.add('bad'); page.querySelector('#f14').focus(); return; } s.fila14 = 'ok'; s.fila14txt = v; s.mats.push({ id: 'm14', cod: 'F14', n: v, base: null, estado: 'ok', nuevo: true }); }
+        else s.fila14 = 'quitada';
+        render(); L.toast(s.fila14 === 'ok' ? 'Material agregado' : 'Fila 14 quitada', { desc: s.fila14 === 'ok' ? s.fila14txt : 'No se va a reconocer ese símbolo' });
+      });
+      page.querySelectorAll('[data-quitar]').forEach(b => b.onclick = () => { const m = s.mats.find(x => x.id === b.dataset.quitar); m.estado = 'quitado'; render(); L.toast(`«${m.n}» fuera de la tabla`, { type: 'info', action: 'Deshacer', onAction: () => { m.estado = 'ok'; render(); } }); });
+      page.querySelectorAll('[data-row]').forEach(a => a.onclick = e => { e.preventDefault(); L.toast(`Fila ${a.dataset.row} resaltada en el render`, { type: 'info' }); });
+      if (nx) nx.onclick = () => { s.confirmada = true; go(3); L.toast('Tabla de referencia confirmada', { desc: `${s.mats.filter(m => m.estado !== 'quitado').length} materiales` }); };
+    }
+    if (s.paso === 3) {
+      page.querySelectorAll('input[name=modo]').forEach(r => r.onchange = () => { s.modo = r.value; render(); });
+      const dp = page.querySelector('#dropP');
+      const agregar = () => {
+        if (s.archivos.length >= MAX) return L.toast(`Máximo ${MAX} planos por subida.`, { type: 'error' });
+        const k = s.archivos.length + 1; s.archivos.push({ id: 'a' + Date.now(), n: `TS-COCINA-${k}.dxf`, fmt: 'DXF', mb: 2.7, mult: 1 }); render(); L.toast('Plano agregado', { desc: `TS-COCINA-${k}.dxf · 2,7 MB` });
+      };
+      dp.onclick = agregar; dp.onkeydown = e => e.key === 'Enter' && agregar();
+      page.querySelector('#tijera')?.addEventListener('click', () => L.toast('La tijera abre el visor DXF', { type: 'info', desc: 'Existe: DxfGeneratorModal. Cada recorte entra como un plano.' }));
+      page.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { const f = s.archivos[+b.dataset.m]; f.mult = Math.max(1, Math.min(99, f.mult + +b.dataset.d)); render(); });
+      page.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { const [f] = s.archivos.splice(+b.dataset.rm, 1); render(); L.toast(`${f.n} quitado`, { type: 'info', action: 'Deshacer', onAction: () => { s.archivos.splice(+b.dataset.rm, 0, f); render(); } }); });
+      page.querySelectorAll('[data-rq]').forEach(b => b.onclick = () => { s.rechazos.splice(+b.dataset.rq, 1); render(); });
+      if (nx) nx.onclick = () => go(4);
+    }
+    if (s.paso === 4) {
+      page.querySelector('#crear').onclick = () => crear(true);
+      page.querySelector('#crearsin').onclick = () => crear(false);
+    }
+  }
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

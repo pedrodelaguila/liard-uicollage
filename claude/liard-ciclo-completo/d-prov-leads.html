@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Leads y facturación · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css">
+</head>
+<body data-role="prov" data-user="julian" data-active="p-leads" data-h="s5"
+      data-crumbs="Comercial|d-prov-vidriera.html>Leads y facturación" data-title="Leads y facturación"
+      data-sub="Cada solicitud que te llega por liard es un lead. liard cobra una comisión por lead; la compra y el flete se arreglan con el comprador, por fuera de la plataforma.">
+<div id="act">
+  <div class="seg" data-param="mes" data-default="sep" aria-label="Mes"><button data-vista="sep">Septiembre</button><button data-vista="oct">Octubre (en curso)</button></div>
+  <button class="btn out" id="pdf" data-icon="download">Factura en PDF</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'), BP = window.BP, est = L.q('estado'), mes = L.q('mes') || 'sep';
+  const C = BP.comision;
+  const disp = () => L.get('x.prov.disputas') || {};
+  function render() {
+    if (est === 'cargando') { page.innerHTML = '<div class="skel" style="height:90px"></div><div class="skel" style="height:420px"></div>'; return; }
+    const leads = (mes === 'oct' ? BP.leadsOct : BP.leadsSep).map(l => { const s = P.solicitudes().find(x => x.id === l.id); return Object.assign({}, l, { estado: s ? s.estado : l.estado }); });
+    const ds = disp();
+    const anul = leads.filter(l => ds[l.id] && ds[l.id].estado === 'aceptada').length;
+    const cobrables = leads.length - anul, cargo = Math.max(0, cobrables - C.sinCargo) * C.porLead;
+    const conf = leads.filter(l => l.estado === 'CONFIRMED');
+    const montoConf = conf.reduce((a, l) => a + l.monto, 0);
+    const limite = est === 'limite' ? `<div class="note warn"><span data-icon="gauge"></span><div><b>Llegaste al tope de comisión que configuraste ($ 90.000 por mes)</b>Las solicitudes nuevas te siguen llegando y se cuentan, pero no se facturan este mes. Podés subir el tope o dejarlo así. <button class="btn xs out" id="tope">Cambiar el tope</button></div></div>` : '';
+    page.innerHTML = `${limite}
+      <div class="note warn pv-hyp" style="background:var(--card)"><span data-icon="flask-conical"></span><div><b>Modelo en validación · Sprint 5</b>La comisión por lead está planificada pero <b style="display:inline">no está validada</b>: en discovery, los distribuidores no confirmaron que la pagarían. Los montos de esta pantalla (5 leads sin cargo y ${L.ars(C.porLead)} +IVA desde el 6.º) son un ejemplo para discutirlo. <span class="tag-s5">Sprint 5</span></div></div>
+      <div class="kpis"><div class="kpi pri"><b>${leads.length}</b><span>leads ${mes === 'oct' ? 'en octubre, hasta hoy' : 'en septiembre'}</span></div><div class="kpi ok"><b>${conf.length}</b><span>confirmaste · ${L.ars(montoConf)} vendidos</span></div><div class="kpi"><b>${C.sinCargo}</b><span>sin cargo por mes</span></div><div class="kpi ${anul ? 'warn' : ''}"><b>${anul}</b><span>anulados por disputa</span></div><div class="kpi"><b>${L.ars(cargo)}</b><span>comisión +IVA ${mes === 'oct' ? 'a la fecha' : 'facturada'}</span></div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('receipt-text')}</div><div><h3>Detalle por solicitud</h3><div class="sub">Un lead = una solicitud recibida, la respondas o no. No depende de que te adjudiquen.</div></div></div>
+          <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px;max-height:560px"><table class="tbl"><thead><tr><th>Fecha</th><th>Solicitud</th><th>Comprador</th><th class="r">Monto pedido</th><th>Estado</th><th class="r">Cargo</th><th class="r"><span class="sr">Disputa</span></th></tr></thead><tbody>
+          ${leads.map((l, i) => { const d = ds[l.id]; const n = leads.slice(0, i + 1).filter(x => !(ds[x.id] && ds[x.id].estado === 'aceptada')).length; const gratis = n <= C.sinCargo; const anulado = d && d.estado === 'aceptada'; return `<tr class="${l.duda && !d ? 'warn' : ''}"><td class="mono" style="font-size:12px;white-space:nowrap">${L.fechaCorta(l.fecha)}</td><td><a class="mono" style="font-size:13px;color:var(--primary);white-space:nowrap" href="d-prov-solicitudes.html?oc=${l.id}">${L.esc(l.id)}</a><div class="muted" style="font-size:12px">${L.esc(l.proyecto)}</div>${l.duda && !d ? `<div style="font-size:12px;color:var(--amber-700)">${L.icon('triangle-alert')} ${L.esc(l.duda)}</div>` : ''}</td><td style="font-size:12px">${L.esc(l.estado === 'CONFIRMED' ? BP.compradores[l.comp].n : BP.compradores[l.comp].anon)}</td><td class="r money">${L.ars(l.monto)}</td><td>${P.badge({ estado: l.estado })}</td><td class="r mono" style="white-space:nowrap">${anulado ? '<s class="muted">' + L.ars(C.porLead) + '</s>' : gratis ? '<span class="muted">sin cargo</span>' : L.ars(C.porLead)}</td><td class="r">${d ? `<span class="st ${d.estado === 'aceptada' ? 'ok' : 'wa'}">${d.estado === 'aceptada' ? 'Anulado' : 'En revisión'}</span>` : `<button class="btn xs ghost" data-disp="${l.id}">Disputar</button>`}</td></tr>`; }).join('') || `<tr><td colspan="7"><div class="empty" style="padding:30px"><h3>Sin leads este mes</h3></div></td></tr>`}
+          </tbody></table></div></div>
+        <div class="grid3" style="align-items:start">
+          <div class="card"><div class="card-h"><div class="card-ico">${L.icon('receipt')}</div><div><h3>${mes === 'oct' ? 'Octubre · se factura el 01/11' : 'Factura ' + C.factura.nro}</h3><div class="sub">${mes === 'oct' ? 'Estimado a la fecha' : 'Emitida el ' + L.fecha(C.factura.emitida) + ' · vence el ' + L.fecha(C.factura.vence)}</div></div><div class="r">${mes === 'oct' ? '<span class="st gr">Abierta</span>' : est === 'error' ? '<span class="st er">Rechazada</span>' : '<span class="st wa">Por pagar</span>'}</div></div>
+            <div class="card-b"><div class="pv-inv"><span>${leads.length} leads recibidos</span><span class="r"></span><span class="muted">− ${C.sinCargo} sin cargo</span><span class="r"></span>${anul ? `<span class="muted">− ${anul} anulado por disputa</span><span class="r"></span>` : ''}<span>${Math.max(0, cobrables - C.sinCargo)} × ${L.ars(C.porLead)}</span><span class="r">${L.ars(cargo)}</span><span class="muted">IVA 21 %</span><span class="r muted">${L.ars(cargo * 0.21)}</span><span class="tt">Total</span><span class="r tt">${L.ars(cargo * 1.21)}</span></div></div>
+            ${est === 'error' ? `<div class="card-b" style="padding-top:0"><div class="note bad"><span data-icon="credit-card"></span><div><b>No pudimos cobrar la factura</b>El débito automático de la tarjeta terminada en 4417 fue rechazado el 01/10. Tus solicitudes siguen llegando: tenés hasta el 15/10 para regularizar.</div></div></div>` : ''}
+            <div class="dlg-f" style="justify-content:space-between"><span class="muted" style="font-size:12px">Débito automático · tarjeta terminada en 4417</span><button class="btn ${est === 'error' ? 'pri' : 'out'} sm" id="medio">${est === 'error' ? 'Actualizar medio de pago' : 'Cambiar medio de pago'}</button></div></div>
+          <div class="note info"><span data-icon="hand-coins"></span><div><b>La compra de materiales no pasa por liard</b>El tablerista te paga a vos, con tus condiciones (contado, cuenta corriente, 30/60/90). liard solo factura la comisión por lead. Los distribuidores entrevistados rechazaron que la plataforma maneje pagos.</div></div>
+          <div class="card pad col"><span class="lbl">Cuándo se puede disputar un lead</span><ul style="margin:0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:4px"><li>Llegó duplicado (misma obra, mismas líneas).</li><li>Pedía solo marcas que no figuran en tu vidriera.</li><li>Era de fuera de tu zona de entrega.</li></ul><span class="muted" style="font-size:12px">liard responde en 2 días hábiles. Si se acepta, el lead no se cobra.</span></div>
+        </div>`;
+    page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => {
+    const d = e.target.closest('[data-disp]');
+    if (d) { const id = d.dataset.disp, l = BP.leadsSep.concat(BP.leadsOct).find(x => x.id === id); return L.dialog({ title: 'Disputar ' + id, icon: 'flag', desc: 'Si liard acepta la disputa, este lead no se cobra.', body: `<div class="field"><span class="lbl">Motivo</span>${['Llegó duplicado', 'Pedía marcas que no trabajo', 'Fuera de mi zona de entrega'].map((m, i) => `<label class="check"><input type="radio" name="dm" value="${m}" ${(l.duda ? i === 0 : i === 1) ? 'checked' : ''}>${m}</label>`).join('')}</div><div class="field"><label for="dd">Detalle</label><textarea class="inp" id="dd">${L.esc(l.duda || '')}</textarea></div>`, actions: [{ t: 'Cancelar' }, { t: 'Enviar disputa', icon: 'flag', fn: ov => { const dup = ov.querySelector('input[name=dm]:checked').value === 'Llegó duplicado' && l.duda; L.set('x.prov.disputas.' + id, { estado: dup ? 'aceptada' : 'revision', motivo: ov.querySelector('input[name=dm]:checked').value }); L.toast(dup ? 'Disputa aceptada' : 'Disputa enviada', { desc: dup ? 'Detectamos el duplicado: el lead no se cobra.' : 'liard responde en 2 días hábiles.' }); } }] }); }
+    if (e.target.closest('#medio')) return L.dialog({ title: 'Medio de pago', icon: 'credit-card', desc: 'Solo para la comisión de liard.', body: `<div class="field"><label for="mp">Medio</label><select class="inp" id="mp"><option>Tarjeta de crédito · débito automático</option><option>Transferencia (CBU)</option><option>Débito en cuenta</option></select></div>`, actions: [{ t: 'Cancelar' }, { t: 'Guardar', fn: () => L.toast('Medio de pago actualizado') }] });
+    if (e.target.closest('#tope')) return L.dialog({ title: 'Tope mensual de comisión', icon: 'gauge', body: `<div class="field"><label for="tp">Tope (+IVA)</label><input class="inp mono" id="tp" type="number" value="90000"></div>`, actions: [{ t: 'Cancelar' }, { t: 'Guardar', fn: () => L.toast('Tope guardado') }] });
+  });
+  document.getElementById('pdf').onclick = () => L.toast('Descargando ' + C.factura.nro + '.pdf', { type: 'info', desc: 'Factura A · ' + C.factura.periodo });
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

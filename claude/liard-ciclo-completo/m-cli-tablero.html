@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Tablero TSG-PB · Tableros Delta</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css"></head>
+<body class="m cp-pub" data-role="cli" data-h="h3">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const id = L.q('tablero') || 'tsgpb';
+  // Ficha pública: sale del tablero de la obra (si es de la obra principal) o de los entregados.
+  const tb = CP.tab(id);
+  const e = tb ? { cod: tb.cod, n: tb.n, obra: 'Hospital Regional Cañuelas · Pabellón B', serie: tb.serie, entrega: (CP.x('protocolos.' + id) || {}).fecha || null, gabinete: tb.gabinete, propio: true }
+    : (() => { const x = K.entregados.find(y => y.id === id); return x && { cod: x.cod, n: x.n, obra: x.obra, serie: x.serie, entrega: x.entrega, gabinete: x.id === 'lib-tg' ? '1600×800×400 IP43' : '—' }; })();
+  if (!e || L.q('estado') === 'error') {
+    page.innerHTML = `<div class="cp-pub-top"><div class="emp"><span class="lg">TD</span><span>Tableros Delta S.R.L.</span></div><h1>Código no reconocido</h1><p>Este QR no corresponde a un tablero registrado o fue dado de baja.</p></div>
+      <div class="cp-pub-main"><div class="cp-mcard"><div class="empty" style="padding:30px 18px"><div class="e-ico">${L.icon('qr-code')}</div><h3>No encontramos este tablero</h3><p>Revisá que el código esté limpio y volvé a escanearlo, o escribile al fabricante con el número de serie de la placa.</p><a class="btn pri" href="mailto:servicio@tablerosdelta.com.ar">${L.icon('mail')}Escribir a Tableros Delta</a></div></div></div>`;
+    return;
+  }
+  const pr = CP.x('protocolos.' + id) || {};
+  const conProto = !tb || pr.firmado;
+  const hist = (K.historial[id] || []).concat(tb && pr.firmado ? [{ f: pr.fecha, t: 'Protocolo de ensayos de rutina aprobado', d: 'IEC 61439 · firmado por Ramiro Ojeda y Martina Giménez', i: 'stamp', tipo: 'ok' }] : []);
+  const pedidos = CP.x('pedidosCli.' + id) || [];
+  function render() {
+    page.innerHTML = `
+    <div class="cp-pub-top"><div class="emp"><span class="lg">TD</span><span>Tableros Delta S.R.L. · Ezeiza</span></div>
+      <h1>${L.esc(e.cod)}</h1><p>${L.esc(e.n)}</p><p>${L.esc(e.obra)}</p>
+      <span class="st">${L.icon(conProto ? 'shield-check' : 'hammer')}${conProto ? (e.entrega ? 'En servicio desde ' + L.fecha(e.entrega) : 'Ensayado y aprobado') : 'En fabricación'}</span></div>
+    <div class="cp-pub-main">
+      ${!conProto ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>Este tablero todavía no fue entregado</b>La documentación definitiva aparece cuando se firme el protocolo de ensayos.</div></div>` : ''}
+      <div class="cp-placa"><div class="ph"><span>Placa de características</span><span>IEC 61439-2</span></div><dl>
+        <dt>Fabricante</dt><dd>Tableros Delta S.R.L.</dd><dt>N.º de serie</dt><dd>${L.esc(e.serie)}</dd><dt>Tensión</dt><dd>3×400/230 V · 50 Hz</dd><dt>In del conjunto</dt><dd>${e.cod === 'TGBT' ? '630 A' : '160 A'}</dd><dt>Icc condicional</dt><dd>${e.cod === 'TGBT' ? '36 kA' : '6 kA'}</dd><dt>Envolvente</dt><dd>${L.esc(e.gabinete)}</dd></dl></div>
+      <div class="cp-mcard"><div class="h">${L.icon('folder-open')}<span class="lbl">Documentación</span></div>
+        ${[['Esquema unifilar', 'Rev. C', true], ['Protocolo de ensayos de rutina', conProto ? 'Firmado' : 'Pendiente', conProto], ['As-built · aparatos instalados', 'Con marcas y calibres', conProto], ['Manual de operación y mantenimiento', '', true]].map(([t, d, ok]) => `<button class="cp-doc ${ok ? '' : 'lock'}" data-doc="${L.esc(t)}" ${ok ? '' : 'disabled'}><span class="ico-b">${L.icon('file-text')}<small>PDF</small></span><span class="grow"><b style="font-size:14px;display:block">${L.esc(t)}</b><span class="muted" style="font-size:12.5px">${L.esc(d)}</span></span>${L.icon(ok ? 'download' : 'lock')}</button>`).join('')}
+        <button class="cp-doc lock" id="priv"><span class="ico-b">${L.icon('lock')}</span><span class="grow"><b style="font-size:14px;display:block">Planos de obra y memoria de cálculo</b><span class="muted" style="font-size:12.5px">Solo para el responsable de mantenimiento</span></span>${L.icon('log-in')}</button>
+      </div>
+      <div class="cp-mcard"><div class="h">${L.icon('list-checks')}<span class="lbl">Historial de mantenimiento</span></div><div style="padding:6px 14px 4px">${hist.length ? `<div class="timeline">${hist.map(x => `<div class="tl"><div class="tl-i ${x.tipo}">${L.icon(x.i)}</div><div><b>${L.esc(x.t)}</b><small>${L.fecha(x.f)} · ${L.esc(x.d)}</small></div></div>`).join('')}</div>` : '<p class="muted" style="font-size:13px;padding-bottom:10px">Todavía no hay intervenciones registradas.</p>'}</div>
+        ${id === 'lib-tg' ? `<div class="cp-mrow"><span class="ico-b wa">${L.icon('calendar-clock')}</span><span class="grow"><span class="t">Termografía anual vencida</span><span class="d">Correspondía el 02/09/2026</span></span></div>` : ''}</div>
+      ${pedidos.length ? `<div class="cp-mcard"><div class="h">${L.icon('send')}<span class="lbl">Tus pedidos</span></div>${pedidos.map(p => `<div class="cp-mrow"><span class="ico-b pr">${L.icon('clock')}</span><span class="grow"><span class="t">${L.esc(p.tipo)} · ${L.esc(p.id)}</span><span class="d">${L.esc(p.d)} · recibido, te contactan en el día</span></span></div>`).join('')}</div>` : ''}
+      <button class="btn pri lg block" id="serv">${L.icon('wrench')}Pedir servicio o repuesto</button>
+      <a class="btn out lg block" href="tel:+541148001234">${L.icon('phone')}Llamar a guardia técnica</a>
+    </div>
+    <div class="cp-pub-foot"><span>Ficha del tablero publicada por Tableros Delta S.R.L. Los datos comerciales no se muestran.</span><span style="color:var(--primary)">${L.LOGO_LOCKUP}</span></div>`;
+    page.querySelectorAll('[data-doc]').forEach(b => b.onclick = () => L.toast(b.dataset.doc, { type: 'info', desc: e.cod + ' · ' + e.serie + '.pdf' }));
+    document.getElementById('priv').onclick = () => L.sheet(`<div class="cp-ficha"><div class="row"><h2 class="grow" style="font-size:18px">Ingresá para ver más</h2><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div><p class="muted" style="font-size:13.5px">Los planos de obra los ve solo el responsable que designó el cliente. Te mandamos un enlace al correo registrado.</p><div class="field"><label for="pv-m">Correo</label><input class="inp" id="pv-m" type="email" value="mantenimiento@hospitalcanuelas.gob.ar"></div><button class="btn pri lg block" id="pv-go">${L.icon('mail')}Mandame el enlace</button></div>`, { label: 'Ingresar' }) && (document.getElementById('pv-go').onclick = () => { document.querySelector('.ov').remove(); L.toast('Enlace enviado', { desc: 'Vence en 30 minutos' }); });
+    document.getElementById('serv').onclick = servicio;
+  }
+  function servicio() {
+    L.sheet(`<div class="cp-ficha"><div class="row"><h2 class="grow" style="font-size:18px">Pedir servicio · ${L.esc(e.cod)}</h2><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div class="cp-chips" id="sv-t">${['Falla', 'Repuesto', 'Ampliación', 'Mantenimiento'].map((x, i) => `<button class="chip ${i === 0 ? 'on' : ''}" data-t="${x}">${x}</button>`).join('')}</div>
+      <div class="field"><label for="sv-d">Qué pasa</label><textarea class="inp" id="sv-d" placeholder="Por ejemplo: salta el diferencial de la sala 3 sin carga"></textarea></div>
+      <button class="cp-foto" id="sv-f" style="aspect-ratio:auto;height:80px">${L.icon('camera')} Adjuntar foto (opcional)</button>
+      <div class="grid2"><div class="field"><label for="sv-n">Tu nombre</label><input class="inp" id="sv-n" value=""></div><div class="field"><label for="sv-c">Teléfono</label><input class="inp" id="sv-c" inputmode="tel"></div></div>
+      <div class="note warn" style="font-size:12.5px">${L.icon('triangle-alert')}<div>Si hay olor a quemado o humo, cortá la alimentación general y llamá a la guardia técnica.</div></div>
+      <button class="btn pri lg block" id="sv-go">${L.icon('send')}Enviar a Tableros Delta</button></div>`, { label: 'Pedir servicio' });
+    const ov = document.querySelector('.ov.sheet'); let tipo = 'Falla';
+    ov.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { tipo = b.dataset.t; ov.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x === b)); });
+    ov.querySelector('#sv-f').onclick = e2 => { e2.currentTarget.classList.add('ok'); e2.currentTarget.innerHTML = '<span>Foto adjunta</span>'; };
+    ov.querySelector('#sv-go').onclick = () => {
+      const d = ov.querySelector('#sv-d'), n = ov.querySelector('#sv-n'), c = ov.querySelector('#sv-c');
+      let bad = false; [d, n, c].forEach(x => { const v = !x.value.trim(); x.classList.toggle('bad', v); bad = bad || v; });
+      if (bad) { L.toast('Completá qué pasa, tu nombre y un teléfono', { type: 'warning' }); return; }
+      const p = { id: 'SV-00' + (43 + pedidos.length), tipo, d: d.value.trim() };
+      pedidos.push(p); CP.x('pedidosCli.' + id, pedidos.slice());
+      CP.aviso({ t: 'Pedido de servicio ' + p.id + ' desde el QR del ' + e.cod, d: tipo + ': ' + p.d + ' · ' + n.value.trim(), i: 'qr-code', tipo: 'wa', href: 'd-tal-mantenimiento.html?vista=oportunidades' });
+      ov.remove(); render(); L.toast('Pedido enviado', { desc: p.id + ' · Tableros Delta te contacta en el día' });
+    };
+  }
+  render();
+} };
+</script>
+</body></html>

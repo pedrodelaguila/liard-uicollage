@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Taller · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css">
+</head>
+<body data-role="ing" data-active="taller" data-h="h2" data-user="ramiro"
+  data-crumbs="Taller>Hospital Regional Cañuelas · Pabellón B"
+  data-title="Taller"
+  data-sub="Tableros en fabricación, lo que los frena y las horas contra el presupuesto. Entrega de la obra: 20/11/2026.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="tablero"><button data-vista="tablero">Tablero</button><button data-vista="lista">Lista</button></div>
+  <a class="btn out" href="m-tal-hoy.html?vista=taller" data-icon="smartphone">En el teléfono</a>
+  <button class="btn pri" id="horas" data-icon="timer">Cargar horas</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const est = L.q('estado'), vista = L.q('vista') || 'tablero';
+  if (est === 'vacio') {
+    document.getElementById('horas').classList.add('dis');
+    CP.vacio(page, 'factory', 'Todavía no hay tableros en el taller',
+      'Un tablero entra al taller cuando su plano tiene el BOM aprobado y salió la OC de sus materiales. Desde acá vas a seguir el avance, lo que frena el armado y las horas contra el presupuesto.',
+      `<div class="row gap8" style="justify-content:center"><a class="btn out" href="d-com-pedidos.html">${L.icon('shopping-cart')}Ir a Pedidos</a><a class="btn pri" href="d-ing-proyecto.html">${L.icon('folder-kanban')}Abrir el proyecto</a></div>`);
+    return;
+  }
+  const hReal = t => C_h(t.id) ?? t.hReal;
+  function C_h(id) { return CP.x('horas.' + id); }
+  const proy = t => t.avance ? hReal(t) / (t.avance / 100) : hReal(t);
+
+  function faltantes() {
+    const by = {};
+    CP.tableros().forEach(t => {
+      CP.items(t.id).forEach(it => {
+        const m = CP.mat(t.id, it.linea, null, it.cant * (it.x || 1));
+        if (m.k !== 'er' && m.k !== 'wa') return;
+        const k = it.linea + ':' + m.k;
+        (by[k] ||= { linea: it.linea, m, tabs: [] });
+        if (!by[k].tabs.some(x => x.id === t.id)) by[k].tabs.push({ id: t.id, cod: t.cod, ref: it.ref, frena: t.frena === it.linea });
+      });
+    });
+    return Object.values(by).sort((a, b) => (b.tabs.some(x => x.frena) - a.tabs.some(x => x.frena)) || ((a.m.k === 'er' ? 0 : 1) - (b.m.k === 'er' ? 0 : 1)));
+  }
+
+  let verTodo = false;
+  function render() {
+    const tabs = CP.tableros(), por = CP.porArmar();
+    const pres = tabs.reduce((a, t) => a + t.hPres, 0), real = tabs.reduce((a, t) => a + hReal(t), 0);
+    const avg = Math.round(tabs.reduce((a, t) => a + t.avance * t.hPres, 0) / pres);
+    const desv = tabs.reduce((a, t) => a + (proy(t) - t.hPres + (t.hEspera || 0)), 0);
+    const fr = tabs.filter(t => t.estado === 'frenado').length;
+    const falt = faltantes();
+    page.innerHTML = `
+    <div class="kpis">
+      <div class="kpi pri"><b>${tabs.length}</b><span>Tableros en el taller</span><small>${por.length} más por armar</small></div>
+      <div class="kpi"><b>${avg} %</b><span>Avance ponderado</span><div class="bar" style="margin-top:6px"><i style="width:${avg}%"></i></div></div>
+      <div class="kpi ${fr ? 'bad' : 'ok'}"><b>${fr}</b><span>Frenado${fr === 1 ? '' : 's'}</span><small>${falt.filter(f => f.m.k === 'er').length} faltantes sin OC</small></div>
+      <div class="kpi"><b>${L.num(real)} / ${L.num(pres)} h</b><span>Horas reales / presup.</span><small>ponderado por horas del presupuesto</small></div>
+      <div class="kpi ${desv > 0 ? 'warn' : 'ok'}"><b>${desv > 0 ? '−' : '+'}${L.ars(Math.abs(desv) * K.tarifaHora)}</b><span>Desvío del margen</span><small>${desv > 0 ? '+' : ''}${L.num(desv, 1)} h proyectadas · ${L.ars(K.tarifaHora)}/h</small></div>
+    </div>
+
+    ${vista === 'lista' ? lista(tabs, por) : kanban(tabs, por)}
+
+    <div class="card">
+      <div class="card-h"><div class="card-ico" style="color:var(--rose-600)">${L.icon('octagon-pause')}</div><div class="grow"><h3>Faltantes que frenan el armado</h3><div class="sub">Lo que todavía no está en el taller, de dónde viene y quién lo destraba</div></div><span class="tag-nuevo">Nuevo</span></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl bom">
+        <thead><tr><th>Material / Especificación</th><th>Tableros</th><th>Por qué falta</th><th>Lo destraba</th><th class="r">A comprar</th><th></th></tr></thead>
+        <tbody>${falt.filter(f => verTodo || f.m.k === 'er').map(f => { const l = CP.lin(f.linea); const oc = f.m.oc; const frena = f.tabs.some(x => x.frena);
+          const quien = f.m.quien || (oc ? (oc.status === 'SENT' ? oc.provN : oc.provN) : 'Compras');
+          const accion = f.m.href ? `<a class="btn xs ${frena ? 'pri' : 'out'}" href="${f.m.href}">${L.icon(f.m.quien === 'Ingeniería' ? 'table-2' : 'refresh-cw')}${f.m.quien === 'Ingeniería' ? 'Completar en el BOM' : 'Re-cotizar'}</a>` : (oc ? `<a class="btn xs out" href="d-com-pedidos.html">${L.icon('shopping-cart')}Ver ${L.esc(oc.id)}</a>` : '');
+          return `<tr class="${frena ? 'warn' : ''}">
+            <td><span class="mat">${L.esc(l.mat)}</span><span class="spec">${L.esc(l.spec)}${l.marca ? ' · ' + L.esc(l.marca) : ''}</span></td>
+            <td style="font-family:var(--sans)">${f.tabs.map(x => `<span class="bdg ${x.frena ? 'er' : ''} mono" style="margin:0 4px 4px 0">${L.esc(x.cod)} ${L.esc(x.ref)}</span>`).join('')}${frena ? `<div class="cp-mst er" style="margin-top:2px">${L.icon('octagon-pause')}Frena el armado</div>` : (f.m.k === 'er' ? `<div class="cp-mst wa" style="margin-top:2px">${L.icon('gauge')}Frena el ensayo</div>` : '')}</td>
+            <td style="font-family:var(--sans);font-size:12.5px;max-width:300px"><span class="cp-mst ${f.m.k}">${L.icon(f.m.i)}${L.esc(f.m.t)}</span><div class="muted" style="margin-top:2px">${L.esc(f.m.d || (oc && oc.status === 'SENT' ? 'Vence ' + L.fecha(oc.vence) + ': si no confirma, re-adjudicá.' : oc ? oc.provN + ' · plazo ' + oc.plazo + ' días' : ''))}</div></td>
+            <td style="font-family:var(--sans);font-size:12.5px">${L.esc(quien)}</td>
+            <td class="r qty">${L.num(l.comprar)} ${l.u}</td>
+            <td class="r">${accion}</td></tr>`; }).join('')}</tbody></table></div>
+      <div class="row" style="padding:12px 20px;border-top:1px solid var(--border);font-size:12.5px"><span class="muted">${L.icon('truck')} ${falt.filter(f => f.m.k === 'wa').length} líneas más están en camino o con la OC sin confirmar: no frenan hoy.</span><button class="btn xs ghost ml-auto" id="vt">${verTodo ? 'Ver solo lo que frena' : 'Ver todas'}</button></div>
+    </div>
+
+
+    <div class="grid2">
+      <div class="card">
+        <div class="card-h"><div class="card-ico">${L.icon('timer')}</div><div class="grow"><h3>Horas reales contra presupuestadas</h3><div class="sub">Proyectadas al 100 % con el ritmo de hoy · alimenta el margen del presupuesto</div></div><span class="tag-nuevo">Nuevo</span></div>
+        <div class="card-b col gap16">${tabs.map(t => { const p = proy(t), d = p - t.hPres; const pctR = Math.min(100, hReal(t) / Math.max(t.hPres, p) * 100), pctP = Math.min(100, t.hPres / Math.max(t.hPres, p) * 100);
+          return `<div class="col gap4"><div class="row" style="font-size:13px"><b class="mono" style="color:var(--bom-material)">${L.esc(t.cod)}</b><span class="muted">${L.num(hReal(t))} h de ${L.num(t.hPres)} h · avance ${t.avance} %</span><span class="ml-auto mono ${d > 2 ? 'up' : 'down'}" style="font-size:12.5px">${d > 0 ? '+' : ''}${L.num(d, 1)} h${t.hEspera ? ` · ${t.hEspera} h de espera` : ''}</span></div>
+            <div style="position:relative;height:10px;border-radius:999px;background:var(--secondary-100)"><i style="position:absolute;left:0;top:0;bottom:0;width:${pctR}%;border-radius:999px;background:${d > 2 ? 'var(--amber-500)' : 'var(--primary)'}"></i><i style="position:absolute;top:-3px;bottom:-3px;left:calc(${pctP}% - 1px);width:2px;background:var(--foreground)" title="Presupuestadas"></i></div></div>`; }).join('')}
+          <div class="note info">${L.icon('info')}<div><b>Cómo se calcula</b>Horas reales ÷ avance = horas proyectadas. La diferencia contra el presupuesto, al costo de ${L.ars(K.tarifaHora)} la hora (ejemplo, +IVA aparte), se descuenta del margen en <a class="src" href="d-com-presupuesto.html">${L.icon('file-spreadsheet')}Presupuesto</a>. Las horas de espera por faltantes se muestran aparte.</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><div class="card-ico">${L.icon('users')}</div><div class="grow"><h3>Armadores</h3><div class="sub">Quién está en qué tablero esta semana</div></div><span class="tag-nuevo">Nuevo</span></div>
+        <div class="list">${Object.entries(K.armadores).map(([k, a]) => { const en = tabs.filter(t => (CP.x('arm.' + t.id) || t.armadores).includes(k));
+          return `<div class="li"><span class="av sm ${a.c}">${a.ini}</span><div class="grow"><div class="t">${L.esc(a.n)}</div><div class="d">${L.esc(a.r)}</div></div>${en.length ? en.map(t => `<span class="bdg ${t.estado === 'frenado' ? 'er' : 'pri'} mono">${L.esc(t.cod)}</span>`).join('') : '<span class="bdg">Libre</span>'}${en.some(t => t.estado === 'frenado') ? `<button class="btn xs out" data-reasignar="${k}">${L.icon('arrow-right-left')}Reasignar</button>` : ''}</div>`; }).join('')}</div>
+      </div>
+    </div>`;
+    wire();
+    document.getElementById('vt').onclick = () => { verTodo = !verTodo; render(); };
+  }
+
+  function card(t) {
+    const r = CP.resumenMat(t.id), arm = CP.x('arm.' + t.id) || t.armadores;
+    const frena = t.frena ? CP.lin(t.frena) : null;
+    return `<div class="cp-card" draggable="true" data-tid="${t.id}" role="button" tabindex="0" aria-label="Abrir ${L.esc(t.cod)}">
+      <div class="row gap8"><span class="cod">${L.esc(t.cod)}</span>${t.unidades ? `<span class="bdg pri mono">×${t.unidades}</span>` : ''}<span class="ml-auto cp-pct">${t.avance} %</span></div>
+      <span class="nm">${L.esc(t.n)} · ${L.esc(t.gabinete)}</span>
+      <div class="bar ${t.estado === 'frenado' ? 'bad' : t.estado === 'listo' ? 'ok' : ''}"><i style="width:${t.avance}%"></i></div>
+      ${frena ? `<div class="frena">${L.icon('octagon-pause')}<span><b>Frenado por ${L.esc(frena.mat.toLowerCase())} ${L.esc(frena.spec)}</b><br>${frena.estado === 'blocked' ? 'No se pudo cotizar: falta «' + L.esc(frena.faltan[0] || 'un atributo') + '».' : 'Ya se puede cotizar: falta pedirlo.'}</span></div>` : ''}
+      ${t.unidades ? `<span class="meta">${L.icon('layers')}${t.listas} de ${t.unidades} unidades listas</span>` : ''}
+      <div class="meta">${CP.avs(arm)}<span>${L.esc(t.etapa || '')}</span></div>
+      <div class="meta"><span class="cp-mst ${r.er ? 'er' : r.wa ? 'wa' : 'ok'}">${L.icon(r.er ? 'package-x' : r.wa ? 'truck' : 'package-check')}${r.ok + r.st}/${r.total} materiales</span><span class="ml-auto">${L.icon('calendar')}${L.fechaCorta(t.entrega)}</span></div>
+    </div>`;
+  }
+  function kanban(tabs, por) {
+    const cols = [['porarmar', 'Por armar'], ['armado', 'Armando'], ['ensayo', 'En ensayo'], ['frenado', 'Frenado'], ['listo', 'Listo para entregar']];
+    return `<section aria-label="Tableros por estado"><div class="row" style="margin-bottom:10px"><span class="lbl">Tableros por estado</span><span class="tag-nuevo">Nuevo</span><span class="muted ml-auto" style="font-size:12px">${L.icon('grip-vertical')} Arrastrá una tarjeta para moverla · pasa a «listo» solo con el protocolo firmado</span></div>
+    <div class="cp-board">${cols.map(([k, t]) => {
+      const items = k === 'porarmar' ? por : tabs.filter(x => x.estado === k || (k === 'listo' && x.estado === 'entregado'));
+      return `<div class="cp-col" data-col="${k}"><div class="cp-col-h"><span class="st ${CP.EST_ST[k]}" style="height:22px;font-size:12px">${L.icon(CP.EST_IC[k])}${t}</span><span class="n">${items.length}</span></div>
+        ${items.length ? items.map(x => k === 'porarmar' ? `<div class="cp-card ro"><div class="row gap8"><span class="cod">${L.esc(x.cod)}</span><span class="st ${x.planoStatus === 'ERROR' ? 'er' : x.planoStatus === 'PROCESSING' ? 'pr' : 'gr'} ml-auto" style="height:20px;font-size:11px">${{ ERROR: 'Error', PROCESSING: 'En proceso', PENDING: 'Pendiente', STALE: 'Desactualizado' }[x.planoStatus] || 'Listo'}</span></div><span class="nm">${L.esc(x.n)}</span><span class="nm">${L.esc(x.motivo)}</span><a class="src" href="d-ing-plano.html?plano=${x.plano}">${L.icon('file-text')}Abrir el plano</a></div>` : card(x)).join('')
+          : `<div class="cp-col-empty">${k === 'listo' ? 'Cuando firmes el protocolo de un tablero aparece acá, listo para el remito de entrega.' : 'Nada en esta columna.'}</div>`}
+      </div>`; }).join('')}</div></section>`;
+  }
+  function lista(tabs, por) {
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('list')}</div><div class="grow"><h3>Tableros</h3><div class="sub">Los mismos datos que el tablero, en tabla</div></div></div>
+    <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl">
+      <thead><tr><th>Tablero</th><th>Estado</th><th>Avance</th><th>Materiales</th><th>Armadores</th><th>Horas</th><th>Entrega al taller</th><th></th></tr></thead>
+      <tbody>${tabs.map(t => { const r = CP.resumenMat(t.id); return `<tr data-tid="${t.id}" style="cursor:pointer">
+        <td><b class="mono" style="color:var(--bom-material)">${L.esc(t.cod)}</b>${t.unidades ? ` <span class="bdg pri mono">×${t.unidades}</span>` : ''}<div class="muted">${L.esc(t.n)}</div></td>
+        <td><span class="st ${CP.EST_ST[t.estado]}">${L.icon(CP.EST_IC[t.estado])}${CP.EST[t.estado]}</span></td>
+        <td style="width:150px"><div class="row gap8"><div class="bar grow ${t.estado === 'frenado' ? 'bad' : ''}"><i style="width:${t.avance}%"></i></div><span class="mono">${t.avance} %</span></div></td>
+        <td><span class="cp-mst ${r.er ? 'er' : r.wa ? 'wa' : 'ok'}">${r.ok + r.st}/${r.total}</span>${r.er ? ` <span class="muted">· ${r.er} sin OC</span>` : ''}</td>
+        <td>${CP.avs(CP.x('arm.' + t.id) || t.armadores)}</td>
+        <td class="mono">${L.num(hReal(t))} / ${L.num(t.hPres)} h</td>
+        <td class="mono">${L.fecha(t.entrega)}</td>
+        <td class="r"><button class="btn xs out" data-tid="${t.id}">${L.icon('panel-right-open')}Abrir</button></td></tr>`; }).join('')}
+        ${por.map(x => `<tr><td><b class="mono" style="color:var(--bom-material)">${L.esc(x.cod)}</b><div class="muted">${L.esc(x.n)}</div></td><td><span class="st gr">${L.icon('clock')}Por armar</span></td><td colspan="5" class="muted">${L.esc(x.motivo)}</td><td class="r"><a class="btn xs ghost" href="d-ing-plano.html?plano=${x.plano}">${L.icon('file-text')}Plano</a></td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  // ---------- Panel del tablero ----------
+  function abrir(id, tabIni) {
+    const t = CP.tab(id); if (!t) return;
+    const its = CP.items(id);
+    const arm = CP.x('arm.' + id) || t.armadores;
+    const corte = K.corte[id];
+    const ov = L.sheet(`<div class="dlg-h" style="padding:20px 22px 12px"><div class="card-ico">${L.icon('cuboid')}</div><div class="grow"><span class="lbl">Serie ${L.esc(t.serie)}</span><h2 class="mono">${L.esc(t.cod)}</h2><p>${L.esc(t.n)} · ${L.esc(t.gabinete)}</p></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div style="padding:0 22px 12px" class="row gap8"><span class="st ${CP.EST_ST[t.estado]}">${L.icon(CP.EST_IC[t.estado])}${CP.EST[t.estado]}</span><div class="bar grow"><i style="width:${t.avance}%"></i></div><span class="mono" style="font-size:13px">${t.avance} %</span></div>
+      <div style="padding:0 22px 10px" class="row gap8">
+        <label class="lbl" for="mv">Mover a</label><select class="inp" id="mv" style="width:auto;height:32px">${['armado', 'ensayo', 'frenado', 'listo'].map(k => `<option value="${k}" ${t.estado === k ? 'selected' : ''}>${CP.EST[k]}</option>`).join('')}</select>
+        <a class="btn sm out ml-auto" href="d-tal-protocolo.html?tablero=${id}">${L.icon('clipboard-check')}Protocolo</a><a class="btn sm out" href="m-tal-tablero.html?tablero=${id}">${L.icon('smartphone')}Frente</a>
+      </div>
+      <div data-tabs-scope><div class="tabs" data-tabs style="padding:0 22px"><a href="#" data-tab="arm" class="${tabIni !== 'corte' && tabIni !== 'eq' ? 'on' : ''}">Lista de armado <span class="cnt">${its.length}</span></a><a href="#" data-tab="corte" class="${tabIni === 'corte' ? 'on' : ''}">Corte de cables</a><a href="#" data-tab="eq" class="${tabIni === 'eq' ? 'on' : ''}">Equipo y horas</a></div>
+      <div data-panel="arm" ${tabIni === 'corte' || tabIni === 'eq' ? 'hidden' : ''} style="padding:6px 22px 22px">
+        ${its.map(it => { const l = CP.lin(it.linea); const m = CP.matItem(id, it); const oc = CP.oc(it.linea); const st = K.stock[it.linea];
+          const de = st && st.usa[id] ? 'Stock del taller (lo repone ' + (oc ? oc.id : 'la próxima OC') + ')' : K.sinOC[it.linea] ? K.sinOC[it.linea].t : oc ? oc.id + ' · ' + oc.provN : 'Sin OC';
+          return `<div class="cp-mat"><span class="ref">${L.esc(it.ref)}</span><div><span class="m">${L.esc(l.mat)}</span><span class="s">${L.esc(l.spec)} · ${L.num(it.cant * (it.x || 1))} ${l.u}${it.x ? ' (' + it.cant + ' × ' + it.x + ')' : ''}</span><div class="muted" style="font-size:11.5px;margin-top:2px">${L.icon('package')} ${L.esc(de)}</div></div><span class="cp-mst ${m.k}">${L.icon(m.i)}${L.esc(m.t)}</span></div>`; }).join('')}
+        <div class="row gap8" style="margin-top:14px"><button class="btn out sm" data-print>${L.icon('printer')}Imprimir lista de armado</button><span class="muted" style="font-size:12px">Las cantidades salen del BOM aprobado; lo dibujado y lo comprado se ven en el editor.</span></div>
+      </div>
+      <div data-panel="corte" ${tabIni === 'corte' ? '' : 'hidden'} style="padding:12px 22px 22px">
+        ${corte ? `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Circuito</th><th>Desde → hasta</th><th>Sección · color</th><th class="r">Largo</th><th class="r">Tramos</th></tr></thead><tbody>${corte.map(c => `<tr><td class="mono">${L.esc(c.circ)}</td><td>${L.esc(c.desde)} → ${L.esc(c.hasta)}</td><td>${L.esc(c.sec)}<div class="muted">${L.esc(c.color)}</div></td><td class="r mono">${c.largo ? L.num(c.largo, 1) + ' m' : '—'}</td><td class="r mono">${c.n || '—'}</td></tr>`).join('')}</tbody></table></div>
+          <div class="note info" style="margin-top:12px">${L.icon('cable')}<div><b>${L.num(corte.reduce((a, c) => a + c.largo * c.n, 0), 1)} m de cable unipolar 2,5 mm² para este tablero</b>Sale de la línea <a class="src" href="d-bom-editor.html?linea=l16">${L.icon('table-2')}l16</a> (Prysmian Superastic Flex, 1.120 m inferidos para toda la obra). Los conductores de potencia van por la planilla de barras.</div></div>`
+        : `<div class="empty" style="padding:32px 12px"><div class="e-ico">${L.icon('scissors')}</div><h3>Sin lista de corte</h3><p>La lista de corte sale del unifilar con los recorridos de cada circuito. Para este tablero todavía no está.</p><div class="row gap8" style="justify-content:center"><button class="btn out" data-corte-manual>${L.icon('plus')}Cargar a mano</button><button class="btn ai" data-corte-ia>${L.icon('sparkles')}Proponer desde el plano</button></div><span class="cost">≈ US$ 0,12 · lo revisa el jefe de taller</span></div>`}
+      </div>
+      <div data-panel="eq" ${tabIni === 'eq' ? '' : 'hidden'} style="padding:12px 22px 22px" class="col gap16">
+        <div class="col gap8"><span class="lbl">Armadores asignados</span><div class="chips">${Object.entries(K.armadores).map(([k, a]) => `<button class="chip ${arm.includes(k) ? 'on' : ''}" data-arm="${k}"><span class="av xs ${a.c}">${a.ini}</span>${L.esc(a.n)}</button>`).join('')}</div></div>
+        <dl class="cp-kv"><dt>Horas presupuestadas</dt><dd class="mono">${L.num(t.hPres)} h</dd><dt>Horas reales</dt><dd class="mono">${L.num(hReal(t))} h</dd><dt>Proyección al 100 %</dt><dd class="mono">${L.num(proy(t), 1)} h</dd>${t.hEspera ? `<dt>Horas de espera por faltantes</dt><dd class="mono">${t.hEspera} h</dd>` : ''}</dl>
+        <button class="btn pri" data-cargar>${L.icon('timer')}Cargar horas a ${L.esc(t.cod)}</button>
+      </div></div>`, { label: 'Tablero ' + t.cod });
+    ov.querySelector('.pnl').style.width = 'min(640px, 100%)';
+    ov.querySelector('#mv').onchange = e => { ov.remove(); mover(id, e.target.value); };
+    ov.addEventListener('click', e => {
+      const a = e.target.closest('[data-arm]');
+      if (a) { const cur = (CP.x('arm.' + id) || t.armadores).slice(); const k = a.dataset.arm; const i = cur.indexOf(k); if (i >= 0) cur.splice(i, 1); else cur.push(k); CP.x('arm.' + id, cur); a.classList.toggle('on'); L.toast(i >= 0 ? K.armadores[k].n + ' sale de ' + t.cod : K.armadores[k].n + ' asignado a ' + t.cod); }
+      if (e.target.closest('[data-cargar]')) { ov.remove(); cargarHoras(id); }
+      if (e.target.closest('[data-print]')) L.toast('Lista de armado lista para imprimir', { desc: t.cod + ' · ' + its.length + ' renglones · A4', type: 'info' });
+      if (e.target.closest('[data-corte-ia]')) L.dialog({ title: 'Proponer la lista de corte', icon: 'sparkles', desc: 'La IA lee los recorridos del unifilar de ' + t.cod + ' y propone circuito, sección y largo. Nada se guarda sin tu revisión.', body: `<div class="note ai">${L.icon('sparkles')}<div><b>Costo estimado US$ 0,12</b>Quedan US$ ${L.num(B.consumoIA.topeUsd - B.consumoIA.usadoUsd, 2)} del tope mensual.</div></div>`, actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Proponer', cls: 'ai', icon: 'sparkles', fn: () => L.toast('Propuesta lista para revisar', { desc: '14 tramos · 2 con largo inferido (marcados)', type: 'info' }) }] });
+      if (e.target.closest('[data-corte-manual]')) L.toast('Planilla de corte vacía creada', { desc: 'Cargá circuito, sección y largo; se guarda con el tablero', type: 'info' });
+    });
+  }
+  function mover(id, k) {
+    const t = CP.tab(id); if (!t || t.estado === k) return;
+    if (k === 'listo' && !(CP.x('protocolos.' + id) || {}).firmado) {
+      L.toast('Primero firmá el protocolo de ensayos', { type: 'warning', desc: t.cod + ' pasa a «listo para entregar» con el protocolo firmado', action: 'Abrir protocolo', onAction: () => L.go('d-tal-protocolo.html?tablero=' + id) }); render(); return;
+    }
+    if (t.estado === 'frenado' && t.frena) {
+      const l = CP.lin(t.frena);
+      L.dialog({ title: '¿Se destrabó ' + t.cod + '?', icon: 'octagon-pause', desc: 'Estaba frenado por ' + l.mat.toLowerCase() + ' ' + l.spec + '.', body: l.estado === 'blocked' ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>La línea sigue sin poder cotizarse</b>Falta «${L.esc(l.faltan[0] || '')}» en el BOM. Si el material lo consiguió el taller por fuera, anotalo para que compras no lo pida dos veces.</div></div><div class="field"><label for="dn">Nota</label><input class="inp" id="dn" value="Lo trajo el taller del stock de Torre Alem"></div>` : '', actions: [{ t: 'Sigue frenado', cls: 'out' }, { t: 'Destrabar y mover', icon: 'play', fn: dl => { CP.setTab(id, { estado: k, frena: null }); C_aviso(t, k, dl.querySelector('#dn') && dl.querySelector('#dn').value); render(); } }] });
+      return;
+    }
+    if (k === 'frenado') {
+      L.dialog({ title: 'Frenar ' + t.cod, icon: 'octagon-pause', body: `<div class="field"><label for="fl">Qué falta</label><select class="inp" id="fl">${CP.items(id).map(it => CP.lin(it.linea)).filter((l, i, a) => a.indexOf(l) === i).map(l => `<option value="${l.id}">${L.esc(l.mat + ' ' + l.spec)}</option>`).join('')}</select></div>`, actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Frenar y avisar a compras', cls: 'dan', icon: 'octagon-pause', fn: dl => { const lid = dl.querySelector('#fl').value; CP.setTab(id, { estado: 'frenado', frena: lid }); CP.aviso({ t: 'El ' + t.cod + ' está frenado en el taller', d: 'Falta ' + CP.lin(lid).mat.toLowerCase() + ' ' + CP.lin(lid).spec, i: 'octagon-pause', tipo: 'wa', href: 'd-tal-taller.html' }); render(); L.toast(t.cod + ' frenado', { type: 'warning', desc: 'Compras recibió el aviso' }); } }] });
+      return;
+    }
+    CP.setTab(id, { estado: k }); C_aviso(t, k); render();
+  }
+  function C_aviso(t, k, nota) {
+    L.toast(t.cod + ' → ' + CP.EST[k], { desc: nota || '' });
+    if (k === 'ensayo') CP.aviso({ t: t.cod + ' pasó a ensayos de rutina', d: 'Protocolo IEC 61439 abierto', i: 'gauge', tipo: 'pr', href: 'd-tal-protocolo.html?tablero=' + t.id });
+  }
+  function cargarHoras(id) {
+    const tabs = CP.tableros();
+    L.dialog({ title: 'Cargar horas', icon: 'timer', desc: 'Parte diario del taller. Se suma a las horas reales y recalcula el desvío del margen.',
+      body: `<div class="grid2"><div class="field"><label for="ht">Tablero</label><select class="inp" id="ht">${tabs.map(t => `<option value="${t.id}" ${t.id === id ? 'selected' : ''}>${L.esc(t.cod)}</option>`).join('')}</select></div><div class="field"><label for="ha">Armador</label><select class="inp" id="ha">${Object.entries(K.armadores).map(([k, a]) => `<option value="${k}">${L.esc(a.n)}</option>`).join('')}</select></div></div>
+        <div class="grid2"><div class="field"><label for="hh">Horas</label><input class="inp mono" id="hh" type="number" min="0.5" step="0.5" value="8"></div><div class="field"><label for="hf">Fecha</label><input class="inp mono" id="hf" value="01/10/2026"></div></div>
+        <div class="field"><label for="hk">Tarea</label><select class="inp" id="hk"><option>Montaje de aparatos</option><option>Cableado</option><option>Ensayos</option><option>Espera por faltante</option></select></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Cargar', icon: 'check', fn: dl => { const h = +dl.querySelector('#hh').value; const tid = dl.querySelector('#ht').value; if (!(h > 0)) { dl.querySelector('#hh').classList.add('bad'); return false; } const t = CP.tab(tid); CP.x('horas.' + tid, hReal(t) + h); render(); L.toast(L.num(h, 1) + ' h cargadas a ' + t.cod, { desc: 'Real ' + L.num(hReal(CP.tab(tid)), 1) + ' h de ' + t.hPres + ' h presupuestadas' }); } }] });
+  }
+
+  function wire() {
+    page.querySelectorAll('[data-tid]').forEach(el => {
+      el.addEventListener('click', e => { if (e.target.closest('a')) return; abrir(el.dataset.tid); });
+      el.addEventListener('keydown', e => { if (e.key === 'Enter') abrir(el.dataset.tid); });
+      el.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', el.dataset.tid); el.classList.add('drag'); });
+      el.addEventListener('dragend', () => el.classList.remove('drag'));
+    });
+    page.querySelectorAll('[data-col]').forEach(col => {
+      col.addEventListener('dragover', e => { if (col.dataset.col === 'porarmar') return; e.preventDefault(); col.classList.add('over'); });
+      col.addEventListener('dragleave', () => col.classList.remove('over'));
+      col.addEventListener('drop', e => { e.preventDefault(); col.classList.remove('over'); mover(e.dataTransfer.getData('text/plain'), col.dataset.col); });
+    });
+    page.querySelectorAll('[data-reasignar]').forEach(b => b.onclick = () => {
+      const k = b.dataset.reasignar; const tabs = CP.tableros();
+      tabs.forEach(t => { const cur = (CP.x('arm.' + t.id) || t.armadores).filter(x => x !== k); if (t.estado === 'frenado') CP.x('arm.' + t.id, cur); });
+      const dest = tabs.find(t => t.id === 'tgbt'); CP.x('arm.tgbt', [...new Set([...(CP.x('arm.tgbt') || dest.armadores), k])]);
+      render(); L.toast(K.armadores[k].n + ' pasa al TGBT', { desc: 'Mientras el TS-BOMBAS sigue frenado' });
+    });
+  }
+  document.getElementById('horas').onclick = () => cargarHoras('tgbt');
+  L.on(render);
+  if (est === 'cargando') { CP.cargando(page); return; }
+  render();
+  if (L.q('tablero')) abrir(L.q('tablero'), L.q('panel'));
+} };
+</script>
+</body></html>

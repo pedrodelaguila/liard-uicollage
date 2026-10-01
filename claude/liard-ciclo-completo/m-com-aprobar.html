@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=390">
+<title>Aprobar · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="compras.css">
+</head>
+<body class="m" data-role="ing" data-tabs="ing" data-active="m-aprobar" data-h="h1" data-user="hernan" data-title="Para aprobar">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="compras.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const esc = L.esc;
+  const E = L.q('estado');
+  let sel = L.q('id');
+  const proyN = id => (L.get('proyectos').find(p => p.id === id) || {}).n || '';
+  const usr = id => L.get('usuarios')[id];
+
+  function lista() {
+    let ap = C.aprobaciones();
+    if (E === 'vacio') ap = ap.map(a => Object.assign({}, a, { estado: 'aprobado', comentario: a.comentario || 'Ok.', decidido: C.HOY }));
+    const pend = ap.filter(a => a.estado === 'pendiente'); const hechas = ap.filter(a => a.estado !== 'pendiente');
+    const card = a => `<button class="c-ap ${a.estado !== 'pendiente' ? 'done' : ''}" data-id="${a.id}"><span class="row" style="justify-content:space-between;width:100%"><span class="st ${a.tipo === 'pedido' ? 'pr' : 'vi'}" style="height:22px;font-size:11.5px">${L.icon(a.tipo === 'pedido' ? 'shopping-cart' : 'file-spreadsheet')}${a.tipo === 'pedido' ? 'Pedido' : 'Presupuesto'}</span>${a.estado === 'pendiente' ? `<span class="muted" style="font-size:12px">${L.fechaCorta(a.creado.slice(0, 10))} ${C.hora(a.creado)}</span>` : `<span class="st ${a.estado === 'aprobado' ? 'ok' : 'er'}" style="height:22px;font-size:11.5px">${a.estado === 'aprobado' ? 'Aprobado' : 'Rechazado'}</span>`}</span>
+      <b class="mono" style="font-size:13px">${esc(a.ref)}</b><span style="font-size:13px">${esc(proyN(a.proyecto))}</span>
+      <span class="row" style="justify-content:space-between;width:100%"><span class="monto">${L.ars(a.monto)}</span>${a.tipo === 'presupuesto' ? `<span class="mono up" style="font-weight:700">${L.pct(a.margen, 1)}</span>` : `<span class="muted" style="font-size:12px">${a.ordenes.length} OC</span>`}</span>
+      <span class="muted" style="font-size:12px">${a.tipo === 'presupuesto' ? `Margen debajo del ${a.umbral} %` : `Supera ${L.ars(a.tope)} por OC`} · pide ${esc(usr(a.por).n.split(' ')[0])}</span></button>`;
+    page.innerHTML = (pend.length ? `<div class="row" style="justify-content:space-between"><span class="lbl">${pend.length} esperan tu firma</span><span class="tag-h1">propuesta</span></div>${pend.map(card).join('')}` :
+      `<div class="c-done"><div class="e-ico">${L.icon('circle-check')}</div><h2 style="font-size:18px">No tenés nada pendiente</h2><p class="muted" style="font-size:14px">Cuando un pedido pase el tope por OC o un presupuesto baje del margen mínimo, te llega acá y por notificación.</p></div>`) +
+      (hechas.length ? `<span class="lbl" style="margin-top:8px">Ya resueltas</span>${hechas.map(card).join('')}` : '') +
+      `<div class="note" style="margin-top:4px"><span>${L.icon('settings-2')}</span><div style="font-size:12.5px"><b>Reglas de la empresa</b>OC de más de ${L.ars(C.TOPE_OC)} · presupuestos con margen debajo del ${C.UMBRAL_MARGEN} %. Se cambian en Automatizaciones.</div></div>`;
+    L.fixLinks(page);
+  }
+
+  function detalle(a) {
+    document.querySelector('.mbar h1').textContent = a.ref.split(' ')[0];
+    const pedido = a.tipo === 'pedido';
+    const done = a.estado !== 'pendiente';
+    page.innerHTML = `<button class="btn ghost sm" id="volver" style="align-self:flex-start">${L.icon('chevron-left')}Todas</button>
+      <div class="card pad col" style="gap:10px;padding:16px"><div class="row" style="justify-content:space-between"><span class="st ${pedido ? 'pr' : 'vi'}" style="height:22px;font-size:11.5px">${pedido ? 'Pedido' : 'Presupuesto'}</span><span class="muted" style="font-size:12px">${L.fechaCorta(a.creado.slice(0, 10))} ${C.hora(a.creado)}</span></div>
+        <div><b class="mono" style="font-size:14px">${esc(a.ref)}</b><div style="font-size:14px">${esc(proyN(a.proyecto))}</div></div>
+        <div><span class="lbl">${pedido ? 'Total del pedido +IVA' : 'Precio de venta sin IVA'}</span><div class="mono" style="font:700 24px var(--mono)">${L.ars(a.monto)}</div></div>
+        <div class="row gap8"><span class="av sm ${usr(a.por).c}">${usr(a.por).ini}</span><div style="font-size:13px"><b>${esc(usr(a.por).n)}</b><div class="muted">${esc(usr(a.por).r)}</div></div></div></div>
+      <div class="note warn"><span>${L.icon(pedido ? 'stamp' : 'percent')}</span><div style="font-size:13px"><b>Por qué te llega</b>${esc(a.motivo)}</div></div>
+      <div class="card pad" style="padding:6px 16px">${pedido ? a.ordenes.map(o => `<div class="c-kv"><span>${esc(C.prov(o.prov).n)} · ${o.lineas} ítems</span><b class="${o.total > a.tope ? 'up' : ''}">${L.ars(o.total)}</b></div>`).join('') + `<div class="c-kv"><span>Tope por OC</span><b>${L.ars(a.tope)}</b></div>`
+        : a.detalle.map(([k, v]) => `<div class="c-kv"><span>${esc(k)}</span><b>${L.ars(v)}</b></div>`).join('') + `<div class="c-kv"><span>Margen</span><b class="up">${L.pct(a.margen, 1)}</b></div><div class="c-kv"><span>Mínimo de la empresa</span><b>${a.umbral} %</b></div>`}</div>
+      ${pedido ? `<a class="btn out block" href="d-com-pedidos.html">${L.icon('monitor')}Ver el detalle en la compu</a>` : `<a class="btn out block" href="d-com-presupuesto.html">${L.icon('monitor')}Ver el presupuesto completo</a>`}
+      ${done ? `<div class="c-done"><div class="e-ico ${a.estado === 'aprobado' ? '' : 'no'}">${L.icon(a.estado === 'aprobado' ? 'circle-check' : 'circle-x')}</div><h2 style="font-size:18px">${a.estado === 'aprobado' ? 'Ya lo aprobaste' : 'Lo rechazaste'}</h2><p class="muted" style="font-size:13px">${L.fecha(a.decidido || C.HOY)} · «${esc(a.comentario || 'Sin comentario')}»</p><p class="muted" style="font-size:12.5px">${esc(usr(a.por).n.split(' ')[0])} ya recibió el aviso.</p><button class="btn ghost sm" id="deshacer">${L.icon('undo-2')}Deshacer</button></div>` :
+      `<div class="field"><label for="com">Comentario para ${esc(usr(a.por).n.split(' ')[0])}</label><textarea class="inp" id="com" placeholder="${pedido ? 'Ej.: Ok, pero pedí entrega parcial del NSX.' : 'Ej.: Ok por esta vez: es un cliente que vuelve.'}"></textarea><span class="help">Obligatorio si rechazás.</span></div>
+      <div class="c-act"><button class="btn dan lg" id="no">${L.icon('x')}Rechazar</button><button class="btn ok lg" id="si">${L.icon('check')}Aprobar</button></div>`}`;
+    L.fixLinks(page);
+  }
+
+  function decidir(a, estado, com) {
+    const list = C.aprobaciones().map(x => x.id === a.id ? Object.assign({}, x, { estado, comentario: com, decidido: C.HOY }) : x);
+    C.guardarAprob(list);
+    L.update(s => {
+      if (a.ped) { const p = s.pedidos.find(x => x.id === a.ped); if (p) { p.aprobacion = { estado }; p.ordenes.forEach(o => { delete o.retenida; if (estado === 'rechazado') o.status = 'REJECTED'; }); } }
+      s.avisos.unshift({ id: 'c-dec-' + a.id, t: `Hernán ${estado === 'aprobado' ? 'aprobó' : 'rechazó'} ${a.ref.split(' ')[0]}`, d: com || (estado === 'aprobado' ? 'Sin comentario' : ''), i: estado === 'aprobado' ? 'circle-check' : 'circle-x', tipo: estado === 'aprobado' ? 'ok' : 'er', cuando: 'recién', href: a.tipo === 'pedido' ? 'd-com-pedidos.html' : 'd-com-presupuesto.html' });
+    });
+    if (a.tipo === 'presupuesto' && a.id === 'apr-pre-041' && estado === 'aprobado') L.set('presupuesto.estado', 'aprobado');
+    L.toast(estado === 'aprobado' ? 'Aprobado' : 'Rechazado', { type: estado === 'aprobado' ? 'success' : 'info', desc: `Le avisamos a ${usr(a.por).n.split(' ')[0]}.` });
+  }
+
+  function render() {
+    const a = sel && C.aprobaciones().find(x => x.id === sel);
+    if (a) detalle(a); else { document.querySelector('.mbar h1').textContent = 'Para aprobar'; lista(); }
+  }
+
+  page.addEventListener('click', e => {
+    const c = e.target.closest('[data-id]'); if (c && E !== 'vacio') { sel = c.dataset.id; render(); window.scrollTo(0, 0); return; }
+    if (e.target.closest('#volver')) { sel = null; return render(); }
+    const a = sel && C.aprobaciones().find(x => x.id === sel); if (!a) return;
+    if (e.target.closest('#si')) return decidir(a, 'aprobado', page.querySelector('#com').value.trim());
+    if (e.target.closest('#no')) { const t = page.querySelector('#com'); if (!t.value.trim()) { t.classList.add('bad'); t.focus(); return L.toast('Escribí por qué lo rechazás', { type: 'warning', desc: 'Le llega a quien lo pidió.' }); } return decidir(a, 'rechazado', t.value.trim()); }
+    if (e.target.closest('#deshacer')) { C.guardarAprob(C.aprobaciones().map(x => x.id === a.id ? Object.assign({}, x, { estado: 'pendiente', comentario: '', decidido: null }) : x)); L.toast('Volvió a pendiente', { type: 'info' }); }
+  });
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Solicitudes · liard</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css"></head>
+<body class="m" data-role="prov" data-tabs="prov" data-active="m-p-solicitudes" data-h="h1" data-title="Solicitudes">
+<div id="act"><button class="btn icon sm ghost" id="buscar" aria-label="Buscar solicitud" data-icon="search"></button></div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'), est = L.q('estado');
+  let tab = est === 'aceptadas' ? 'ok' : est === 'rechazadas' ? 'rej' : 'rec', q = '';
+  function render() {
+    if (est === 'cargando') { page.innerHTML = [1, 2, 3].map(() => '<div class="skel" style="height:132px;border-radius:18px"></div>').join(''); return; }
+    const all = P.solicitudes();
+    const grupos = { rec: all.filter(s => ['SENT', 'COUNTER'].includes(s.estado)), ok: all.filter(s => s.estado === 'CONFIRMED'), rej: all.filter(s => ['REJECTED', 'EXPIRED'].includes(s.estado)) };
+    let ss = est === 'vacio' ? [] : grupos[tab].filter(s => !q || (s.id + s.proyecto).toLowerCase().includes(q.toLowerCase()));
+    const urg = grupos.rec.filter(s => s.estado === 'SENT' && P.dias(s.vence) <= 1);
+    page.innerHTML = `${q !== null && document.getElementById('mq') ? '' : ''}
+      <div class="pv-mtabs" role="tablist">${[['rec', 'Recibidas'], ['ok', 'Aceptadas'], ['rej', 'Rechazadas']].map(([k, t]) => `<button class="chip ${tab === k ? 'on' : ''}" data-t="${k}" role="tab" aria-selected="${tab === k}">${t} <small>${est === 'vacio' ? 0 : grupos[k].length}</small></button>`).join('')}</div>
+      ${tab === 'rec' && urg.length && est !== 'vacio' ? `<div class="note warn"><span>${L.icon('clock-alert')}</span><div><b>${urg.length} vence mañana</b>Respondé al menos las líneas que tenés en stock.</div></div>` : ''}
+      ${ss.map(s => { const d = P.dias(s.vence); return `<a class="pv-mcard" href="${s.estado === 'SENT' ? 'm-prov-responder.html?oc=' + s.id : 'd-prov-solicitudes.html?oc=' + s.id}">
+        <div class="top">${P.badge(s)}${s.estado === 'SENT' ? `<span class="pv-vence ${d <= 1 ? 'hot' : d <= 2 ? 'warm' : 'ok'}">${L.esc(P.venceTxt(s.vence))}</span>` : `<span class="mono muted" style="font-size:12px">${L.fechaCorta(s.respondido || s.vence)}</span>`}</div>
+        <h3>${L.esc(s.proyecto)}</h3><div class="d mono">${L.esc(s.id)} · ${L.esc(P.quien(s))}</div>
+        <div class="nums"><div><b>${s.lineasN}</b>líneas</div><div><b>${L.ars(s.total)}</b>+IVA</div>${s.alternativas ? `<div><b style="color:var(--primary)">${s.alternativas}</b>alternativas</div>` : ''}</div></a>`; }).join('') || `<div class="empty" style="padding:40px 12px"><div class="e-ico">${L.icon('inbox')}</div><h3>Sin solicitudes</h3><p>Cuando un tablerista te pida cotización, te avisamos con una notificación.</p></div>`}
+      <p class="muted" style="font-size:12px;text-align:center">Para editar precios o mandar equivalentes, abrí la solicitud en la computadora.</p>`;
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => { const t = e.target.closest('[data-t]'); if (t) { tab = t.dataset.t; render(); } });
+  document.getElementById('buscar').onclick = () => {
+    const ov = L.sheet(`<div style="padding:16px;display:flex;flex-direction:column;gap:12px"><div class="row"><b class="grow">Buscar solicitud</b><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div><label class="search"><span class="sr">Buscar</span>${L.icon('search')}<input class="inp" id="mq" placeholder="Número o proyecto" value="${L.esc(q)}"></label><button class="btn pri block" id="mgo">Buscar</button></div>`, { label: 'Buscar' });
+    ov.querySelector('#mgo').onclick = () => { q = ov.querySelector('#mq').value.trim(); ov.remove(); render(); };
+  };
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

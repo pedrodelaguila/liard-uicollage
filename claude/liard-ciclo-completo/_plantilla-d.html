@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Plantilla de escritorio · liard</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="h1"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Regional Cañuelas · Pabellón B"
+      data-title="Hospital Regional Cañuelas · Pabellón B" data-sub="Constructora Ribera S.A. · entrega 20/11/2026">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="tabla"><button data-vista="tabla">Tabla</button><button data-vista="visual">Visual</button></div>
+  <button class="btn out" data-icon="tag">Marcas del proyecto</button>
+  <button class="btn pri" id="go" data-icon="send">Pedir cotización</button>
+</div>
+<main id="page">
+  <div class="kpis"><div class="kpi"><b>18</b><span>Componentes</span></div><div class="kpi ok"><b>3/7</b><span>Tableros listos</span></div><div class="kpi warn"><b>3</b><span>Sin identificar</span></div><div class="kpi bad"><b>3</b><span>Bloquean la cotización</span></div></div>
+  <div class="card"><div class="card-h"><div class="card-ico" data-icon="table-2"></div><div><h3>BOM consolidado</h3><div class="sub">Plantilla del contrato compartido</div></div><div class="r"><span class="tag-nuevo">Nuevo</span><span class="ai-tag" data-icon="sparkles">IA</span></div></div>
+    <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl bom" id="t"><thead><tr><th>Material / Especificación</th><th>Origen</th><th>Estado</th><th class="r">A comprar</th></tr></thead><tbody></tbody></table></div></div>
+  <div class="note warn"><span data-icon="triangle-alert"></span><div><b>3 líneas bloquean la cotización</b>Completá el atributo esencial o elegí un componente base.</div></div>
+</main>
+<script src="icons.js"></script><script src="data.js"></script>
+<script>
+window.MOCK = { init() {
+  const ORG = { det: 'Detectado', inf: 'Inferido', reg: 'Por regla', man: 'Manual' };
+  const ST = { ready: ['ok','circle-check','Lista'], warning: ['wa','circle-alert','Con reparos'], blocked: ['er','triangle-alert','Bloquea'] };
+  document.querySelector('#t tbody').innerHTML = L.get('lineas').slice(0, 8).map(l => `<tr class="${l.estado==='blocked'?'warn':''}"><td><span class="mat">${L.esc(l.mat)}</span><span class="spec">${L.esc(l.spec)}${l.marca?' · '+L.esc(l.marca):''}</span></td><td><span class="org ${l.org}">${ORG[l.org]}</span></td><td><span class="st ${ST[l.estado][0]}">${L.icon(ST[l.estado][1])}${ST[l.estado][2]}</span></td><td class="r qty">${L.num(l.comprar)} ${l.u}</td></tr>`).join('');
+  document.getElementById('go').onclick = () => L.dialog({ title: 'Pedir cotización', desc: 'Se envía a 4 distribuidores.', icon: 'send', body: '<div class="field"><label>Vence</label><input class="inp" type="date" value="2026-10-03"></div>', actions: [{ t: 'Cancelar' }, { t: 'Enviar', fn: () => L.toast('Solicitud enviada', { desc: '4 distribuidores · vence 03/10' }) }] });
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

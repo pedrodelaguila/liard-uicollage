@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Inicio · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css">
+</head>
+<body data-role="ing" data-active="inicio" data-h="h1" data-title="Inicio" data-sub="Lo que te toca hoy, en qué etapa está cada obra y qué se está trabando.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="ingenieria" aria-label="Ver como"><button data-vista="ingenieria">Ingeniería</button><button data-vista="compras">Compras</button><button data-vista="direccion">Dirección</button></div>
+  <button class="btn ai" data-href="d-pla-asistente.html" data-icon="sparkles">Preguntale al asistente</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+// Quién mira la pantalla según la vista (mismos datos para todos)
+(function () {
+  const v = new URLSearchParams(location.search).get('vista') || 'ingenieria';
+  document.body.dataset.user = { ingenieria: 'martina', compras: 'sofia', direccion: 'hernan' }[v] || 'martina';
+})();
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  const vista = L.q('vista') || 'ingenieria', estado = L.q('estado');
+  const user = document.body.dataset.user;
+  P.boot();
+
+  if (estado === 'cargando') {
+    page.innerHTML = `<div class="grid4">${'<div class="skel" style="height:84px"></div>'.repeat(4)}</div>
+      <div class="split"><div class="skel" style="height:380px"></div><div class="skel" style="height:380px"></div></div>
+      <div class="skel" style="height:220px"></div><p class="muted" style="font-size:13px" role="status">Cargando tus pendientes…</p>`;
+    return;
+  }
+  if (estado === 'vacio') return vacio();
+
+  function todos() {
+    const f = P.faltantes(); const out = [];
+    const pedidos = L.get('pedidos') || [];
+    if (vista === 'ingenieria') {
+      f.error.forEach(p => out.push({ id: 'pl-' + p.id, i: 'triangle-alert', c: 'er', t: `${p.cod} no se pudo procesar`, d: 'La detección tardó más de 5 min (504): no se reintenta sola. Recortalo en zonas más chicas.', href: `d-ing-plano.html?plano=${p.id}`, b: 'Abrir el plano' }));
+      f.stale.forEach(p => out.push({ id: 'pl-' + p.id, i: 'circle-alert', c: 'wa', t: `${p.cod}: ${p.sinId} símbolos sin identificar`, d: 'Hasta resolverlos, sus cantidades no entran completas al BOM.', href: `d-ing-plano.html?plano=${p.id}`, b: 'Revisar' }));
+      f.bloquean.forEach(l => out.push({ id: 'ln-' + l.id, i: 'octagon-pause', c: 'er', t: `${l.mat} · ${l.spec}`, d: l.motivo || 'Bloquea la cotización', href: `d-bom-editor.html?linea=${l.id}`, b: 'Completar', mono: l.id }));
+      f.proc.forEach(p => out.push({ id: 'pc-' + p.id, i: 'refresh-cw', c: 'pr', t: `${p.cod} en la cola de procesamiento`, d: 'Se suma solo al BOM cuando termina. No hace falta esperar acá.', href: 'd-pla-estado.html', b: 'Ver la cola' }));
+    } else if (vista === 'compras') {
+      pedidos.forEach(pd => pd.ordenes.forEach(o => {
+        if (o.status === 'SENT') out.push({ id: 'oc-' + o.id, i: 'clock', c: 'wa', t: `${o.id} · ${P.prov(o.prov)} sin respuesta`, d: `${o.lineas} líneas · ${L.ars(o.total)} +IVA · vence ${L.fecha(o.vence)}. Ya salió un recordatorio automático.`, href: 'd-com-pedidos.html', b: 'Ver pedido', mono: P.proy(pd.proyecto).n.split(' · ')[0] });
+        if (o.status === 'EXPIRED') out.push({ id: 'oc-' + o.id, i: 'clock-alert', c: 'er', t: `${o.id} venció sin respuesta`, d: `${P.prov(o.prov)} · ${o.lineas} líneas sin adjudicar en ${P.proy(pd.proyecto).n}`, href: 'd-com-recotizar.html', b: 'Reasignar' });
+      }));
+      const a2 = (L.get('avisos') || []).find(a => a.id === 'a2'); if (a2) out.push({ id: 'av-a2', i: 'repeat', c: 'vi', t: a2.t, d: a2.d, href: a2.href, b: 'Responder' });
+      const p1 = pedidos.find(p => p.proyecto === 'p1'); if (p1 && p1.sinAsignar) out.push({ id: 'sa-p1', i: 'octagon-pause', c: 'er', t: `${p1.sinAsignar} líneas del Hospital Cañuelas sin adjudicar`, d: 'Bloquean la cotización en el BOM: no tienen oferta posible todavía.', href: 'd-pla-asistente.html?modo=revision', b: 'Qué falta' });
+      (L.get('proveedores') || []).filter(p => P.dias('2026-10-01', p.act) > 30).forEach(p => out.push({ id: 'ls-' + p.id, i: 'clock-alert', c: 'wa', t: `Lista de ${p.n} con ${P.dias('2026-10-01', p.act)} días`, d: 'Precios del ' + L.fecha(p.act) + '. Se le pidió actualización automáticamente hoy a las 07:00.', href: 'd-com-recotizar.html', b: 'Recotizar' }));
+    } else {
+      (L.get('x.pla.aprobaciones') || []).filter(a => a.estado === 'pendiente').forEach(a => out.push({ id: 'ap-' + a.id, i: 'stamp', c: 'wa', t: a.t, d: `${a.d} · pide ${P.u(a.pide).n}`, ap: a.id, b: 'Aprobar' }));
+      const c = P.consumo(); if (c.enAviso) out.push({ id: 'ia', i: 'gauge', c: c.enTope ? 'er' : 'wa', t: `Consumo de IA al ${L.pct(c.pct * 100)}`, d: `${L.usd(c.usadoUsd)} de ${L.usd(c.topeUsd)}`, href: 'd-pla-plan.html', b: 'Ver consumo' });
+      out.push({ id: 'mg-p3', i: 'trending-down', c: 'er', t: 'Planta Norte pierde margen: 14,2 % contra 19 % presupuestado', d: 'La OC vencida en Casa Volta obligó a comprar más caro.', href: 'd-com-presupuesto.html', b: 'Ver presupuesto' });
+      const fr = (L.get('tableros') || []).filter(t => t.estado === 'frenado');
+      fr.forEach(t => out.push({ id: 'tb-' + t.id, i: 'octagon-pause', c: 'er', t: `${t.cod} frenado en el taller`, d: `Falta: ${((L.get('lineas') || []).find(l => l.id === t.frena)?.mat || 'un material').toLowerCase()} · avance ${t.avance} %`, href: 'd-tal-taller.html', b: 'Ver taller' }));
+    }
+    return out;
+  }
+
+  function render() {
+    const hecho = L.get('x.pla.hecho') || [];
+    const list = todos();
+    const pend = list.filter(t => !hecho.includes(t.id));
+    const c = P.consumo();
+    const avisos = (L.get('avisos') || []).slice(0, 5);
+    const leidos = L.get('x.pla.leidos') || [];
+    const titulo = { ingenieria: 'Ingeniería', compras: 'Compras', direccion: 'Dirección' }[vista];
+    page.innerHTML = `
+      ${vista === 'direccion' ? direccion() : ''}
+      <div class="split">
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-todo')}</div><div><h3>Lo que te toca hoy</h3><div class="sub">${titulo} · ${L.esc(P.u(user).n)} · ${pend.length} de ${list.length} pendientes</div></div><div class="r"><span class="tag-nuevo">Nuevo</span></div></div>
+          <div>${list.length ? list.map(t => `<div class="pla-todo ${hecho.includes(t.id) ? 'done' : ''}" data-id="${t.id}">
+              <span class="ti ${t.c}">${L.icon(t.i)}</span>
+              <div class="grow"><b>${L.esc(t.t)}${t.mono ? ` <span class="bdg mono">${L.esc(t.mono)}</span>` : ''}</b><small>${L.esc(t.d)}</small></div>
+              <div class="row gap8">${t.ap ? `<button class="btn sm pri" data-aprobar="${t.ap}">${L.icon('stamp')}Aprobar</button><button class="btn sm out" data-href="d-pla-equipo.html?vista=aprobaciones">Ver</button>` : `<button class="btn sm out" data-href="${t.href}">${L.esc(t.b)}${L.icon('arrow-right')}</button>`}
+              <button class="btn icon sm ghost" data-hecho="${t.id}" aria-label="${hecho.includes(t.id) ? 'Volver a pendiente' : 'Marcar como hecho'}" title="${hecho.includes(t.id) ? 'Volver a pendiente' : 'Marcar como hecho'}">${L.icon(hecho.includes(t.id) ? 'undo-2' : 'check')}</button></div></div>`).join('')
+            : `<div class="empty"><div class="e-ico">${L.icon('check-check')}</div><h3>No te queda nada para hoy</h3><p>Cuando algo se trabe en tus obras, aparece acá con el botón para destrabarlo.</p></div>`}</div></div>
+        <div class="col gap16">
+          <div class="card"><div class="card-h"><div class="card-ico">${L.icon('bell')}</div><div><h3>Avisos</h3><div class="sub">${avisos.filter(a => !leidos.includes(a.id)).length} sin leer · de todas las áreas</div></div><div class="r"><button class="btn xs ghost" id="leer">${L.icon('check-check')}Marcar leídos</button></div></div>
+            <div class="list">${avisos.map(a => `<a class="li" href="${a.href || '#'}" data-av="${a.id}"><span class="st ${a.tipo}" style="width:28px;padding:0;justify-content:center">${L.icon(a.i || 'bell')}</span><div class="grow"><div class="t">${leidos.includes(a.id) ? '' : '<span class="dot pr" style="margin-right:6px;vertical-align:1px" title="Sin leer"></span>'}${L.esc(a.t)}</div><div class="d">${L.esc(a.d || '')} · ${L.esc(a.cuando || '')}</div></div></a>`).join('')}</div>
+            <div class="card-b" style="border-top:1px solid var(--border);padding:10px 20px"><button class="btn sm ghost" id="todos">${L.icon('inbox')}Ver todos los avisos</button></div></div>
+          <div class="card pad col" style="gap:10px"><div class="row"><span class="lbl">Consumo de IA · ${L.esc(c.mes)}</span><span class="tag-s5 ml-auto">Sprint 5</span></div>
+            <div class="row" style="align-items:baseline"><b class="mono" style="font-size:20px">${L.usd(c.usadoUsd)}</b><span class="muted" style="font-size:13px">de ${L.usd(c.topeUsd)} · ${L.pct(c.pct * 100)}</span></div>
+            ${P.medidor(c)}<div class="pla-scale"><span>0</span><span>aviso ${L.pct(c.aviso * 100)}</span><span>tope</span></div>
+            <a class="btn sm out" href="d-pla-plan.html">${L.icon('gauge')}Ver por área y por persona</a></div>
+        </div>
+      </div>
+      ${obras()}`;
+    page.querySelectorAll('[data-hecho]').forEach(b => b.onclick = () => {
+      const id = b.dataset.hecho; const ya = (L.get('x.pla.hecho') || []).includes(id);
+      L.update(s => { const h = s.x.pla.hecho; ya ? h.splice(h.indexOf(id), 1) : h.push(id); });
+      if (!ya) L.toast('Marcado como hecho', { type: 'success', desc: 'Si lo marcaste sin querer, deshacelo.', action: 'Deshacer', onAction: () => L.update(s => { const h = s.x.pla.hecho; h.splice(h.indexOf(id), 1); }) });
+    });
+    page.querySelectorAll('[data-aprobar]').forEach(b => b.onclick = () => aprobar(b.dataset.aprobar));
+    page.querySelector('#leer').onclick = () => { L.update(s => { s.x.pla.leidos = [...new Set([...(s.x.pla.leidos || []), ...(s.avisos || []).map(a => a.id)])]; }); L.toast('Avisos marcados como leídos', { type: 'success' }); };
+    page.querySelectorAll('[data-av]').forEach(a => a.addEventListener('click', () => L.update(s => { if (!s.x.pla.leidos.includes(a.dataset.av)) s.x.pla.leidos.push(a.dataset.av); })));
+    page.querySelector('#todos').onclick = todosAvisos;
+    page.querySelectorAll('[data-obra]').forEach(b => b.onclick = () => obraSheet(b.dataset.obra));
+    page.querySelectorAll('[data-dtab]').forEach(b => b.onclick = () => { L.set('x.pla.margenVista', b.dataset.dtab); });
+    L.fixLinks(page);
+  }
+
+  function aprobar(id) {
+    const a = L.get('x.pla.aprobaciones').find(x => x.id === id);
+    L.dialog({ title: 'Aprobar · ' + a.t, icon: 'stamp', desc: `Pide ${L.esc(P.u(a.pide).n)} · ${L.esc(a.cuando)}`,
+      body: `<p style="font-size:14px">${L.esc(a.d)}</p>${a.monto ? `<div class="row"><span class="lbl">Monto</span><b class="money ml-auto">${L.ars(a.monto)} +IVA</b></div>` : ''}<div class="field"><label for="nota">Nota para ${L.esc(P.u(a.pide).n.split(' ')[0])} (opcional)</label><textarea id="nota" class="inp" placeholder="Ej.: ok, pero pedí 30 días de validez"></textarea></div>`,
+      actions: [{ t: 'Rechazar', cls: 'dan', fn: () => decidir(a, 'rechazada') }, { t: 'Aprobar', icon: 'check', fn: () => decidir(a, 'aprobada') }] });
+  }
+  function decidir(a, est) {
+    L.update(s => { const x = s.x.pla.aprobaciones.find(y => y.id === a.id); x.estado = est; x.por = user; x.cuando = 'recién'; });
+    P.aviso({ t: `${P.u(user).n} ${est === 'aprobada' ? 'aprobó' : 'rechazó'}: ${a.t}`, d: a.d, i: est === 'aprobada' ? 'circle-check' : 'circle-x', tipo: est === 'aprobada' ? 'ok' : 'er', href: 'd-pla-equipo.html?vista=aprobaciones' });
+    L.toast(est === 'aprobada' ? 'Aprobado' : 'Rechazado', { type: est === 'aprobada' ? 'success' : 'warning', desc: `Le avisamos a ${P.u(a.pide).n}.` });
+  }
+
+  function todosAvisos() {
+    const av = L.get('avisos') || [];
+    L.sheet(`<div class="card-h"><div class="card-ico">${L.icon('bell')}</div><div><h3>Todos los avisos</h3><div class="sub">${av.length} avisos · los escriben todas las áreas</div></div><div class="r"><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div></div>
+      <div class="list" style="overflow:auto">${av.map(a => `<a class="li" href="${L.href(a.href || '#')}"><span class="st ${a.tipo}" style="width:28px;padding:0;justify-content:center">${L.icon(a.i || 'bell')}</span><div class="grow"><div class="t">${L.esc(a.t)}</div><div class="d">${L.esc(a.d || '')} · ${L.esc(a.cuando || '')}</div></div></a>`).join('')}</div>
+      <div class="card-b" style="margin-top:auto;border-top:1px solid var(--border)"><a class="btn sm out" href="${L.href('m-pla-avisos.html')}">${L.icon('smartphone')}Así se ven en el teléfono</a></div>`, { label: 'Todos los avisos' });
+  }
+
+  function etapaDe(p) { return (BP.etapaObra[p.id] || {}).etapa || 'Ingeniería'; }
+  function triPlanos(p) {
+    let c = p.planos;
+    if (p.id === 'p1') { const pl = L.get('planos') || []; const n = s => pl.filter(x => x.status === s).length; c = { total: pl.length, completed: n('COMPLETED'), processing: n('PROCESSING'), pending: n('PENDING'), error: n('ERROR'), stale: n('STALE') }; }
+    if (!c.total) return '<div class="tri"></div>';
+    const w = k => (c[k] / c.total * 100).toFixed(1) + '%';
+    return `<div class="tri" title="${c.completed} de ${c.total} planos listos"><i class="ok" style="width:${w('completed')}"></i><i class="pr" style="width:${w('processing')}"></i><i class="wa" style="width:${w('stale')}"></i><i class="er" style="width:${w('error')}"></i></div>`;
+  }
+  function ocsDe(p) { return (L.get('pedidos') || []).filter(x => x.proyecto === p.id).flatMap(x => x.ordenes); }
+  function obras() {
+    const pr = L.get('proyectos') || [];
+    const modo = L.get('x.pla.obrasVista') || 'etapas';
+    const card = p => { const ocs = ocsDe(p); const sent = ocs.filter(o => o.status === 'SENT').length;
+      return `<button class="pla-ob" data-obra="${p.id}" type="button"><b>${L.esc(p.n)}</b><small>${L.esc(p.cliente)}</small>${triPlanos(p)}
+        <div class="row"><small>${L.esc((BP.etapaObra[p.id] || {}).nota || '')}</small></div>
+        <div class="row wrap"><span class="bdg mono">${L.fechaCorta(p.entrega)}</span>${sent ? `<span class="bdg wa">${sent} OC en espera</span>` : ''}${p.estado === 'Requiere Atención' ? '<span class="bdg er">Requiere atención</span>' : ''}</div></button>`; };
+    const ciclo = BP.etapas.map(e => `<span>${e}</span>`).join(L.icon('chevron-right'));
+    const cuerpo = modo === 'tabla'
+      ? `<div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Obra</th><th>Etapa</th><th>Planos</th><th>OC</th><th class="r">Entrega</th><th class="r">Monto +IVA</th></tr></thead><tbody>${pr.map(p => { const ocs = ocsDe(p); return `<tr data-obra="${p.id}" style="cursor:pointer"><td><b>${L.esc(p.n)}</b><div class="muted">${L.esc(p.cliente)}</div></td><td>${etapaDe(p)}</td><td style="width:160px">${triPlanos(p)}</td><td class="mono">${ocs.length ? ocs.map(o => `<span class="ost ${o.status}">${P.ocSt[o.status]}</span>`).join(' ') : '—'}</td><td class="r mono">${L.fecha(p.entrega)}</td><td class="r money">${p.monto ? L.ars(p.monto) : '—'}</td></tr>`; }).join('')}</tbody></table></div>`
+      : `<div class="card-b"><div class="pla-stages">${BP.etapas.map(e => { const ps = pr.filter(p => etapaDe(p) === e); return `<div class="pla-stage"><header><span class="lbl">${e}</span><span class="cnt">${ps.length}</span></header>${ps.length ? ps.map(card).join('') : '<div class="pla-empty-col">Nada en esta etapa</div>'}</div>`; }).join('')}</div></div>`;
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('folder-kanban')}</div><div><h3>Obras por etapa del ciclo</h3><div class="pla-cycle">${ciclo}</div></div>
+      <div class="r"><span class="tag-nuevo">Nuevo</span><div class="seg" role="group" aria-label="Ver obras como"><button class="${modo === 'etapas' ? 'on' : ''}" data-ov="etapas">Por etapa</button><button class="${modo === 'tabla' ? 'on' : ''}" data-ov="tabla">Tabla</button></div></div></div>${cuerpo}</div>`;
+  }
+  page.addEventListener('click', e => { const b = e.target.closest('[data-ov]'); if (b) L.set('x.pla.obrasVista', b.dataset.ov); const m = e.target.closest('[data-mv]'); if (m) L.set('x.pla.margenVista', m.dataset.mv); });
+
+  function obraSheet(id) {
+    const p = P.proy(id); const ocs = ocsDe(p);
+    const tabs = id === 'p1' ? (L.get('tableros') || []) : [];
+    L.sheet(`<div class="card-h"><div class="card-ico">${L.icon('folder-kanban')}</div><div><h3>${L.esc(p.n)}</h3><div class="sub">${L.esc(p.cliente)} · entrega ${L.fecha(p.entrega)}</div></div><div class="r"><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div></div>
+      <div class="card-b col">
+        <div class="row"><span class="lbl">Etapa</span><b class="ml-auto">${etapaDe(p)}</b></div>${triPlanos(p)}
+        <div class="row"><span class="lbl">Monto del presupuesto</span><b class="money ml-auto">${p.monto ? L.ars(p.monto) + ' +IVA' : 'Sin presupuesto'}</b></div>
+        ${ocs.length ? `<div class="lbl">Órdenes de compra</div><div class="list" style="border:1px solid var(--border);border-radius:12px">${ocs.map(o => `<div class="li"><div class="grow"><div class="t mono">${o.id}</div><div class="d">${L.esc(P.prov(o.prov))} · ${o.lineas} líneas</div></div><span class="ost ${o.status}">${P.ocSt[o.status]}</span><b class="money">${L.ars(o.total)}</b></div>`).join('')}</div>` : ''}
+        ${tabs.length ? `<div class="lbl">Tableros en el taller</div>${tabs.map(t => `<div class="row"><b class="mono" style="width:90px">${t.cod}</b><div class="bar ${t.estado === 'frenado' ? 'bad' : 'ok'} grow"><i style="width:${t.avance}%"></i></div><span class="mono" style="font-size:12px;width:40px;text-align:right">${t.avance} %</span></div>`).join('')}` : ''}
+        <div class="row" style="margin-top:8px"><a class="btn pri" href="${L.href('d-ing-proyecto.html')}">${L.icon('arrow-right')}Abrir la obra</a><a class="btn out" href="${L.href('d-pla-asistente.html?modo=revision')}">${L.icon('sparkles')}Qué falta</a></div>
+      </div>`, { label: p.n });
+  }
+
+  function direccion() {
+    const pr = P.presupuesto();
+    const mg = BP.margenes.map(m => ({ ...m, est: m.p === 'p1' ? pr.margen : m.est, n: P.proy(m.p).n }));
+    const t = BP.taller; const tabs = L.get('tableros') || [];
+    const carga = t.asignadas / t.horasSemana;
+    const cv = BP.conversion; const tasa = cv.ganados / cv.enviados;
+    const c = P.consumo();
+    const conReal = mg.filter(m => m.real != null);
+    const realProm = conReal.reduce((a, m) => a + m.real, 0) / conReal.length;
+    const mv = L.get('x.pla.margenVista') || 'grafico';
+    const maxM = 0.3;
+    const grafico = `<div class="pla-legend" style="margin-bottom:6px"><span><i class="est"></i>Presupuestado</span><span><i class="real"></i>Real hasta hoy</span><span><i class="bajo"></i>Real 3 puntos o más debajo</span></div>
+      ${mg.map(m => `<div class="pla-hb"><span class="trunc" title="${L.esc(m.n)}">${L.esc(m.n.split(' · ')[0])}</span><div class="tr">${m.est != null ? `<i class="est" style="width:${(m.est / maxM * 100).toFixed(1)}%"></i>` : ''}${m.real != null ? `<i class="real ${m.est - m.real >= 0.03 ? 'bajo' : ''}" style="width:${(m.real / maxM * 100).toFixed(1)}%"></i>` : ''}</div><span class="v">${m.real != null ? L.pct(m.real * 100, 1) : 'sin compras'}</span></div>`).join('')}
+      <div class="pla-scale" style="margin-left:180px;margin-right:102px"><span>0 %</span><span>10 %</span><span>20 %</span><span>30 %</span></div>`;
+    const tabla = `<table class="tbl"><thead><tr><th>Obra</th><th class="r">Presupuestado</th><th class="r">Real</th><th class="r">Diferencia</th></tr></thead><tbody>${mg.map(m => `<tr><td>${L.esc(m.n)}</td><td class="r mono">${m.est != null ? L.pct(m.est * 100, 1) : '—'}</td><td class="r mono">${m.real != null ? L.pct(m.real * 100, 1) : '—'}</td><td class="r mono ${m.real != null && m.est - m.real >= 0.03 ? 'up' : ''}">${m.real != null && m.est != null ? (m.real - m.est >= 0 ? '+' : '−') + L.num(Math.abs(m.real - m.est) * 100, 1) + ' pts' : '—'}</td></tr>`).join('')}</tbody></table>`;
+    return `<div class="kpis">
+        <div class="kpi ${realProm < 0.18 ? 'warn' : ''}"><b>${L.pct(realProm * 100, 1)}</b><span>Margen real promedio</span><small>${conReal.length} obras con compras</small></div>
+        <div class="kpi ${carga > 0.85 ? 'warn' : ''}"><b>${L.pct(carga * 100)}</b><span>Carga del taller esta semana</span><small>${t.asignadas} de ${t.horasSemana} h · ${t.armadores} armadores</small></div>
+        <div class="kpi pri"><b>${L.pct(tasa * 100)}</b><span>Presupuestos ganados ${cv.anio}</span><small>${cv.ganados} de ${cv.enviados} · el sector: ${cv.sector}</small></div>
+        <div class="kpi ${c.enTope ? 'bad' : c.enAviso ? 'warn' : ''}"><b>${L.pct(c.pct * 100)}</b><span>Tope de IA usado</span><small>${L.usd(c.usadoUsd)} de ${L.usd(c.topeUsd)}</small></div>
+      </div>
+      <div class="grid2">
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('percent')}</div><div><h3>Margen presupuestado contra real</h3><div class="sub">Sin IVA · datos de ejemplo</div></div><div class="r"><span class="tag-h1">0–6 meses</span></div></div>
+          <div class="card-b"><div class="row" style="margin-bottom:10px"><span class="muted" style="font-size:12px">Real = lo comprado y las horas cargadas hasta hoy</span><div class="seg ml-auto" role="group" aria-label="Ver margen como"><button class="${mv === 'grafico' ? 'on' : ''}" data-mv="grafico">Gráfico</button><button class="${mv === 'tabla' ? 'on' : ''}" data-mv="tabla">Tabla</button></div></div>${mv === 'tabla' ? tabla : grafico}<p class="muted" style="font-size:12px;margin-top:8px">El Hospital Cañuelas toma el presupuesto del asistente (${L.pct(pr.margen * 100, 1)}): materiales al mejor precio + 3 líneas a precio de referencia + mano de obra.</p></div></div>
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('factory')}</div><div><h3>Carga del taller</h3><div class="sub">Horas asignadas esta semana</div></div><div class="r"><a class="btn sm out" href="d-tal-taller.html">Abrir taller</a></div></div>
+          <div class="card-b">${tabs.map(tb => { const h = t.horasPorTablero[tb.id] || 0; return `<div class="pla-hb"><span><b class="mono">${tb.cod}</b> ${tb.estado === 'frenado' ? '<span class="bdg er">frenado</span>' : `<span class="muted">${tb.estado}</span>`}</span><div class="tr"><i class="${tb.estado === 'frenado' ? 'real bajo' : ''}" style="width:${(h / 50 * 100).toFixed(1)}%"></i></div><span class="v">${h} h</span></div>`; }).join('')}
+            <div class="row" style="margin-top:10px"><span class="lbl">Libre</span><b class="mono">${t.horasSemana - t.asignadas} h</b><span class="muted" style="font-size:12px">· una obra nueva de este tamaño entra recién en ${L.fecha('2026-10-19')}</span></div></div></div>
+      </div>`;
+  }
+
+  function vacio() {
+    document.querySelector('.ph .sub').textContent = 'Tu empresa recién empieza: estos son los primeros pasos.';
+    const pasos = [
+      ['ok', 'Completá el perfil de la empresa', 'Tableros Delta S.R.L. · Ezeiza', null, 'Hecho'],
+      ['cur', 'Creá tu primer proyecto', 'Una obra con su comitente y fecha de entrega', 'd-ing-carga.html', 'Crear proyecto'],
+      ['', 'Subí la tabla de referencia y los planos', 'DXF o PDF, hasta 15 por vez. La tijera separa varios tableros de un mismo DXF', 'd-ing-carga.html', 'Subir'],
+      ['', 'Revisá los símbolos y el BOM', 'Lo que la detección no identificó queda marcado: nada entra sin que lo mires', null, null],
+      ['', 'Elegí tus distribuidores favoritos', 'Los que reciben tus pedidos de cotización', null, null],
+      ['', 'Invitá a tu equipo', 'Presupuesto, compras, taller y obra, cada uno con lo suyo', 'd-pla-equipo.html', 'Invitar'],
+    ];
+    page.innerHTML = `<div class="split">
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('flag')}</div><div><h3>Primeros pasos</h3><div class="sub">1 de 6 · te lleva unos 20 minutos con un plano a mano</div></div><div class="r"><span class="tag-nuevo">Nuevo</span></div></div>
+        <div class="card-b" style="padding-top:12px;padding-bottom:4px"><div class="bar ok"><i style="width:16.6%"></i></div></div>
+        <div class="pla-steps">${pasos.map(([c, t, d, h, b], i) => `<div class="pla-step ${c}"><span class="n">${c === 'ok' ? L.icon('check') : i + 1}</span><div><b style="font-size:14px">${t}</b><div class="muted" style="font-size:12.5px">${d}</div></div>${h ? `<button class="btn sm ${c === 'cur' ? 'pri' : 'out'}" data-href="${h}">${b}</button>` : c === 'ok' ? '<span class="st ok">Hecho</span>' : '<span class="muted" style="font-size:12px">Después</span>'}</div>`).join('')}</div></div>
+      <div class="col gap16">
+        <div class="card pad col"><span class="lbl">¿No tenés un plano a mano?</span><p style="font-size:14px">Probá con el ejemplo: un tablero seccional de 23 componentes, ya detectado, para ver el BOM, la cotización y el pedido de punta a punta.</p><button class="btn ai" id="demo">${L.icon('sparkles')}Abrir el proyecto de ejemplo</button><span class="muted" style="font-size:12px">No cuenta para el tope de IA: ya viene procesado.</span></div>
+        <div class="card pad col"><span class="lbl">Acá vas a ver</span>
+          <div class="row"><span class="ti">${L.icon('list-todo')}</span><span style="font-size:13px">Lo que te toca hoy, según tu rol</span></div>
+          <div class="row">${L.icon('folder-kanban')}<span style="font-size:13px">Cada obra en su etapa: ingeniería, presupuesto, compras, fabricación, obra</span></div>
+          <div class="row">${L.icon('bell')}<span style="font-size:13px">Avisos de los distribuidores, el taller y la obra</span></div></div>
+      </div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('folder-kanban')}</div><div><h3>Obras por etapa del ciclo</h3><div class="sub">Todavía no hay obras</div></div></div><div class="card-b"><div class="pla-stages">${BP.etapas.map(e => `<div class="pla-stage" style="min-height:110px"><header><span class="lbl">${e}</span><span class="cnt">0</span></header><div class="pla-empty-col">Nada en esta etapa</div></div>`).join('')}</div></div></div>`;
+    page.querySelector('#demo').onclick = () => L.toast('Proyecto de ejemplo creado', { type: 'success', desc: '«Ejemplo · Seccional tipo» con 1 plano y 18 líneas.', action: 'Abrir', onAction: () => L.go('d-ing-proyecto.html') });
+  }
+
+  L.on(render);
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

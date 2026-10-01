@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Aprender de las correcciones · liard</title>
+<link rel="stylesheet" href="ingenieria.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="h2" data-user="martina"
+  data-crumbs="Proyectos|d-ing-proyectos.html>Símbolos aprendidos"
+  data-title="Aprender de las correcciones" data-sub="Lo que corregís a mano en la revisión se puede recordar para el próximo plano del mismo cliente, de la misma familia o de toda la empresa. Nada se aplica sin que lo apruebes.">
+<div id="act">
+  <button class="btn out" id="exp" data-icon="download">Exportar diccionario</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const A = BI.aprendizaje; const estado = L.q('estado');
+  const usuarios = L.get('usuarios');
+  const ALC = { cliente: ['building-2', 'Este cliente'], familia: ['layers', 'Familia de planos'], empresa: ['factory', 'Toda la empresa'] };
+  const ui = { filtro: 'todas', q: '' };
+  const DIB = { girados: [2, 3] };
+  const CROP = { gv2: { x: 34.5, y: 38.9, w: 7, h: 15 }, txt: { x: 20.5, y: 10.5, w: 10.5, h: 10 }, rot: { x: 30, y: 86, w: 14, h: 6 } };
+  const cropDe = g => g.grupo === 'gv2-girado' ? CROP.gv2 : g.grupo === 'texto-corriente' ? CROP.txt : CROP.rot;
+
+  const reglas = () => I.priv('apr.reglas', A.diccionario);
+  const aceptadas = () => I.priv('apr.aceptadas', []);
+  const descartadas = () => I.priv('apr.descartadas', []);
+  const hist = () => I.priv('apr.hist', A.historial);
+  // Las correcciones hechas en d-ing-plano suman a la cuenta de cada patrón.
+  const veces = g => g.base + (I.priv('correcciones', []).filter(c => c.grupo === g.grupo).length);
+  const sugerencias = () => A.sugerencias.filter(g => !aceptadas().includes(g.id) && !descartadas().includes(g.id));
+
+  function chart() {
+    const d = A.precision; const W = 560, H = 210, px = 40, py = 22; const min = 88, max = 98;
+    const x = i => px + i * (W - px * 2) / (d.length - 1); const y = v => H - py - (v - min) / (max - min) * (H - py * 2);
+    const pts = d.map((p, i) => `${x(i)},${y(p.v)}`).join(' ');
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Precisión por mes, de ${L.pct(d[0].v, 1)} a ${L.pct(d[d.length - 1].v, 1)}">
+      ${[90, 92, 94, 96].map(v => `<line class="ax" x1="${px}" x2="${W - px}" y1="${y(v)}" y2="${y(v)}"/><text x="${px - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`).join('')}
+      <polygon class="ar" points="${x(0)},${H - py} ${pts} ${x(d.length - 1)},${H - py}"/>
+      <polyline class="ln" points="${pts}"/>
+      ${d.map((p, i) => `<circle class="pt" cx="${x(i)}" cy="${y(p.v)}" r="4"/><text x="${x(i)}" y="${H - 4}" text-anchor="middle">${p.m}</text><text class="vl" x="${x(i)}" y="${y(p.v) - 10}" text-anchor="middle">${L.num(p.v, 1)}</text>`).join('')}
+    </svg>`;
+  }
+  function tablaPrec() {
+    return `<table class="tbl"><thead><tr><th>Mes</th><th class="r">Planos</th><th class="r">Precisión</th><th class="r">Correcciones por plano</th></tr></thead><tbody>${A.precision.map(p => `<tr><td>${p.m} 2026</td><td class="r mono">${p.planos}</td><td class="r mono">${L.pct(p.v, 1)}</td><td class="r mono">${L.num(p.corr, 1)}</td></tr>`).join('')}</tbody></table>`;
+  }
+
+  function render() {
+    if (estado === 'vacio') {
+      page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('brain')}</div><h3>Todavía no hay nada para recordar</h3>
+        <p>Cuando corrijas el mismo símbolo de la misma forma tres veces o más, en planos del mismo cliente, aparece acá como sugerencia. Vos decidís si se recuerda y para quién.</p>
+        <div class="row gap8"><a class="btn pri" href="d-ing-plano.html?plano=tsbombas&vista=guiada">${L.icon('list-checks')}Revisar símbolos pendientes</a></div></div>
+        <div class="grid3" style="padding:0 24px 24px">${[['scan-search', '1 · Corregís', 'En la revisión del plano, resolvés un símbolo sin identificar o corregís uno mal leído.'], ['repeat', '2 · Se repite', 'Si hacés la misma corrección 3 veces en planos del mismo estudio, liard lo nota.'], ['brain', '3 · Lo aprobás', 'Elegís el alcance: este cliente, una familia de planos o toda la empresa. Se puede deshacer.']].map(([i, t, d]) => `<div class="note info">${L.icon(i)}<div><b>${t}</b>${d}</div></div>`).join('')}</div></div>`;
+      return;
+    }
+    const sg = sugerencias(); const rs = reglas();
+    const t = ui.q.toLowerCase();
+    const rf = rs.filter(r => (ui.filtro === 'todas' || r.alcance === ui.filtro) && (!t || (r.t + ' ' + r.a).toLowerCase().includes(t)));
+    const ult = A.precision[A.precision.length - 1], pri = A.precision[0];
+    page.innerHTML = `
+      <div class="kpis"><div class="kpi pri"><b>${rs.length}</b><span>Reglas activas</span><small>${rs.filter(r => r.alcance === 'empresa').length} valen para toda la empresa</small></div><div class="kpi warn"><b>${sg.length}</b><span>Sugerencias para revisar</span><small>de tus últimas revisiones</small></div><div class="kpi ok"><b>${L.pct(ult.v, 1)}</b><span>Precisión en septiembre</span><small>${L.pct(pri.v, 1)} en abril</small></div><div class="kpi"><b>${rs.reduce((a, r) => a + r.usos, 0)}</b><span>Veces que se aplicaron</span><small>correcciones que no hiciste</small></div></div>
+      <div class="split" style="grid-template-columns:minmax(0,1fr) 440px">
+        <div class="col gap24" style="min-width:0">
+          <section class="card" aria-label="Sugerencias"><div class="card-h"><div class="card-ico">${L.icon('repeat')}</div><div class="grow"><h3>Corregiste lo mismo varias veces</h3><div class="sub">Patrones que se repiten en tus revisiones. Ninguno se aplica hasta que lo apruebes.</div></div><span class="tag-h2">h2</span></div>
+            ${sg.length ? sg.map(g => `<div class="sgc"><div class="crop">${I.cropSvg(cropDe(g), DIB, 3)}</div>
+              <div class="col gap8"><div class="t">Corregiste <span class="count" style="font-size:16px">${veces(g)}</span> veces «${L.esc(g.t)}» <span class="arrow">${L.icon('arrow-right')}</span> ${L.esc(g.a)}</div>
+                <div class="muted" style="font-size:12px">${g.cliente === 'Toda la empresa' ? 'En planos de varios clientes' : `En planos de <b>${L.esc(g.cliente)}</b>`}: ${g.planos.map(p => `<span class="src">${L.esc(p)}</span>`).join(' ')}</div>
+                <div class="row wrap gap8"><button class="btn sm pri" data-ok="${g.id}">${L.icon('brain')}Recordarlo…</button><button class="btn sm out" data-ver="${g.id}">${L.icon('eye')}Ver las ${veces(g)} correcciones</button><button class="btn sm ghost" data-no="${g.id}">No, son casos distintos</button></div></div></div>`).join('')
+              : `<div class="empty" style="padding:28px"><div class="e-ico" style="background:#ecfdf5;color:var(--emerald-600)">${L.icon('circle-check')}</div><h3 style="font-size:var(--text-base)">No hay sugerencias nuevas</h3><p>Las próximas aparecen cuando repitas una corrección.</p></div>`}
+          </section>
+          <section class="card" aria-label="Diccionario de símbolos"><div class="card-h"><div class="card-ico">${L.icon('book-marked')}</div><div class="grow"><h3>Diccionario de símbolos</h3><div class="sub">Lo que la detección usa además de la tabla de referencia de cada obra.</div></div>
+              <div class="search" style="width:240px">${L.icon('search')}<input class="inp" id="q" placeholder="Buscar símbolo o material" aria-label="Buscar en el diccionario" value="${L.esc(ui.q)}" style="height:32px"></div></div>
+            <div style="padding:12px 20px 0" class="chips">${[['todas', 'Todas'], ['cliente', 'Por cliente'], ['familia', 'Por familia'], ['empresa', 'Toda la empresa']].map(([k, t]) => `<button class="chip ${ui.filtro === k ? 'on' : ''}" data-f="${k}">${t} <small>${k === 'todas' ? rs.length : rs.filter(r => r.alcance === k).length}</small></button>`).join('')}</div>
+            <div style="padding:12px 0 0"><table class="tbl"><thead><tr><th>Cuando ve…</th><th>Lo toma como…</th><th>Alcance</th><th class="r">Usos</th><th>Desde</th><th class="r"><span class="sr">Acciones</span></th></tr></thead><tbody>
+              ${rf.map(r => { const u = usuarios[r.por]; return `<tr><td><b style="font-size:var(--text-xs)">${L.esc(r.t)}</b></td><td style="font-size:var(--text-xs)">${L.esc(r.a)} <span class="org reg">Por regla</span></td>
+                <td><span class="bdg">${L.icon(ALC[r.alcance][0])}${r.alcance === 'cliente' ? L.esc(r.cliente) : r.alcance === 'familia' ? L.esc(r.familia) : 'Toda la empresa'}</span></td>
+                <td class="r mono">${r.usos}</td><td class="mono" style="font-size:12px">${L.fecha(r.desde)}<div class="muted row gap4" style="font-family:var(--sans)"><span class="av xs ${u.c}">${u.ini}</span>${L.esc(u.n.split(' ')[0])}</div></td>
+                <td class="r"><button class="btn icon sm ghost" data-ed="${r.id}" aria-label="Cambiar el alcance de ${L.esc(r.t)}">${L.icon('pencil')}</button><button class="btn icon sm ghost" data-del="${r.id}" aria-label="Olvidar ${L.esc(r.t)}">${L.icon('trash-2')}</button></td></tr>`; }).join('') || `<tr><td colspan="6" class="muted" style="text-align:center;padding:24px">Ninguna regla con ese filtro</td></tr>`}
+            </tbody></table></div></section>
+        </div>
+        <div class="col gap16">
+          <section class="card" aria-label="Precisión"><div class="card-h"><div class="card-ico">${L.icon('trending-up')}</div><div class="grow"><h3>Precisión de la detección</h3><div class="sub">Símbolos que no hubo que corregir, por plano</div></div></div>
+            <div style="padding:12px 20px 0"><div class="seg" role="tablist"><button class="on" data-pv="graf" aria-label="Ver gráfico">Gráfico</button><button data-pv="tabla" aria-label="Ver tabla">Tabla</button></div></div>
+            <div class="card-b" id="prec">${chart()}</div>
+            <div style="padding:0 20px 16px" class="muted"><span style="font-size:12px">Correcciones por plano: <b class="mono">${L.num(pri.corr, 1)}</b> en abril → <b class="mono">${L.num(ult.corr, 1)}</b> en septiembre. Parte de la mejora viene del diccionario y parte del modelo; no se separan todavía.</span></div></section>
+          <section class="card" aria-label="Historial"><div class="card-h"><div class="card-ico">${L.icon('list-clock')}</div><h3>Historial</h3></div>
+            <div class="list">${hist().map(h => `<div class="li"><div class="grow"><div class="t" style="font-size:var(--text-xs)">${L.esc(h.t)}</div><div class="d">${L.esc(h.d)} · ${L.fecha(h.cuando)}</div></div>${h.undo ? `<button class="btn xs ghost" data-undo="${h.undo}">${L.icon('undo-2')}Deshacer</button>` : ''}</div>`).join('')}</div></section>
+          <div class="note info">${L.icon('shield-check')}<div><b>Lo que no hace</b>No inventa materiales ni toca la cantidad «a comprar» por su cuenta: solo reconoce símbolos y los marca como «por regla» para que se vea de dónde salió.</div></div>
+        </div></div>`;
+    bind();
+  }
+  function recordar(g) {
+    const ov = L.dialog({ title: 'Recordar esta corrección', icon: 'brain', desc: `«${L.esc(g.t)}» → <b>${L.esc(g.a)}</b>`,
+      body: `<div class="scope" role="radiogroup" aria-label="Alcance">
+        <label><input type="radio" name="alc" value="cliente" checked><span><b>Solo planos de ${L.esc(g.cliente === 'Toda la empresa' ? 'Constructora Ribera S.A.' : g.cliente)}</b><small>El estudio dibuja siempre así. Recomendado.</small></span></label>
+        <label><input type="radio" name="alc" value="familia"><span><b>Familia de planos: tableros de bombas</b><small>Cualquier cliente, solo en tableros con «BOMBA» en el nombre.</small></span></label>
+        <label><input type="radio" name="alc" value="empresa"><span><b>Toda la empresa</b><small>Vale para todos los proyectos y todos los ingenieros.</small></span></label></div>
+        <label class="check" style="font-size:var(--text-xs)"><input type="checkbox" id="retro" checked>Aplicar también a los planos de este cliente que ya están procesados (${g.planos.length})</label>
+        <div class="note warn" style="padding:10px 12px">${L.icon('info')}<div>Cada vez que se aplique queda marcado como «por regla» en el plano y en el BOM, y lo podés deshacer desde el historial.</div></div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Recordarlo', icon: 'check', fn: () => {
+        const alc = ov.querySelector('input[name=alc]:checked').value; const retro = ov.querySelector('#retro').checked;
+        L.update(st => { st.x ??= {}; st.x.ing ??= {}; const a = st.x.ing.apr ??= {};
+          a.aceptadas = (a.aceptadas || []).concat(g.id);
+          a.reglas = [{ id: 'r' + g.id, t: g.t, a: g.a, alcance: alc, cliente: 'Constructora Ribera S.A.', familia: 'Tableros de bombas', usos: retro ? g.planos.length : 0, desde: st.HOY, por: 'martina', ultimo: st.HOY }].concat(a.reglas || A.diccionario);
+          a.hist = [{ id: 'h' + Date.now(), t: `Martina creó «${g.t}»`, d: `${ALC[alc][1]}${retro ? ` · aplicada a ${g.planos.length} planos ya procesados` : ''}`, por: 'martina', cuando: st.HOY, undo: g.id }].concat(a.hist || A.historial);
+          st.avisos.unshift({ id: 'ai' + Date.now(), t: 'Nueva regla de símbolos', d: `«${g.t}» · ${ALC[alc][1].toLowerCase()}`, i: 'brain', tipo: 'pr', cuando: 'recién', href: 'd-ing-aprendizaje.html' }); });
+        L.toast('Lo vamos a recordar', { desc: `${ALC[alc][1]}${retro ? ` · ${g.planos.length} planos actualizados` : ''}`, action: 'Deshacer', onAction: () => deshacer(g.id) });
+      } }] });
+  }
+  function deshacer(gid) {
+    L.update(st => { const a = st.x.ing.apr; a.aceptadas = a.aceptadas.filter(x => x !== gid); a.reglas = a.reglas.filter(r => r.id !== 'r' + gid); a.hist = a.hist.filter(h => h.undo !== gid); });
+    L.toast('Regla deshecha', { type: 'info', desc: 'Vuelve a la lista de sugerencias.' });
+  }
+  function bind() {
+    page.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => recordar(A.sugerencias.find(g => g.id === b.dataset.ok)));
+    page.querySelectorAll('[data-no]').forEach(b => b.onclick = () => { const id = b.dataset.no; L.update(st => { st.x ??= {}; st.x.ing ??= {}; const a = st.x.ing.apr ??= {}; a.descartadas = (a.descartadas || []).concat(id); }); L.toast('No se va a sugerir más', { type: 'info', action: 'Deshacer', onAction: () => L.update(st => { st.x.ing.apr.descartadas = st.x.ing.apr.descartadas.filter(x => x !== id); }) }); });
+    page.querySelectorAll('[data-ver]').forEach(b => b.onclick = () => { const g = A.sugerencias.find(x => x.id === b.dataset.ver); const mias = I.priv('correcciones', []).filter(c => c.grupo === g.grupo);
+      L.sheet(`<div class="card-h"><div class="card-ico">${L.icon('list-checks')}</div><div class="grow"><h3>${veces(g)} correcciones iguales</h3><div class="sub">${L.esc(g.t)}</div></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+        <div class="list">${g.planos.map((p, i) => `<div class="li"><div class="crop" style="width:72px;height:52px">${I.cropSvg(cropDe(g), DIB, 3)}</div><div class="grow"><div class="t" style="font-size:var(--text-xs)">${L.esc(p)}</div><div class="d">${['Martina', 'Lucas', 'Martina', 'Martina'][i % 4]} · ${['28/09', '17/09', '02/09', '21/08'][i % 4]}/2026</div></div></div>`).join('')}
+        ${mias.map(c => `<div class="li"><div class="crop" style="width:72px;height:52px">${I.cropSvg(cropDe(g), DIB, 3)}</div><div class="grow"><div class="t" style="font-size:var(--text-xs)">TS-BOMBAS · Hospital Cañuelas</div><div class="d">Martina · recién · ${c.via === 'ia' ? 'aceptada de la IA' : c.via === 'guiada' ? 'revisión guiada' : 'a mano'}</div></div><span class="tag-nuevo">hoy</span></div>`).join('')}</div>`, { label: 'Correcciones' }); });
+    page.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { ui.filtro = b.dataset.f; render(); });
+    const q = page.querySelector('#q'); q.oninput = () => { ui.q = q.value; const p = q.selectionStart; render(); const n = page.querySelector('#q'); n.focus(); n.setSelectionRange(p, p); };
+    page.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { const r = reglas().find(x => x.id === b.dataset.del); L.dialog({ title: `Olvidar «${r.t}»`, icon: 'trash-2', desc: `Se aplicó ${r.usos} veces. Los planos ya procesados no cambian; los próximos lo van a marcar como sin identificar.`, actions: [{ t: 'Cancelar' }, { t: 'Olvidar', cls: 'dan', fn: () => { L.update(st => { st.x ??= {}; st.x.ing ??= {}; const a = st.x.ing.apr ??= {}; a.reglas = (a.reglas || A.diccionario).filter(x => x.id !== r.id); a.hist = [{ id: 'h' + Date.now(), t: `Martina olvidó «${r.t}»`, d: `Se había aplicado ${r.usos} veces`, por: 'martina', cuando: st.HOY }].concat(a.hist || A.historial); }); L.toast('Regla olvidada', { type: 'info' }); } }] }); });
+    page.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => { const r = reglas().find(x => x.id === b.dataset.ed); const ov = L.dialog({ title: 'Cambiar el alcance', icon: 'pencil', desc: L.esc(r.t), body: `<div class="scope">${Object.entries(ALC).map(([k, [, t]]) => `<label><input type="radio" name="ea" value="${k}" ${r.alcance === k ? 'checked' : ''}><span><b>${t}</b></span></label>`).join('')}</div>`, actions: [{ t: 'Cancelar' }, { t: 'Guardar', fn: () => { const v = ov.querySelector('input[name=ea]:checked').value; L.update(st => { st.x ??= {}; st.x.ing ??= {}; const a = st.x.ing.apr ??= {}; a.reglas = (a.reglas || A.diccionario).map(x => x.id === r.id ? { ...x, alcance: v, cliente: x.cliente || 'Constructora Ribera S.A.', familia: x.familia || 'Tableros de bombas' } : x); }); L.toast('Alcance actualizado', { desc: ALC[v][1] }); } }] }); });
+    page.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => deshacer(b.dataset.undo));
+    page.querySelectorAll('[data-pv]').forEach(b => b.onclick = () => { page.querySelectorAll('[data-pv]').forEach(x => x.classList.toggle('on', x === b)); page.querySelector('#prec').innerHTML = b.dataset.pv === 'graf' ? chart() : tablaPrec(); });
+  }
+  document.getElementById('exp').onclick = () => L.toast('Diccionario exportado', { desc: 'simbolos-tableros-delta.csv · ' + reglas().length + ' reglas' });
+  L.on(() => { if (document.activeElement?.id !== 'q') render(); });
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

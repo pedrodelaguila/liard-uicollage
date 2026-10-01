@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Plan y consumo · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css">
+</head>
+<body data-role="ing" data-active="plan" data-user="hernan" data-h="s5"
+  data-title="Plan, suscripción y consumo de IA" data-sub="Lo que paga Tableros Delta por usar liard y cuánto se gasta en IA, con un tope que no corta nada a la mitad.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="consumo" aria-label="Sección"><button data-vista="consumo">Consumo de IA</button><button data-vista="plan">Plan y facturas</button></div>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  P.boot();
+  const vista = L.q('vista') || 'consumo', estado = L.q('estado');
+  const user = document.body.dataset.user;
+  if (estado === 'limite' && !L.get('x.pla.limiteOk')) L.update(s => { const k = s.consumoIA; const extra = k.topeUsd - k.usadoUsd; k.usadoUsd = k.topeUsd; k.areas[0].usd = Math.round((k.areas[0].usd + extra) * 100) / 100; k.porUsuario.forEach(pu => { pu.usd = BP.topeUsuario[pu.u]; }); s.x.pla.limiteOk = true; });
+  const hip = `<span class="bdg wa" title="Precios y topes sin validar con clientes">${L.icon('flask-conical')}hipótesis de precio</span>`;
+
+  function consumo() {
+    const c = P.consumo(); const cb = L.get('x.pla.corte') || 'manual';
+    const max = Math.max(...c.areas.map(a => a.usd));
+    const lim = c.enTope;
+    return `${lim ? `<div class="note bad">${L.icon('gauge')}<div><b>Se alcanzó el tope de IA de ${L.esc(c.mes)}: ${L.usd(c.topeUsd)}</b>Desde ahora no se manda nada nuevo a la IA. Lo que estaba en curso (el TS-UPS en detección) terminó: nada se cortó a la mitad. Todo lo que no es IA sigue igual: BOM, matching, cotización, pedidos.<div class="row" style="margin-top:8px"><button class="btn sm pri" id="subir">${L.icon('plus')}Subir el tope este mes</button><button class="btn sm out" data-href="d-pla-asistente.html?estado=limite">Cómo se ve el asistente</button></div></div></div>`
+        : c.enAviso ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>Ya se usó el ${L.pct(c.pct * 100)} del tope del mes</b>Al ${L.pct(c.aviso * 100)} avisamos a Dirección y a cada persona. Quedan ${L.usd(c.resta)}: unos ${Math.floor(c.resta / 2.66)} planos medianos o ${Math.floor(c.resta / BP.costoAsistente)} consultas al asistente.</div></div>` : ''}
+      <div class="kpis">
+        <div class="kpi ${lim ? 'bad' : c.enAviso ? 'warn' : ''}"><b>${L.usd(c.usadoUsd)}</b><span>Usado en ${L.esc(c.mes.toLowerCase())}</span><small>${L.pct(c.pct * 100)} de ${L.usd(c.topeUsd)}</small></div>
+        <div class="kpi"><b>${L.usd(c.resta)}</b><span>Disponible</span><small>período 01/09 al 30/09 · cierra hoy</small></div>
+        <div class="kpi ok"><b>281</b><span>Líneas desde caché</span><small>no se volvieron a pagar · unos ${L.usd(281 * 0.0238)}</small></div>
+        <div class="kpi"><b>${L.ars(c.usadoUsd * L.get('cambio.dolarBNA'))}</b><span>En pesos al BNA ${L.num(L.get('cambio.dolarBNA'))}</span><small>incluido en el plan · sin IVA</small></div>
+      </div>
+      <div class="card pad col" style="gap:12px"><div class="row"><span class="lbl">Tope de la empresa · ${L.esc(c.mes)}</span><span class="tag-s5">Sprint 5</span>${hip}<button class="btn sm out ml-auto" id="tope">${L.icon('pencil')}Cambiar tope y aviso</button></div>
+        <div class="pla-meter ${lim ? 'bad' : c.enAviso ? 'warn' : ''}" style="--h:14px" role="img" aria-label="${L.pct(c.pct * 100)} del tope"><i style="width:${Math.min(100, c.pct * 100).toFixed(1)}%"></i><b class="pla-mark" style="left:${c.aviso * 100}%"></b></div>
+        <div class="pla-scale"><span>US$ 0</span><span>aviso al ${L.pct(c.aviso * 100)} · ${L.usd(c.avisoUsd)}</span><span>tope ${L.usd(c.topeUsd)}</span></div></div>
+      <div class="grid2">
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('layers')}</div><div><h3>Por área del flujo</h3><div class="sub">Dónde se usa la IA</div></div></div>
+          <div class="card-b">${c.areas.map(a => `<div class="pla-hb" style="grid-template-columns:200px 1fr 92px"><span><b style="font-size:13px">${L.esc(a.k)}</b><div class="muted" style="font-size:11.5px">${L.esc(a.n)}</div></span><div class="tr"><i style="width:${(a.usd / max * 100).toFixed(1)}%"></i></div><span class="v">${L.usd(a.usd)}</span></div>`).join('')}
+            <div class="note ok" style="margin-top:12px;font-size:12.5px">${L.icon('database')}<div><b>281 líneas desde caché: no se volvió a pagar</b>Cada texto de línea se lee una vez y se guarda (BomLineReading). Reprocesar un plano no vuelve a cobrar las líneas que ya conocíamos. <span class="tag-existe">existe</span></div></div>
+            <p class="muted" style="font-size:12px;margin-top:8px">La lectura de catálogos de los distribuidores la paga liard, no tu empresa.</p></div></div>
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('users')}</div><div><h3>Por persona</h3><div class="sub">Con tope propio · al 80 % le avisamos a cada uno</div></div></div>
+          <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Persona</th><th style="width:40%">Uso</th><th class="r">Usado</th><th class="r">Tope</th><th></th></tr></thead><tbody>
+          ${c.porUsuario.map(pu => { const t = (L.get('x.pla.topeU') || {})[pu.u] ?? BP.topeUsuario[pu.u]; const k = { pct: pu.usd / t, aviso: c.aviso }; k.enTope = pu.usd >= t; k.enAviso = k.pct >= c.aviso; return `<tr><td><div class="row" style="gap:8px">${P.av(pu.u, 'xs')}<span>${L.esc(P.u(pu.u).n)}</span></div></td><td>${P.medidor(k, { alto: 8 })}</td><td class="r money">${L.usd(pu.usd)}</td><td class="r money">${L.usd(t)}</td><td class="r"><button class="btn xs ghost" data-tu="${pu.u}" aria-label="Cambiar tope de ${L.esc(P.u(pu.u).n)}">${L.icon('pencil')}</button></td></tr>`; }).join('')}</tbody></table></div></div>
+      </div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('shield-check')}</div><div><h3>Qué pasa al llegar al tope</h3><div class="sub">Lo decidís vos; nada se corta a la mitad</div></div></div>
+        <div class="card-b grid3" style="gap:14px">
+          ${[['manual', 'Seguir en modo manual', 'Recomendado. No se manda nada nuevo a la IA; lo que estaba en curso termina. Los planos nuevos quedan en Pendiente para procesar el mes que viene o cuando subas el tope.', 'hand'],
+             ['aviso', 'Avisar y seguir hasta el 120 %', 'Le avisa a Dirección y deja pasar hasta US$ 24 más. Lo que exceda se cobra aparte en la próxima factura.', 'bell-ring'],
+             ['dir', 'Solo Dirección puede seguir', 'El resto queda en modo manual; Hernán puede procesar un plano urgente.', 'stamp']].map(([k, t, d, i]) => `<label class="pla-plan ${cb === k ? 'cur' : ''}" style="cursor:pointer"><span class="row"><input type="radio" name="corte" value="${k}" ${cb === k ? 'checked' : ''} style="accent-color:var(--primary)">${L.icon(i)}<b style="font-size:14px">${t}</b></span><span class="muted" style="font-size:12.5px">${d}</span></label>`).join('')}
+        </div></div>`;
+  }
+
+  function plan() {
+    const cur = L.get('x.pla.plan') || 'pro'; const pl = BP.planes.find(p => p.id === cur);
+    const bna = L.get('cambio.dolarBNA');
+    return `<div class="note info">${L.icon('flask-conical')}<div><b>Precios de ejemplo, sin validar</b>El Roadmap del Sprint 5 define dos ingresos: la suscripción de la empresa y una comisión al distribuidor por cada lead. Los montos de esta pantalla son hipótesis. Los materiales se pagan por fuera de liard: acá solo se factura la suscripción. ${hip}</div></div>
+      <div class="split" style="grid-template-columns:minmax(0,1fr) 400px">
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('badge-check')}</div><div><h3>Plan ${L.esc(pl.t)}</h3><div class="sub">${L.esc(L.get('empresa.n'))} · renueva el 01/11/2026</div></div><div class="r"><span class="tag-s5">Sprint 5</span></div></div>
+          <div class="card-b"><div class="pla-plans">${BP.planes.map(p => `<div class="pla-plan ${p.id === cur ? 'cur' : ''}"><div class="row"><b>${p.t}</b>${p.id === cur ? '<span class="bdg pri ml-auto">Tu plan</span>' : ''}</div>
+            <div class="pr">${p.usd ? L.usd(p.usd) : 'A medida'}<span class="muted" style="font:500 12px var(--sans)">${p.usd ? ' / mes +IVA' : ''}</span></div>
+            ${p.usd ? `<span class="muted mono" style="font-size:11.5px">≈ ${L.ars(p.usd * bna)} hoy</span>` : '<span class="muted" style="font-size:11.5px">Para más de 10 personas</span>'}
+            <ul><li>${p.usuarios ? 'Hasta ' + p.usuarios + ' personas' : 'Personas sin límite'}</li><li>${L.esc(p.planos)}</li><li>${p.ia ? 'IA incluida: ' + L.usd(p.ia) + ' por mes' : 'IA con tope a medida'}</li></ul>
+            ${p.id === cur ? '' : `<button class="btn sm ${p.usd ? 'out' : 'ghost'}" data-plan="${p.id}" style="margin-top:auto">${p.usd ? (p.usd < pl.usd ? 'Bajar a ' : 'Pasar a ') + p.t : 'Hablar con ventas'}</button>`}</div>`).join('')}</div>
+          <div class="grid3" style="margin-top:16px;gap:12px">
+            <div class="col" style="gap:4px"><span class="lbl">Personas</span><b class="mono">${BP.equipo.length + (L.get('x.pla.invitados') || []).length} de ${pl.usuarios || '—'}</b><div class="bar"><i style="width:${(BP.equipo.length + (L.get('x.pla.invitados') || []).length) / (pl.usuarios || 1) * 100}%"></i></div></div>
+            <div class="col" style="gap:4px"><span class="lbl">Planos este mes</span><b class="mono">23 de 150</b><div class="bar"><i style="width:15.3%"></i></div></div>
+            <div class="col" style="gap:4px"><span class="lbl">IA este mes</span><b class="mono">${L.usd(P.consumo().usadoUsd)} / ${L.num(P.consumo().topeUsd)}</b>${P.medidor(P.consumo(), { alto: 6 })}</div></div></div></div>
+        <div class="col gap16"><div class="card pad col" style="gap:10px"><span class="lbl">Forma de pago</span><div class="row">${L.icon('credit-card')}<span class="mono">Débito automático · CBU ···· 4417</span></div><p class="muted" style="font-size:12px">Se cobra en pesos al dólar BNA vendedor del día hábil anterior a la factura.</p><button class="btn sm out" id="pago">${L.icon('pencil')}Cambiar forma de pago</button></div>
+          <div class="card pad col" style="gap:10px"><span class="lbl">Datos de facturación</span><span style="font-size:13px">Tableros Delta S.R.L. · CUIT 30-71234567-8 · Responsable inscripto · Factura A</span><button class="btn sm ghost" id="fac">${L.icon('pencil')}Editar</button></div></div>
+      </div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('receipt')}</div><div><h3>Facturas</h3><div class="sub">Solo la suscripción · los materiales los pagás directo al distribuidor</div></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Factura</th><th>Período</th><th>Fecha</th><th class="r">US$ +IVA</th><th class="r">Dólar BNA</th><th class="r">Total en pesos con IVA</th><th>Estado</th><th></th></tr></thead><tbody>
+        ${BP.facturas.map(f => `<tr><td class="mono">${f.n}</td><td>${f.per}</td><td class="mono">${L.fecha(f.fecha)}</td><td class="r mono">${L.usd(f.usd)}</td><td class="r mono">${L.num(f.bna)}</td><td class="r money">${L.ars(f.usd * f.bna * 1.21)}</td><td><span class="st ok">${L.icon('circle-check')}${f.estado}</span></td><td class="r"><button class="btn xs ghost" data-pdf="${f.n}">${L.icon('download')}PDF</button></td></tr>`).join('')}</tbody></table></div></div>`;
+  }
+
+  function render() {
+    page.innerHTML = vista === 'plan' ? plan() : consumo();
+    L.fixLinks(page);
+    const $ = s => page.querySelector(s), $$ = s => page.querySelectorAll(s);
+    const c = P.consumo();
+    const topeDlg = () => L.dialog({ title: 'Tope de IA de la empresa', icon: 'gauge', desc: 'Lo cambia solo Dirección. Aplica desde ahora.',
+      body: `<div class="field"><label for="tv">Tope por mes (US$)</label><input id="tv" class="inp mono" value="${L.num(c.topeUsd, 2)}"><span class="help">Hoy usado: ${L.usd(c.usadoUsd)}. Si lo ponés por debajo, la IA queda en pausa hasta el mes que viene.</span></div><div class="field"><label for="ta">Avisar al</label><select id="ta" class="inp">${[0.7, 0.8, 0.9].map(v => `<option value="${v}" ${v === c.aviso ? 'selected' : ''}>${L.pct(v * 100)}</option>`).join('')}</select></div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Guardar', icon: 'check', fn: ov => { const i = ov.querySelector('#tv'); const v = parseFloat(i.value.replace(/\./g, '').replace(',', '.')); if (!(v > 0)) { i.classList.add('bad'); return false; } L.update(s => { s.consumoIA.topeUsd = v; s.consumoIA.aviso = +ov.querySelector('#ta').value; }); P.aviso({ t: 'Tope de IA cambiado a ' + L.usd(v), d: 'Por ' + P.u(user).n + ' · ' + L.get('consumoIA.mes'), i: 'gauge', tipo: 'pr', href: 'd-pla-plan.html' }); L.toast('Tope guardado', { desc: L.usd(v) + ' por mes' }); } }] });
+    const t = $('#tope'); if (t) t.onclick = topeDlg;
+    const sb = $('#subir'); if (sb) sb.onclick = topeDlg;
+    $$('[data-tu]').forEach(b => b.onclick = () => { const u = b.dataset.tu; const tv = (L.get('x.pla.topeU') || {})[u] ?? BP.topeUsuario[u]; L.dialog({ title: 'Tope de ' + P.u(u).n, icon: 'user', body: `<div class="field"><label for="tu">US$ por mes</label><input id="tu" class="inp mono" value="${L.num(tv, 2)}"></div>`, actions: [{ t: 'Cancelar' }, { t: 'Guardar', fn: ov => { const v = parseFloat(ov.querySelector('#tu').value.replace(',', '.')); if (!(v >= 0)) return false; L.update(s => { (s.x.pla.topeU ||= {})[u] = v; }); L.toast('Tope personal guardado'); } }] }); });
+    $$('input[name=corte]').forEach(r => r.onchange = () => { L.set('x.pla.corte', r.value); L.toast('Guardado', { desc: 'Así se comporta la IA al llegar al tope.' }); });
+    $$('[data-plan]').forEach(b => b.onclick = () => { const p = BP.planes.find(x => x.id === b.dataset.plan); if (!p.usd) return L.toast('Te contactamos', { type: 'info', desc: 'Un asesor escribe a hrossi@tablerosdelta.com.ar hoy.' }); const n = BP.equipo.length;
+      L.dialog({ title: 'Pasar al plan ' + p.t, icon: 'badge-check', desc: `${L.usd(p.usd)} por mes +IVA desde el 01/11/2026`, body: n > p.usuarios ? `<div class="note bad">${L.icon('users')}<div><b>Tienen ${n} personas y el plan admite ${p.usuarios}</b>Antes de bajar, quitá ${n - p.usuarios} personas en Equipo.</div></div>` : `<p style="font-size:14px">El cambio aplica en la próxima factura.</p>`,
+        actions: n > p.usuarios ? [{ t: 'Cerrar' }, { t: 'Ir a Equipo', fn: () => L.go('d-pla-equipo.html') }] : [{ t: 'Cancelar' }, { t: 'Confirmar cambio', fn: () => { L.set('x.pla.plan', p.id); L.toast('Plan cambiado', { desc: p.t + ' desde el 01/11' }); } }] }); });
+    $$('[data-pdf]').forEach(b => b.onclick = () => L.toast('Descargando ' + b.dataset.pdf, { type: 'info', desc: 'PDF de la factura A con el CAE de ARCA.' }));
+    const pg = $('#pago'); if (pg) pg.onclick = () => L.dialog({ title: 'Forma de pago', icon: 'credit-card', body: '<div class="field"><label for="cbu">CBU o alias</label><input id="cbu" class="inp mono" placeholder="tableros.delta.pagos"></div>', actions: [{ t: 'Cancelar' }, { t: 'Guardar', fn: ov => { if (!ov.querySelector('#cbu').value.trim()) { ov.querySelector('#cbu').classList.add('bad'); return false; } L.toast('Forma de pago actualizada'); } }] });
+    const fc = $('#fac'); if (fc) fc.onclick = () => L.toast('Datos de facturación', { type: 'info', desc: 'Se editan en Cuenta › Empresa.' });
+  }
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

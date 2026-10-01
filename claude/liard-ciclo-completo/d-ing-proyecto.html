@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Hospital Regional Cañuelas · liard</title>
+<link rel="stylesheet" href="ingenieria.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="existe" data-user="martina"
+  data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Regional Cañuelas · Pabellón B"
+  data-title="Hospital Regional Cañuelas · Pabellón B" data-sub="Constructora Ribera S.A. · entrega de tableros 20/11/2026">
+<div id="act">
+  <button class="btn out" id="marcas" data-icon="tag">Marcas del proyecto</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const estado = L.q('estado');
+  const ui = { filtro: 'Todos', q: '', sel: new Set(), qB: '' };
+  const FILTROS = [['Todos', null], ['Listos', 'COMPLETED'], ['En proceso', 'PROCESSING'], ['Pendientes', 'PENDING'], ['Errores', 'ERROR'], ['Por revisar', 'STALE']];
+
+  // Estado de la cola: privado del área (x.ing.cola) con la semilla de data-ingenieria.js.
+  const cola = () => I.priv('cola', BI.cola);
+  const setCola = c => L.set('x.ing.cola', c);
+  if (estado === 'error') {
+    // Fuerza la vista de error: TS-ASC con 504 y TS-UPS con 503 reintentándose.
+    const c = BI.cola.map(j => j.plano === 'tsups' ? { ...j, status: 'RETRY', codigo: 503, intento: 1, espera: 40 } : j);
+    L.set('x.ing.cola', c);
+  }
+
+  // Camino del proyecto: cada paso lee el estado de su área.
+  function camino() {
+    const pl = L.get('planos'); const c = I.conteo(pl); const lin = L.get('lineas');
+    const bloq = lin.filter(l => l.estado === 'blocked').length;
+    const ped = L.get('pedidos').find(p => p.proyecto === 'p1');
+    const conf = ped.ordenes.filter(o => o.status === 'CONFIRMED').length;
+    const tabs = L.get('tableros'); const fren = tabs.filter(t => t.estado === 'frenado').length;
+    const ent = tabs.filter(t => t.estado === 'entregado').length;
+    const pasos = [
+      { t: 'Planos', i: 'layers', href: '#planos', est: c.completed === c.total ? 'ok' : (c.error ? 'er' : 'wa'), d: `${c.completed}/${c.total} listos${c.error ? ` · ${c.error} con error` : ''}${pl.find(p => p.id === 'tsbombas').sinId ? ` · ${pl.find(p => p.id === 'tsbombas').sinId} sin identificar` : ''}`, v: c.completed / c.total, tag: 'existe' },
+      { t: 'BOM', i: 'table-2', href: 'd-bom-editor.html', est: bloq ? 'wa' : 'ok', d: `${lin.length} líneas${bloq ? ` · ${bloq} bloquean` : ' · todas cotizables'}`, v: (lin.length - bloq) / lin.length, tag: 'existe' },
+      { t: 'Cotización', i: 'scale', href: 'd-com-cotizacion.html', est: bloq ? 'wa' : 'ok', d: `${lin.length - bloq} de ${lin.length} con oferta · 4 distribuidores`, v: (lin.length - bloq) / lin.length, tag: 'existe' },
+      { t: 'Compra', i: 'shopping-cart', href: 'd-com-pedidos.html', est: conf === ped.ordenes.length ? 'ok' : 'pr', d: `${ped.id} · ${conf}/${ped.ordenes.length} OC confirmadas`, v: conf / ped.ordenes.length, tag: 'existe' },
+      { t: 'Taller', i: 'factory', href: 'd-tal-taller.html', est: fren ? 'er' : 'pr', d: `${tabs.length} tableros${fren ? ` · ${fren} frenado` : ''}`, v: tabs.reduce((a, t) => a + t.avance, 0) / tabs.length / 100, tag: 'h2' },
+      { t: 'Entrega', i: 'truck', href: 'd-tal-entregas.html', est: ent === tabs.length ? 'ok' : '', d: `${ent}/${tabs.length} entregados · 20/11`, v: ent / tabs.length, tag: 'h2' },
+    ];
+    const ico = { ok: 'circle-check', wa: 'circle-alert', er: 'triangle-alert', pr: 'refresh-cw', '': 'circle-dashed' };
+    return `<section class="card" aria-label="Camino del proyecto"><div class="card-h" style="padding:12px 18px"><span class="lbl grow">Camino del proyecto</span><span class="tag-h1">Propuesta</span><span class="muted" style="font-size:12px">Cada paso abre su pantalla · los números salen del estado de cada área</span></div>
+      <div class="camino">${pasos.map(p => `<a class="cam ${p.est}" href="${p.href}"><span class="ch">${L.icon(p.est ? ico[p.est] : p.i)}${p.t}${p.tag === 'existe' ? '' : `<span class="tag-${p.tag}" style="margin-left:auto">${p.tag}</span>`}</span><small>${L.esc(p.d)}</small><div class="bar ${p.est === 'ok' ? 'ok' : p.est === 'er' ? 'bad' : p.est === 'wa' ? 'warn' : ''}"><i style="width:${Math.round(p.v * 100)}%"></i></div></a>`).join('')}</div></section>`;
+  }
+
+  function refCard() {
+    return `<div class="card pad row" style="gap:16px"><div class="card-ico" style="width:52px;height:52px">${L.icon('file-code')}</div>
+      <div class="grow" style="min-width:0"><span class="lbl">Tabla de referencia</span><div class="mono trunc" style="font-weight:700;font-size:var(--text-sm)">referencias-simbolos-HRC.dxf</div>
+        <div class="row gap8" style="margin-top:4px"><span class="st ok" style="height:22px;font-size:12px">${L.icon('circle-check')}Activa</span><span class="muted" style="font-size:12px">31 materiales · actualizada 28/09/2026</span></div></div>
+      <button class="btn icon ghost" id="refver" aria-label="Ver tabla de referencia">${L.icon('eye')}</button><button class="btn icon ghost" id="refdl" aria-label="Descargar tabla de referencia">${L.icon('download')}</button><button class="btn icon ghost" id="refdel" aria-label="Eliminar tabla de referencia">${L.icon('trash-2')}</button>
+      <button class="btn out" id="refrep">${L.icon('refresh-cw')}Reemplazar</button></div>`;
+  }
+
+  function accion(p) {
+    if (p.status === 'PROCESSING') return `<span class="muted row gap8" style="font-size:var(--text-xs)">${L.icon('refresh-cw', 'spin')}Procesando</span>`;
+    if (p.status === 'ERROR') return `<button class="btn sm out" data-crop="${p.id}" title="Un 504 no se reintenta solo: recortalo en zonas">${L.icon('scissors')}Recortar en zonas</button>`;
+    if (p.status === 'PENDING') return `<button class="btn sm ghost" data-proc="${p.id}" style="color:var(--primary)">${L.icon('play')}Procesar</button>`;
+    if (p.sinId) return `<a class="chip-sim" href="d-ing-plano.html?plano=${p.id}">${L.icon('scan-search')}${p.sinId} ${p.sinId === 1 ? 'símbolo' : 'símbolos'} sin identificar</a>`;
+    return '';
+  }
+  function fila(p) {
+    const j = cola().find(x => x.plano === p.id);
+    const det = p.status === 'ERROR' ? `<div class="pd er clamp2" title="${L.esc(p.error)}">${L.esc(p.error)}</div>`
+      : p.status === 'PROCESSING' ? `<div class="pd">${j && j.status === 'RETRY' ? `Detector ocupado (503) · reintenta en ${j.espera} s · intento ${j.intento + 1} de ${j.max}` : `Procesando hace ${j ? j.desde : 4} min · faltan ${j ? j.eta.join('–') : '2–4'} min`}</div>`
+      : p.status === 'PENDING' ? `<div class="pd">${j && j.status === 'QUEUED' ? `En cola · posición ${j.pos}` : 'Sin procesar'} · ${p.fmt}${p.fmt === 'PDF' ? ' convertido a DXF' : ''}</div>`
+      : `<div class="pd">Actualizado ${L.fecha(p.act)} · ${p.comp} componentes</div>`;
+    return `<div class="prow ${ui.sel.has(p.id) ? 'sel' : ''}" data-row="${p.id}">
+      <input type="checkbox" class="check" ${ui.sel.has(p.id) ? 'checked' : ''} data-sel="${p.id}" aria-label="Seleccionar plano ${L.esc(p.cod)}" style="width:16px;height:16px;accent-color:var(--primary)">
+      ${I.badge(p.status)}
+      <div style="min-width:0"><div class="pn"><a class="trunc" href="d-ing-plano.html?plano=${p.id}" title="${L.esc(p.n)}">${L.esc(p.cod)} <span class="pnn">${L.esc(p.n)}</span></a>${p.mult > 1 ? `<button class="xn" data-mult="${p.id}" title="Se repite ${p.mult} veces en el cómputo del proyecto. Tocá para cambiarlo." aria-label="Editar repeticiones de ${L.esc(p.cod)}">×${p.mult}</button>` : ''}</div>${det}</div>
+      ${accion(p)}
+      <button class="btn icon sm ghost" data-menu="${p.id}" aria-label="Más opciones de ${L.esc(p.cod)}">${L.icon('ellipsis')}</button></div>`;
+  }
+
+  function colaCard() {
+    const c = cola(); const pl = L.get('planos');
+    const act = c.filter(j => ['RUNNING', 'QUEUED', 'RETRY'].includes(j.status));
+    const fin = c.filter(j => ['SUCCEEDED', 'FAILED', 'CANCELLED'].includes(j.status));
+    const cod = id => pl.find(p => p.id === id).cod;
+    const eta = act.reduce((a, j) => [a[0] + (j.eta ? j.eta[0] : 3), a[1] + (j.eta ? j.eta[1] : 5)], [0, 0]);
+    const ico = { RUNNING: ['pr', 'refresh-cw', 'spin'], QUEUED: ['', 'clock', ''], RETRY: ['pr', 'rotate-ccw', ''], SUCCEEDED: ['ok', 'circle-check', ''], FAILED: ['er', 'triangle-alert', ''], CANCELLED: ['', 'circle-slash', ''] };
+    const txt = j => ({
+      RUNNING: `Detectando · intento ${j.intento} de ${j.max} · ${j.desde} min`,
+      QUEUED: `En cola · posición ${j.pos}`,
+      RETRY: `Detector ocupado (503) · se reintenta solo en ${j.espera} s`,
+      SUCCEEDED: `Listo en ${L.num(j.dur, 1)} min`,
+      FAILED: j.codigo === 504 ? 'Tardó más de lo permitido (504) · no se reintenta solo' : 'Falló',
+      CANCELLED: 'Cancelado antes de arrancar',
+    })[j.status];
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-clock')}</div><div class="grow"><h3>Cola de procesamiento</h3><div class="sub">${act.length ? `${act.length} en curso · terminan en ${eta[0]}–${eta[1]} min` : 'Sin una tanda corriendo'}</div></div>
+      <div class="r"><span class="tag-s5">ETA y motivo · s5</span>${act.some(j => j.status === 'QUEUED') ? `<button class="btn sm out" id="cancel" title="Cancelar los planos que todavía no empezaron a procesarse">${L.icon('circle-slash')}Cancelar tanda</button>` : ''}</div></div>
+      ${act.length ? `<div style="padding:10px 18px 0"><div class="bar"><i style="width:${Math.round(c.filter(j => j.status === 'SUCCEEDED').length / c.length * 100)}%"></i></div></div>` : ''}
+      ${c.map(j => { const [cl, ic, sp] = ico[j.status]; return `<div class="qjob"><span class="qi ${cl}">${L.icon(ic, sp)}</span><div style="min-width:0"><b>${cod(j.plano)}</b> <span class="muted" style="font-size:12px">${txt(j)}</span>${j.nota && ['RUNNING', 'QUEUED', 'FAILED', 'RETRY'].includes(j.status) ? `<small>${L.esc(j.nota)}</small>` : ''}${j.status === 'RUNNING' ? `<div class="bar"><i style="width:${Math.round(j.desde / (j.desde + j.eta[1]) * 100)}%"></i></div>` : ''}${j.status === 'RETRY' ? '<div class="bar sheen"><i style="width:30%"></i></div>' : ''}</div>
+        <div>${j.status === 'FAILED' ? `<button class="btn xs out" data-crop="${j.plano}">${L.icon('scissors')}Recortar</button>` : j.status === 'QUEUED' ? `<button class="btn xs ghost" data-cq="${j.plano}">Sacar de la cola</button>` : ''}</div></div>`; }).join('')}
+      <div style="padding:10px 18px;border-top:1px solid var(--border)" class="muted"><span style="font-size:11.5px">Se procesan de a pocos por vez y por usuario: la cola es justa entre los ingenieros de la empresa. <span class="tag-existe">existe</span></span></div></div>`;
+  }
+
+  function bomCard() {
+    const lin = L.get('lineas'); const pl = L.get('planos'); const c = I.conteo(pl);
+    const sinId = pl.reduce((a, p) => a + p.sinId, 0); const proc = pl.some(p => p.status === 'PROCESSING');
+    const t = ui.qB.trim().toLowerCase();
+    const ls = lin.filter(l => !t || (l.mat + ' ' + l.spec + ' ' + (l.marca || '')).toLowerCase().includes(t));
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('table-2')}</div><div class="grow"><h3>BOM consolidado</h3><div class="sub">${lin.length} ítems en el cómputo global</div></div></div>
+      <div class="card-b col gap8" style="padding-bottom:12px"><div class="grid2" style="gap:8px"><button class="btn pri" data-href="d-bom-editor.html">${L.icon('sliders-horizontal')}Configurar BOM</button><button class="btn out" id="exp">${L.icon('download')}Exportar${L.icon('chevron-down')}</button></div>
+        ${proc ? `<div class="btn out block dis" aria-disabled="true" style="opacity:.7">${L.icon('refresh-cw', 'spin')}Procesando…</div>` : ''}
+        <div class="kpis"><div class="kpi"><b>${lin.length}</b><span>Componentes</span></div><div class="kpi"><b>${c.completed}/${c.total}</b><span>Tableros listos</span></div><div class="kpi ${sinId ? 'warn' : 'ok'}"><b>${sinId}</b><span>Sin identificar</span></div></div>
+        <div class="search" style="margin-top:4px">${L.icon('search')}<input class="inp" id="qB" placeholder="Filtrar por material, marca o especificación" aria-label="Filtrar el BOM" value="${L.esc(ui.qB)}"></div></div>
+      <div style="max-height:560px;overflow:auto;border-top:1px solid var(--border)"><table class="tbl bom"><thead><tr><th>Material / Especificación</th><th class="c">A comprar</th></tr></thead><tbody>
+        ${ls.map(l => `<tr class="${l.estado === 'blocked' ? 'warn' : ''}" data-href="d-bom-editor.html?linea=${l.id}" style="cursor:pointer"><td><span class="mat">${L.esc(l.mat)}</span><span class="spec">${L.esc(l.spec)}${l.marca ? ' · ' + L.esc(l.marca) : ''}</span>${l.estado === 'blocked' ? `<span class="st er" style="height:20px;font-size:11px;margin-top:4px">${L.icon('triangle-alert')}Bloquea la cotización</span>` : ''}</td><td class="c qty">${L.num(l.comprar)}<div class="muted" style="font-size:11px;font-weight:400">${l.dib !== l.comprar ? 'dibujado ' + L.num(l.dib) : ''}</div></td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  function render() {
+    if (estado === 'cargando') {
+      page.innerHTML = `<div class="skel" style="height:96px"></div><div class="split"><div class="col gap16"><div class="skel" style="height:110px"></div><div class="skel" style="height:420px"></div></div><div class="skel" style="height:620px"></div></div>`; return;
+    }
+    const pl = L.get('planos'); const c = I.conteo(pl);
+    const cnt = k => k ? pl.filter(p => p.status === k).length : pl.length;
+    const t = ui.q.trim().toLowerCase();
+    const vis = pl.filter(p => (!FILTROS.find(f => f[0] === ui.filtro)[1] || p.status === FILTROS.find(f => f[0] === ui.filtro)[1]) && (!t || (p.cod + ' ' + p.n + ' ' + (p.error || '')).toLowerCase().includes(t)));
+    const err = pl.filter(p => p.status === 'ERROR');
+    const j503 = cola().find(j => j.status === 'RETRY');
+    page.innerHTML = `${camino()}
+      ${err.length || j503 ? `<div class="col gap8">${err.map(p => `<div class="note bad">${L.icon('triangle-alert')}<div class="grow"><b>${L.esc(p.cod)} no se pudo procesar: tardó más de lo permitido (504)</b>El plano es demasiado grande para una sola detección. <b style="display:inline">Un 504 no se reintenta solo</b>: reintentar igual gasta otra detección completa y lo más probable es que vuelva a cortar. Recortalo en zonas y cada zona se procesa por separado.
+          <div class="row gap8" style="margin-top:8px"><button class="btn xs pri" data-crop="${p.id}">${L.icon('scissors')}Recortar en zonas</button><button class="btn xs out" data-retry="${p.id}">Reintentar igual</button></div></div><span class="tag-s5">s5</span></div>`).join('')}
+        ${j503 ? `<div class="note info">${L.icon('rotate-ccw')}<div class="grow"><b>TS-UPS: el detector está ocupado (503) y se reintenta solo</b>Pasa cuando hay muchos planos en proceso al mismo tiempo. No hace falta que hagas nada: vuelve a la cola en ${j503.espera} s (intento ${j503.intento + 1} de ${j503.max}).</div></div>` : ''}</div>` : ''}
+      <div class="split">
+        <div class="col gap24" style="min-width:0">
+          ${refCard()}
+          <section class="card" id="planos" style="overflow:hidden" aria-label="Planos">
+            <div class="card-h"><div class="card-ico">${L.icon('layers')}</div><h3>Planos <span class="muted mono" style="font-weight:500;font-size:var(--text-xs)">${pl.length}</span></h3>
+              <div class="r"><button class="btn out" data-href="d-ing-carga.html?paso=3">${L.icon('upload')}Subir planos</button>
+                <div class="btn-split"><button class="btn pri" id="procAll">${L.icon('refresh-cw')}${c.error ? 'Reintentar todos' : 'Procesar todos'}</button><button class="btn pri" id="procMenu" aria-label="Opciones de procesamiento masivo">${L.icon('chevron-down')}</button></div></div></div>
+            <div class="tri" style="height:3px;border-radius:0;gap:0" aria-hidden="true">${[['ok', c.completed], ['pr', c.processing], ['er', c.error], ['wa', c.stale], ['gr', c.pending]].filter(x => x[1]).map(([k, n]) => `<i class="${k}" style="width:${n / c.total * 100}%"></i>`).join('')}</div>
+            <div style="padding:14px 18px" class="chips">${FILTROS.map(([f, k]) => `<button class="chip ${ui.filtro === f ? 'on' : ''}" data-f="${f}">${f} <small>${cnt(k)}</small></button>`).join('')}
+              <button class="chip ${ui.filtro === 'Sin identificar' ? 'on' : ''}" data-f="Sin identificar">${L.icon('scan-search')}Sin identificar <small>${pl.filter(p => p.sinId).length}</small></button></div>
+            <div class="row" style="padding:10px 18px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:color-mix(in srgb,var(--muted) 30%,transparent)">
+              <input type="checkbox" id="selall" aria-label="Seleccionar todos los planos" style="width:16px;height:16px;accent-color:var(--primary)" ${ui.sel.size === pl.length ? 'checked' : ''}>
+              <div class="search grow">${L.icon('search')}<input class="inp" id="qP" placeholder="Buscar plano o error" aria-label="Buscar plano por nombre o error" value="${L.esc(ui.q)}" style="height:32px;background:var(--card);border-color:var(--border)"><kbd>/</kbd></div>
+              <span class="mono muted" style="font-size:11px">${vis.length} planos</span></div>
+            ${ui.sel.size ? `<div class="bulk"><span>${ui.sel.size} ${ui.sel.size === 1 ? 'plano elegido' : 'planos elegidos'}</span><span class="ml-auto row gap8"><button class="btn xs out" id="bProc">${L.icon('play')}Procesar</button><button class="btn xs out" id="bMult">×N Repeticiones</button><button class="btn xs dan" id="bDel">${L.icon('trash-2')}Eliminar</button><button class="btn icon xs ghost" id="bClr" aria-label="Limpiar la selección">${L.icon('x')}</button></span></div>` : ''}
+            <div id="rows">${(ui.filtro === 'Sin identificar' ? vis.filter(p => p.sinId) : vis).map(fila).join('') || `<div class="empty" style="padding:32px"><div class="e-ico">${L.icon('search')}</div><h3 style="font-size:var(--text-base)">Ningún plano con ese filtro</h3></div>`}</div>
+          </section>
+          ${colaCard()}
+        </div>
+        ${bomCard()}
+      </div>`;
+    bind();
+  }
+
+  function recortar(pid) {
+    const p = I.plano(pid); let zonas = BI.zonasAsc.map(z => ({ ...z, on: true }));
+    const draw = () => `<div class="ing-cad cad" style="aspect-ratio:1000/620">${I.planoSvg({ titulo: p.cod, bombas: 4 }).replace('class="ing-plano', 'style="opacity:.35" class="ing-plano')}
+        ${zonas.map((z, i) => `<div class="box ${z.on ? 'fx' : 'ds'}" data-z="${i}" style="${I.pos(z)};box-shadow:none" role="button" tabindex="0" aria-label="Zona ${i + 1}: ${L.esc(z.n)}"><span class="tg">${i + 1} · ${L.esc(z.n)}</span></div>`).join('')}</div>
+      <div class="row gap8" style="flex-wrap:wrap">${zonas.map((z, i) => `<label class="check" style="font-size:12px"><input type="checkbox" data-zc="${i}" ${z.on ? 'checked' : ''}>${i + 1} · ${L.esc(z.n)}</label>`).join('')}</div>
+      <div class="note info">${L.icon('info')}<div>Cada zona entra como un plano propio de <b style="display:inline">${p.cod}</b> y se detecta por separado. Hasta 15 zonas por recorte. Las zonas las sugiere liard por la separación de los circuitos <span class="tag-s5">s5</span>; la tijera manual existe hoy <span class="tag-existe">existe</span>.</div></div>`;
+    const ov = L.dialog({ title: `Recortar ${p.cod} en zonas`, icon: 'scissors', wide: true, desc: 'El plano completo tarda más de 300 s en detectarse. En zonas más chicas, cada una entra en el tiempo.', body: `<div id="zb" class="col gap16">${draw()}</div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Abrir la tijera manual', cls: 'out', icon: 'scissors', fn: () => { L.toast('La tijera manual abre el visor DXF', { type: 'info', desc: 'Existe: DxfGeneratorModal' }); return false; } }, { t: 'Recortar y procesar', icon: 'play', fn: () => {
+        const n = zonas.filter(z => z.on).length; if (!n) { L.toast('Elegí al menos una zona', { type: 'error' }); return false; }
+        L.update(st => { const pl = st.planos.find(x => x.id === pid); pl.status = 'PROCESSING'; delete pl.error; pl.n = pl.n.replace(/ \(\d+ zonas\)$/, '') + ` (${n} zonas)`;
+          st.x ??= {}; st.x.ing ??= {}; st.x.ing.cola = (st.x.ing.cola || BI.cola).map(j => j.plano === pid ? { plano: pid, status: 'RUNNING', intento: 1, max: 3, desde: 0, eta: [n, n * 2], nota: `${n} zonas en paralelo, de a dos por vez.` } : j);
+          st.avisos.unshift({ id: 'ai' + Date.now(), t: `${p.cod} se recortó en ${n} zonas`, d: 'Las zonas ya están en la cola de detección', i: 'scissors', tipo: 'pr', cuando: 'recién', href: 'd-ing-proyecto.html' }); });
+        L.toast(`${p.cod} recortado en ${n} zonas`, { desc: 'Entran a la cola: cada una tarda 1–2 min.' });
+      } }] });
+    const zb = ov.querySelector('#zb');
+    zb.addEventListener('click', e => { const z = e.target.closest('[data-z]'); if (z) { zonas[+z.dataset.z].on = !zonas[+z.dataset.z].on; zb.innerHTML = draw(); } });
+    zb.addEventListener('change', e => { const z = e.target.closest('[data-zc]'); if (z) { zonas[+z.dataset.zc].on = z.checked; zb.innerHTML = draw(); } });
+  }
+  function reintentar(pid) {
+    const p = I.plano(pid);
+    L.dialog({ title: `¿Reintentar ${p.cod} igual?`, icon: 'triangle-alert', desc: `El último intento cortó por tiempo (504). Reintentar gasta otra detección completa (≈ US$ ${L.num(BI.nuevo.costoPlano, 2)}) y lo más probable es que vuelva a cortar.`,
+      actions: [{ t: 'Recortar en zonas', cls: 'out', fn: () => setTimeout(() => recortar(pid), 50) }, { t: 'Reintentar igual', cls: 'dan', fn: () => {
+        L.update(st => { const pl = st.planos.find(x => x.id === pid); pl.status = 'PROCESSING'; st.x ??= {}; st.x.ing ??= {}; st.x.ing.cola = (st.x.ing.cola || BI.cola).map(j => j.plano === pid ? { ...j, status: 'RUNNING', intento: (j.intento || 1) + 1, desde: 0, eta: [5, 6] } : j); });
+        L.toast(`${p.cod} vuelve a la cola`, { type: 'warning', desc: 'Intento 2 de 3' });
+      } }] });
+  }
+  function multDialog(pid) {
+    const p = I.plano(pid); let v = p.mult;
+    const ov = L.dialog({ title: 'Editar repeticiones', icon: 'copy', desc: `${L.esc(p.cod)} · ${L.esc(p.n)}. Cuántas veces se fabrica este tablero: multiplica sus aparatos en «a comprar».`,
+      body: `<div class="field"><label for="mv">Repeticiones</label><input class="inp mono" id="mv" type="number" min="1" max="99" value="${v}"></div><div class="note info" id="mprev">${L.icon('info')}<div></div></div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Guardar', fn: () => { const n = Math.max(1, Math.min(99, +ov.querySelector('#mv').value || 1)); I.multiplicar(pid, n); L.toast('Repeticiones guardadas', { desc: `${p.cod} ×${n} · el BOM consolidado se recalculó` }); } }] });
+    const prev = () => { const n = Math.max(1, +ov.querySelector('#mv').value || 1); const l = L.get('lineas').filter(x => x.fuentes.some(f => f.startsWith(p.cod + ' '))); ov.querySelector('#mprev div').innerHTML = `Cambian ${l.length} líneas del BOM: ${l.slice(0, 3).map(x => { const k = +(x.fuentes.find(f => f.startsWith(p.cod + ' ')).match(/ (\d+)/)[1]); return `${L.esc(x.mat.toLowerCase())} ${L.num(x.comprar)} → <b style="display:inline">${L.num(x.comprar + k * (n - p.mult))}</b>`; }).join(' · ')}${l.length > 3 ? '…' : ''}`; };
+    ov.querySelector('#mv').oninput = prev; prev();
+  }
+  function menu(anchor, opts) {
+    document.querySelectorAll('.menu').forEach(m => m.remove());
+    const r = anchor.getBoundingClientRect(); const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
+    m.style.left = (r.right + window.scrollX - 230) + 'px'; m.style.top = (r.bottom + window.scrollY + 6) + 'px'; m.style.minWidth = '230px';
+    m.innerHTML = opts.map((o, i) => `<button role="menuitem" data-o="${i}" ${o.dan ? 'style="color:var(--destructive)"' : ''}>${L.icon(o.i)}${L.esc(o.t)}</button>`).join('');
+    document.body.appendChild(m); m.addEventListener('click', e => { const b = e.target.closest('[data-o]'); if (b) { m.remove(); opts[+b.dataset.o].fn(); } });
+    setTimeout(() => document.addEventListener('click', function cl(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('click', cl); } }), 0);
+  }
+  function procesar(ids) {
+    const pl = L.get('planos').filter(p => ids.includes(p.id) && ['PENDING', 'ERROR', 'STALE'].includes(p.status));
+    if (!pl.length) return L.toast('Los planos seleccionados ya están procesados', { type: 'info' });
+    L.dialog({ title: `Procesar ${pl.length} ${pl.length === 1 ? 'plano' : 'planos'}`, icon: 'play', desc: `Se van a encolar ${pl.length} ${pl.length === 1 ? 'plano' : 'planos'}. Cada uno consume una detección con IA (≈ US$ ${L.num(pl.length * BI.nuevo.costoPlano, 2)}). Se procesan de a pocos a la vez y podés cancelar lo que todavía no arrancó.`,
+      actions: [{ t: 'Cancelar' }, { t: 'Procesar', icon: 'play', fn: () => {
+        L.update(st => { st.x ??= {}; st.x.ing ??= {}; let q = st.x.ing.cola || BI.cola; let pos = q.filter(j => j.status === 'QUEUED').length;
+          pl.forEach(p => { const sp = st.planos.find(x => x.id === p.id); sp.status = p.status === 'ERROR' ? 'PROCESSING' : 'PENDING'; if (sp.status === 'PENDING') { pos++; } q = q.filter(j => j.plano !== p.id); q.unshift(sp.status === 'PROCESSING' ? { plano: p.id, status: 'RUNNING', intento: 2, max: 3, desde: 0, eta: [5, 7] } : { plano: p.id, status: 'QUEUED', intento: 0, max: 3, desde: 0, eta: [3, 5], pos }); });
+          st.x.ing.cola = q; });
+        ui.sel.clear(); L.toast('Planos en la cola', { desc: 'Te avisamos cuando termine cada uno.' });
+      } }] });
+  }
+  function bind() {
+    page.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { ui.filtro = b.dataset.f; render(); });
+    const qP = page.querySelector('#qP'); qP.oninput = () => { ui.q = qP.value; const p = qP.selectionStart; render(); const n = page.querySelector('#qP'); n.focus(); n.setSelectionRange(p, p); };
+    const qB = page.querySelector('#qB'); qB.oninput = () => { ui.qB = qB.value; const p = qB.selectionStart; render(); const n = page.querySelector('#qB'); n.focus(); n.setSelectionRange(p, p); };
+    page.querySelectorAll('[data-sel]').forEach(c => c.onchange = () => { c.checked ? ui.sel.add(c.dataset.sel) : ui.sel.delete(c.dataset.sel); render(); });
+    page.querySelector('#selall').onchange = e => { ui.sel = new Set(e.target.checked ? L.get('planos').map(p => p.id) : []); render(); };
+    page.querySelector('#bClr')?.addEventListener('click', () => { ui.sel.clear(); render(); });
+    page.querySelector('#bProc')?.addEventListener('click', () => procesar([...ui.sel]));
+    page.querySelector('#bMult')?.addEventListener('click', () => { const id = [...ui.sel][0]; multDialog(id); });
+    page.querySelector('#bDel')?.addEventListener('click', () => L.dialog({ title: `Eliminar ${ui.sel.size} ${ui.sel.size === 1 ? 'plano' : 'planos'}`, icon: 'trash-2', desc: 'Se eliminan los planos y todo lo que se detectó en ellos. Ya procesados: su BOM se borra con ellos y el consolidado del proyecto se recalcula. No se puede deshacer.', actions: [{ t: 'Cancelar' }, { t: 'Eliminar', cls: 'dan', fn: () => { L.toast('En la demo los planos de Cañuelas no se eliminan', { type: 'info', desc: 'Otras pantallas los usan.' }); } }] }));
+    page.querySelectorAll('[data-crop]').forEach(b => b.onclick = e => { e.preventDefault(); recortar(b.dataset.crop); });
+    page.querySelectorAll('[data-retry]').forEach(b => b.onclick = () => reintentar(b.dataset.retry));
+    page.querySelectorAll('[data-proc]').forEach(b => b.onclick = () => procesar([b.dataset.proc]));
+    page.querySelectorAll('[data-mult]').forEach(b => b.onclick = () => multDialog(b.dataset.mult));
+    page.querySelectorAll('[data-cq]').forEach(b => b.onclick = () => { const id = b.dataset.cq; L.update(st => { st.x ??= {}; st.x.ing ??= {}; st.x.ing.cola = (st.x.ing.cola || BI.cola).map(j => j.plano === id ? { ...j, status: 'CANCELLED' } : j); }); L.toast(`${I.plano(id).cod} salió de la cola`, { type: 'info', desc: 'Queda pendiente: lo procesás cuando quieras.' }); });
+    page.querySelector('#cancel')?.addEventListener('click', () => L.dialog({ title: 'Cancelar la tanda', icon: 'circle-slash', desc: 'Se cancelan los planos que todavía no empezaron a procesarse. El que está en curso termina.', actions: [{ t: 'Volver' }, { t: 'Cancelar tanda', cls: 'dan', fn: () => { L.update(st => { st.x ??= {}; st.x.ing ??= {}; st.x.ing.cola = (st.x.ing.cola || BI.cola).map(j => j.status === 'QUEUED' ? { ...j, status: 'CANCELLED' } : j); }); L.toast('Tanda cancelada', { desc: 'Los planos sin arrancar quedan pendientes.' }); } }] }));
+    page.querySelector('#procAll').onclick = () => procesar(L.get('planos').map(p => p.id));
+    page.querySelector('#procMenu').onclick = e => { e.stopPropagation(); menu(e.currentTarget, [{ t: 'Procesar pendientes', i: 'play', fn: () => procesar(L.get('planos').filter(p => p.status === 'PENDING').map(p => p.id)) }, { t: 'Reintentar los que fallaron', i: 'refresh-cw', fn: () => procesar(L.get('planos').filter(p => p.status === 'ERROR').map(p => p.id)) }]); };
+    page.querySelectorAll('[data-menu]').forEach(b => b.onclick = e => { e.stopPropagation(); const p = I.plano(b.dataset.menu); menu(b, [
+      { t: 'Ver página de detalles', i: 'arrow-up-right', fn: () => L.go('d-ing-plano.html?plano=' + p.id) },
+      { t: 'Abrir visor rápido', i: 'eye', fn: () => L.dialog({ title: p.cod + ' · ' + p.n, wide: true, body: `<div class="ing-cad cad">${I.planoSvg({ titulo: p.cod })}</div>`, actions: [{ t: 'Cerrar' }, { t: 'Abrir el visor completo', fn: () => L.go('d-ing-plano.html?plano=' + p.id) }] }) },
+      { t: 'Editar repeticiones…', i: 'copy', fn: () => multDialog(p.id) },
+      ...(p.status === 'ERROR' ? [{ t: 'Reintentar procesamiento', i: 'refresh-cw', fn: () => reintentar(p.id) }] : []),
+      { t: 'Comparar con otra revisión', i: 'git-compare-arrows', fn: () => L.go('d-ing-revisiones.html') },
+      { t: p.fmt === 'PDF' ? 'Descargar PDF original' : 'Descargar DXF', i: 'download', fn: () => L.toast('Descargando…', { type: 'info', desc: p.cod + (p.fmt === 'PDF' ? '.pdf' : '.dxf') }) },
+      { t: 'Descargar BOM del plano', i: 'file-spreadsheet', fn: () => L.toast('BOM del plano exportado', { desc: p.cod + '.xlsx' }) },
+      { t: 'Eliminar plano', i: 'trash-2', dan: true, fn: () => L.dialog({ title: `Eliminar «${p.cod}»`, icon: 'trash-2', desc: 'El plano y todo lo que se detectó en él se eliminan. No se puede deshacer.', actions: [{ t: 'Cancelar' }, { t: 'Eliminar', cls: 'dan', fn: () => L.toast('En la demo los planos de Cañuelas no se eliminan', { type: 'info' }) }] }) },
+    ]); });
+    page.querySelector('#exp').onclick = e => { e.stopPropagation(); menu(e.currentTarget, [{ t: 'Excel (.xlsx)', i: 'file-spreadsheet', fn: () => L.toast('BOM exportado', { desc: 'HRC-pabellon-B.xlsx · cantidad dibujada y a comprar en columnas separadas' }) }, { t: 'CSV', i: 'file-text', fn: () => L.toast('BOM exportado', { desc: 'HRC-pabellon-B.csv' }) }]); };
+    page.querySelector('#refver').onclick = () => L.sheet(`<div class="card-h"><div class="card-ico">${L.icon('file-code')}</div><div class="grow"><h3>Tabla de referencia</h3><div class="sub">31 materiales que la detección reconoce</div></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div><div class="card-b col gap8">${BI.nuevo.tabla.muestra.map(m => `<div class="row" style="font-size:var(--text-xs)"><span class="mono" style="width:56px;font-weight:600">${m[0]}</span><span class="grow">${L.esc(m[1])}</span><span class="bdg mono">${m[2]}</span></div>`).join('')}<span class="muted" style="font-size:12px">…y 19 más</span></div>`, { label: 'Tabla de referencia' });
+    page.querySelector('#refdl').onclick = () => L.toast('Descargando…', { type: 'info', desc: 'referencias-simbolos-HRC.dxf' });
+    page.querySelector('#refdel').onclick = () => L.dialog({ title: 'Eliminar la tabla de referencia', icon: 'trash-2', desc: 'Sin tabla, los planos nuevos se detectan con los 33 componentes base. Los ya procesados no cambian.', actions: [{ t: 'Cancelar' }, { t: 'Eliminar', cls: 'dan', fn: () => L.toast('En la demo la tabla de Cañuelas no se elimina', { type: 'info' }) }] });
+    page.querySelector('#refrep').onclick = () => L.go('d-ing-carga.html?paso=2');
+  }
+  document.getElementById('marcas').onclick = () => L.sheet(`<div class="card-h"><div class="card-ico">${L.icon('tag')}</div><div class="grow"><h3>Marcas del proyecto</h3><div class="sub">Preferidas y bloqueadas para esta obra <span class="tag-existe">existe</span></div></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+    <div class="card-b col gap16"><div class="col gap8"><span class="lbl">Preferidas</span><div class="chips">${['Schneider Electric', 'Siemens', 'Prysmian'].map(m => `<span class="chip on">${m}</span>`).join('')}</div></div><div class="col gap8"><span class="lbl">Bloqueadas</span><div class="chips"><span class="chip">Chint</span></div></div>
+    <div class="note info">${L.icon('info')}<div>El pliego de Constructora Ribera pide Schneider para las protecciones. Las marcas bloqueadas no aparecen en la cotización.</div></div><button class="btn pri" data-x>Guardar</button></div>`, { label: 'Marcas del proyecto' });
+  document.addEventListener('keydown', e => { if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) { e.preventDefault(); page.querySelector('#qP')?.focus(); } });
+  L.on(() => { if (!['qP', 'qB'].includes(document.activeElement?.id)) render(); });
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Presupuesto al comitente · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="compras.css">
+</head>
+<body data-role="ing" data-active="presupuestos" data-h="h1" data-user="lucas"
+      data-crumbs="Presupuestos|d-com-presupuesto.html>PRE-2026-041"
+      data-title="Presupuesto al comitente" data-sub="Hospital Regional Cañuelas · Pabellón B · Constructora Ribera S.A. Materiales del escenario elegido + mano de obra + gastos + margen.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="interna"><button data-vista="interna">Versión interna</button><button data-vista="cliente">Vista del cliente</button><button data-vista="versiones">Versiones</button></div>
+  <button class="btn pri" id="enviar" data-icon="send">Enviar al comitente</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="compras.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const esc = L.esc;
+  const V = L.q('vista') || 'interna', E = L.q('estado');
+  const proy = L.get('proyectos').find(p => p.id === 'p1');
+  const ESTR = Object.fromEntries(C.ESCENARIOS.map(e => [e.k, e.t]));
+  const aprobId = 'apr-pre-041';
+
+  if (E === 'cargando') {
+    page.innerHTML = `<div class="c-strip">${'<div class="skel" style="height:64px"></div>'.repeat(4)}</div><div class="c-pres"><div class="col"><div class="skel" style="height:220px"></div><div class="skel" style="height:300px"></div></div><div class="skel" style="height:520px"></div></div>`;
+    return;
+  }
+
+  function guardar(patch) { L.set('presupuesto', Object.assign({}, C.presupuesto(), patch, { estado: 'borrador' })); }
+  const aprob = () => C.aprobaciones().find(a => a.id === aprobId);
+
+  function strip() {
+    const ST = { borrador: ['gr', 'Borrador'], aprobacion: ['wa', 'Aprobación'], aceptado: ['ok', 'Aceptado'], enviado: ['pr', 'Enviado'], aprobado: ['ok', 'Aprobado'] };
+    const p = C.presupuesto(); const a = aprob();
+    const est = a ? (a.estado === 'pendiente' ? 'aprobacion' : a.estado === 'aprobado' ? 'aprobado' : 'borrador') : p.estado;
+    return `<div class="c-strip">${C.PRESUPUESTOS.map(x => { const pr = L.get('proyectos').find(y => y.id === x.proyecto); const e = x.id === 'PRE-2026-041' ? est : x.estado; const v = x.id === 'PRE-2026-041' ? C.calcPresu().venta : x.venta;
+      return `<button class="${x.id === 'PRE-2026-041' ? 'on' : ''}" data-pre="${x.id}"><span class="row" style="justify-content:space-between;width:100%;gap:6px"><b class="mono" style="white-space:nowrap;font-size:12.5px">${esc(x.id)} · ${x.id === 'PRE-2026-041' ? 'v' + p.version : esc(x.ver)}</b><span class="st ${ST[e][0]}" style="height:20px;font-size:11px">${ST[e][1]}</span></span><small class="trunc">${esc(pr.n)}</small><small class="mono">${L.ars(v)} +IVA · ${esc(L.get('usuarios')[x.por].n.split(' ')[0])}</small></button>`; }).join('')}</div>`;
+  }
+
+  function sumHTML(k, p) {
+    const a = aprob(); const pend = a && a.estado === 'pendiente'; const ok = a && a.estado === 'aprobado';
+    const marks = [10, 15, C.UMBRAL_MARGEN, 25, 30, 35];
+    return `<div class="card c-sum"><div class="card-h"><div class="card-ico">${L.icon('calculator')}</div><div><h3>Resumen</h3><div class="sub">Se recalcula al tocar cualquier valor</div></div><div class="r"><span class="tag-h1">propuesta</span></div></div>
+      <div class="card-b col" style="gap:14px">
+        <div><div class="row" style="justify-content:space-between"><label class="lbl" for="margen">Margen objetivo</label><b class="mono ${k.bajoUmbral ? 'up' : ''}" style="font-size:15px" id="m-v">${L.pct(p.margen, 1)}</b></div>
+          <input class="c-range" type="range" id="margen" min="10" max="35" step="0.5" value="${p.margen}" aria-label="Margen objetivo">
+          <div class="c-scale">${marks.map(m => `<span class="${m === C.UMBRAL_MARGEN ? 'u' : ''}" style="left:${(m - 10) / 25 * 100}%">${m === C.UMBRAL_MARGEN ? '▲ ' : ''}${m} %</span>`).join('')}</div>
+          <div class="muted" style="font-size:11.5px;margin-top:6px">Debajo del ${C.UMBRAL_MARGEN} % lo aprueba dirección (Hernán Rossi). Margen sobre el precio de venta.</div></div>
+        <div>
+          <div class="rowv"><span>Materiales cotizados <span class="muted">· ${esc(ESTR[C.compra().estrategia] || 'a mano')}</span></span><b>${L.ars(k.cotizado)}</b></div>
+          <div class="rowv"><span>Materiales a estimar <span class="muted">· ${k.sinCot.length} sin ofertas</span></span><b>${L.ars(k.estimados)}</b></div>
+          <div class="rowv"><span>Mano de obra <span class="muted">· ${L.num(k.mo.reduce((s, x) => s + x.horas * x.mult, 0))} h</span></span><b>${L.ars(k.manoObra)}</b></div>
+          <div class="rowv"><span>Gastos</span><b>${L.ars(k.gastos)}</b></div>
+          <div class="rowv muted"><span>Costo total</span><b>${L.ars(k.costo)}</b></div>
+          <div class="rowv"><span>Ganancia</span><b class="${k.bajoUmbral ? 'up' : 'down'}">${L.ars(k.ganancia)}</b></div>
+          <div class="rowv tot"><span><b style="font:600 13px var(--sans)">Precio de venta</b> <span class="muted">sin IVA</span></span><b>${L.ars(k.venta)}</b></div>
+          <div class="rowv muted"><span>IVA ${L.get('cambio').iva} % <span class="bdg">cálculo de presentación</span></span><b>${L.ars(k.iva)}</b></div>
+          <div class="rowv"><span>Total con IVA</span><b>${L.ars(k.conIva)}</b></div>
+          <div class="rowv muted"><span>Referencia dólar BNA venta ${L.ars(k.dolar)} (${L.fecha(k.fechaDolar)})</span><b>${L.usd(k.usd)}</b></div>
+        </div>
+        ${k.bajoUmbral ? (ok ? `<div class="note ok"><span>${L.icon('circle-check')}</span><div><b>Aprobado por Hernán Rossi</b>${esc(a.comentario || 'Sin comentario')} · ya lo podés enviar.</div></div>` : pend ? `<div class="note warn"><span>${L.icon('hourglass')}</span><div><b>Esperando a dirección</b>Hernán lo recibió en el teléfono. Si cambiás el margen, la solicitud se actualiza.</div></div>` : `<div class="note warn"><span>${L.icon('stamp')}</span><div><b>Margen debajo del ${C.UMBRAL_MARGEN} %</b>Para enviarlo, lo tiene que aprobar dirección.</div></div>`) : (a && a.estado === 'rechazado' ? `<div class="note bad"><span>${L.icon('circle-x')}</span><div><b>Hernán lo rechazó</b>${esc(a.comentario || '')}</div></div>` : '')}
+        <div class="field"><label for="validez">Validez de la oferta</label><select class="inp" id="validez">${[5, 7, 10, 15].map(d => `<option value="${d}" ${+p.validez === d ? 'selected' : ''}>Lista de ${d} días · vence ${L.fecha(C.sumaDias(C.HOY, d))}</option>`).join('')}</select><span class="help">Con inflación de 1,7 % mensual y precios de lista que vencen el 15/10, más de 10 días es riesgo propio.</span></div>
+        <div class="row"><button class="switch" data-manual id="ajuste" role="switch" aria-checked="${p.ajuste}" aria-label="Cláusula de ajuste"></button><span style="font-size:13px">Cláusula de ajuste por dólar BNA y listas de fábrica</span></div>
+      </div></div>`;
+  }
+
+  function interna() {
+    const p = C.presupuesto(); const k = C.calcPresu(p); const comp = C.compra();
+    const sinEsc = E === 'vacio' || comp.sugerida;
+    const left = `<div class="col" style="gap:20px">
+      ${sinEsc ? `<div class="note warn"><span>${L.icon('git-compare-arrows')}</span><div class="grow"><b>Todavía no elegiste un escenario de compra</b>Los materiales salen de «Más barato» como sugerencia. Elegí uno para que el presupuesto quede atado a lo que vas a comprar.</div><a class="btn sm pri" href="d-com-escenarios.html">Elegir escenario</a></div>` : `<div class="note info"><span>${L.icon('link')}</span><div class="grow"><b>Materiales del escenario «${esc(ESTR[comp.estrategia] || 'a mano')}»</b>${k.r.cubiertas} líneas cotizadas en ${k.r.nOC} distribuidores. Si cambiás la adjudicación en la cotización, este número cambia solo.</div><a class="btn sm out" href="d-com-escenarios.html">Cambiar</a></div>`}
+      <div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('package')}</div><div><h3>Materiales</h3><div class="sub">Costo de compra sin IVA · el cliente no lo ve</div></div><div class="r"><b class="money">${L.ars(k.materiales)}</b></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Concepto</th><th class="r">Monto</th></tr></thead><tbody>
+        <tr><td>${k.r.cubiertas} líneas cotizadas · ${Object.keys(k.r.porProv).map(pid => esc(C.prov(pid).n)).join(', ')}</td><td class="r money">${L.ars(k.cotizado)}</td></tr>
+        ${k.sinCot.map(l => `<tr class="warn"><td><b style="font-size:12.5px">${esc(l.mat)}</b> <span class="muted mono" style="font-size:11.5px">${esc(l.spec)} × ${l.comprar}</span><div class="muted" style="font-size:11.5px">${C.aMano(l) ? 'Cotizada a mano: precio pedido aparte.' : 'Sin match: se presupuesta a estimar.'} <a class="src" href="d-bom-editor.html?linea=${l.id}">${C.aMano(l) ? 'ver en el BOM' : 'destrabar'}</a></div></td><td class="r"><input class="inp c-n w" data-est="${l.id}" value="${C.estimado(l, p)}" inputmode="numeric" aria-label="Estimado para ${esc(l.mat)}"></td></tr>`).join('')}
+        </tbody></table></div></div>
+      <div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('hammer')}</div><div><h3>Mano de obra por tablero</h3><div class="sub">Horas de taller por unidad × repeticiones × tarifa</div></div><div class="r"><label class="muted" for="tarifa" style="font-size:12px">Tarifa $/h</label><input class="inp c-n" id="tarifa" value="${p.tarifa}" inputmode="numeric"></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Tablero</th><th>Plano</th><th class="r">Horas por unidad</th><th class="r">Unidades</th><th class="r">Subtotal</th></tr></thead><tbody>
+        ${k.mo.map(x => `<tr><td><b class="mono" style="font-size:12.5px">${esc(x.cod)}</b><div class="muted" style="font-size:11.5px">${esc(x.n)}</div></td><td>${x.status === 'COMPLETED' ? '<span class="st ok" style="height:20px;font-size:11px">Listo</span>' : `<span class="st wa" style="height:20px;font-size:11px">${x.status === 'ERROR' ? 'Error' : x.status === 'STALE' ? 'Por revisar' : x.status === 'PROCESSING' ? 'En proceso' : 'Pendiente'}</span>`}</td><td class="r"><input class="inp c-n" data-h="${x.id}" value="${x.horas}" inputmode="numeric" aria-label="Horas para ${esc(x.cod)}"></td><td class="r mono">×${x.mult}</td><td class="r money">${L.ars(x.sub)}</td></tr>`).join('')}
+        <tr><td colspan="4"><b>Total mano de obra</b></td><td class="r money"><b>${L.ars(k.manoObra)}</b></td></tr></tbody></table></div></div>
+      <div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('receipt')}</div><div><h3>Gastos</h3><div class="sub">Ingeniería, ensayos, flete e imprevistos</div></div><div class="r"><b class="money">${L.ars(k.gastos)}</b></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><tbody>${k.gastosL.map(g => `<tr><td>${esc(g.t)}</td><td class="r">${g.k === 'imprevistos' ? `<input class="inp c-n" data-g="imprevistos" value="${p.gastos.imprevistos}" aria-label="Imprevistos en porcentaje"> %` : g.k === 'ensayos' ? `<input class="inp c-n w" data-g="ensayos" value="${p.gastos.ensayos}" aria-label="Ensayo por tablero">` : `<input class="inp c-n w" data-g="${g.k}" value="${p.gastos[g.k]}" aria-label="${esc(g.t)}">`}</td><td class="r money" style="width:150px">${L.ars(g.v)}</td></tr>`).join('')}</tbody></table></div></div>
+    </div>`;
+    page.innerHTML = strip() + `<div class="c-pres">${left}<div id="sum">${sumHTML(k, p)}</div></div>`;
+    L.fixLinks(page);
+    btnEnviar(k);
+  }
+
+  function btnEnviar(k) {
+    const b = document.getElementById('enviar'); const a = aprob();
+    const necesita = k.bajoUmbral && !(a && a.estado === 'aprobado');
+    b.innerHTML = L.icon(necesita ? 'stamp' : 'send') + (necesita ? (a && a.estado === 'pendiente' ? 'Esperando aprobación' : 'Enviar para aprobación') : 'Enviar al comitente');
+    b.classList.toggle('dis', !!(necesita && a && a.estado === 'pendiente'));
+  }
+
+  function cliente() {
+    const p = C.presupuesto(); const k = C.calcPresu(p);
+    const e = L.get('empresa');
+    page.innerHTML = `<div class="row"><div class="note info grow"><span>${L.icon('eye')}</span><div><b>Así lo ve Constructora Ribera</b>Sin distribuidores, sin precios de compra ni margen: un precio por tablero con su mano de obra y su parte de los gastos.</div></div><button class="btn out" id="pdf">${L.icon('download')}Descargar PDF</button></div>
+      <div class="c-paper" role="document" aria-label="Presupuesto para el cliente">
+        <div class="hd"><div><span style="color:var(--primary)">${L.LOGO_LOCKUP.replace('<svg', '<svg style="height:20px;width:auto"')}</span><h2 style="margin-top:12px">${esc(e.n)}</h2><div class="muted" style="font-size:12px">${esc(e.ciudad)} · Tableros eléctricos de baja tensión · IEC 61439</div></div>
+          <div style="text-align:right"><div class="lbl">Presupuesto</div><b class="mono" style="font-size:16px">PRE-2026-041 · v${p.version}</b><div class="muted" style="font-size:12px">Emitido ${L.fecha(C.HOY)} · válido hasta ${L.fecha(k.vence)}</div></div></div>
+        <div class="grid2" style="margin-top:18px;font-size:12.5px"><div><div class="lbl">Cliente</div><b>${esc(proy.cliente)}</b><div class="muted">Obra: ${esc(proy.n)}</div></div><div><div class="lbl">Entrega</div><b>${L.fecha(proy.entrega)}</b><div class="muted">En obra, Cañuelas, provincia de Buenos Aires</div></div></div>
+        <table><thead><tr><th>Ítem</th><th>Descripción</th><th class="r">Cant.</th><th class="r">Unitario</th><th class="r">Subtotal</th></tr></thead><tbody>
+          ${k.items.map((it, i) => `<tr><td class="mono">${i + 1}</td><td><b>${esc(it.cod)}</b> · ${esc(it.n)}${it.id !== 'general' && it.id !== 'serv' ? '<div class="muted" style="font-size:11.5px">Provisión, armado, cableado y ensayo de rutina</div>' : ''}</td><td class="r mono">${it.mult}</td><td class="r money">${L.ars(it.unit)}</td><td class="r money">${L.ars(it.venta)}</td></tr>`).join('')}
+        </tbody></table>
+        <table class="tt" style="width:320px;margin-left:auto"><tbody><tr><td>Subtotal</td><td class="r money">${L.ars(k.venta)}</td></tr><tr><td>IVA ${L.get('cambio').iva} %</td><td class="r money">${L.ars(k.iva)}</td></tr><tr class="g"><td>Total</td><td class="r money">${L.ars(k.conIva)}</td></tr><tr><td class="muted" colspan="2" style="font-size:11.5px;text-align:right">Equivale a ${L.usd(k.usd)} + IVA al dólar BNA venta de ${L.ars(k.dolar)} del ${L.fecha(k.fechaDolar)}</td></tr></tbody></table>
+        <div class="fine"><p><b>Validez.</b> Lista de ${p.validez} días: esta oferta vale hasta el ${L.fecha(k.vence)}. Pasado ese plazo se reconfirman precios.</p>
+          ${p.ajuste ? `<p><b>Cláusula de ajuste.</b> Los montos se expresan en pesos y se ajustan entre la fecha de este presupuesto y la de cada factura por la variación del dólar BNA venta y de las listas de los fabricantes de los aparatos principales (interruptores y cables), la que resulte menor.</p>` : ''}
+          <p><b>Condiciones.</b> 40 % de anticipo con la orden de compra, saldo contra entrega de cada tablero. Plazo de fabricación: 30 días desde el anticipo y la aprobación de planos. Incluye protocolo de ensayos de rutina por tablero.</p>
+          <p><b>No incluye.</b> Montaje en obra, conexionado de alimentadores ni el ítem a estimar del seccionador NH00 hasta que el pliego defina su corriente nominal.</p></div>
+      </div>`;
+    page.querySelector('#pdf').onclick = () => L.toast('PDF generado', { desc: 'PRE-2026-041-v' + p.version + '.pdf · sin precios de compra' });
+    btnEnviar(k);
+  }
+
+  function versiones() {
+    const p = C.presupuesto(); const k = C.calcPresu(p); const v1 = C.V1;
+    const v1c = v1.materiales + v1.manoObra + v1.gastos;
+    const rows = [['Materiales', v1.materiales, k.materiales], ['Mano de obra', v1.manoObra, k.manoObra], ['Gastos', v1.gastos, k.gastos], ['Costo total', v1c, k.costo], ['Precio de venta sin IVA', v1.venta, k.venta]];
+    const d = (a, b) => b - a;
+    page.innerHTML = strip() + `<div class="grid2" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)">
+      <div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('git-compare')}</div><div><h3>v1 → v${p.version}</h3><div class="sub">v1 enviada el ${L.fecha(v1.fecha)} por Lucas · v${p.version} borrador de hoy</div></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl c-diff"><thead><tr><th>Concepto</th><th class="r">v1 · ${L.fechaCorta(v1.fecha)}</th><th class="r">v${p.version} · hoy</th><th class="r">Diferencia</th></tr></thead><tbody>
+        ${rows.map(([t, a, b]) => `<tr><td>${t}</td><td class="r money">${L.ars(a)}</td><td class="r money"><b>${L.ars(b)}</b></td><td class="r money ${d(a, b) > 0 ? 'up' : d(a, b) < 0 ? 'down' : ''}">${d(a, b) > 0 ? '+ ' : d(a, b) < 0 ? '− ' : ''}${L.ars(Math.abs(d(a, b)))}</td></tr>`).join('')}
+        <tr><td>Margen</td><td class="r mono">${L.pct(v1.margen, 1)}</td><td class="r mono"><b>${L.pct(p.margen, 1)}</b></td><td class="r mono ${p.margen < v1.margen ? 'up' : 'down'}">${p.margen < v1.margen ? '−' : '+'} ${L.num(Math.abs(p.margen - v1.margen), 1)} pts</td></tr>
+        </tbody></table></div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('clock-arrow-left')}</div><div><h3>Qué cambió</h3><div class="sub">Lo arma liard comparando las dos versiones</div></div></div><div class="card-b"><div class="timeline">
+        <div class="tl"><div class="tl-i pri">${L.icon('package')}</div><div><b>Materiales del escenario «${esc(ESTR[C.compra().estrategia] || 'a mano')}»</b><small>v1 usaba solo la lista de Eléctrica Norte del 15/09; v${p.version} compara 4 listas.</small></div></div>
+        <div class="tl"><div class="tl-i wa">${L.icon('triangle-alert')}</div><div><b>${k.sinCot.length} ${k.sinCot.length === 1 ? 'línea pasa' : 'líneas pasan'} a «a estimar»</b><small>${k.sinCot.map(l => esc(l.mat)).join(', ') || 'Ninguna'}: sin ofertas de distribuidores, con monto cargado a mano.</small></div></div>
+        <div class="tl"><div class="tl-i pri">${L.icon('hammer')}</div><div><b>Tarifa de taller ${L.ars(p.tarifa)}/h</b><small>v1 usaba $ 15.750/h. Horas del TS-PISO bajaron de 21 a ${p.horas.tspiso} por unidad.</small></div></div>
+        <div class="tl"><div class="tl-i">${L.icon('receipt')}</div><div><b>Validez de ${p.validez} días</b><small>v1 decía 15 días: con las listas vencidas de septiembre no alcanzó.</small></div></div>
+        <div class="tl"><div class="tl-i ${p.margen < C.UMBRAL_MARGEN ? 'er' : 'ok'}">${L.icon('percent')}</div><div><b>Margen ${L.pct(v1.margen, 1)} → ${L.pct(p.margen, 1)}</b><small>${p.margen < C.UMBRAL_MARGEN ? 'Debajo del umbral: requiere aprobación de dirección.' : 'Dentro de lo que la empresa acepta sin aprobación.'}</small></div></div>
+      </div><p class="muted" style="font-size:12px">${esc(v1.nota)}</p></div></div></div>`;
+    btnEnviar(k);
+  }
+
+  function render() { V === 'cliente' ? cliente() : V === 'versiones' ? versiones() : interna(); }
+
+  page.addEventListener('input', e => {
+    if (e.target.id !== 'margen') return;
+    const p = Object.assign(C.presupuesto(), { margen: +e.target.value });
+    const k = C.calcPresu(p);
+    L.set('presupuesto', Object.assign({}, C.presupuesto(), { margen: +e.target.value }));
+  });
+  page.addEventListener('change', e => {
+    const t = e.target; const p = C.presupuesto(); const n = +String(t.value).replace(/\D/g, '');
+    if (t.dataset.h) guardar({ horas: Object.assign({}, p.horas, { [t.dataset.h]: n }) });
+    else if (t.dataset.g) guardar({ gastos: Object.assign({}, p.gastos, { [t.dataset.g]: n }) });
+    else if (t.dataset.est) guardar({ estimados: Object.assign({}, p.estimados, { [t.dataset.est]: n }) });
+    else if (t.id === 'tarifa') guardar({ tarifa: n });
+    else if (t.id === 'validez') guardar({ validez: +t.value });
+  });
+  page.addEventListener('click', e => {
+    if (e.target.closest('#ajuste')) { guardar({ ajuste: !C.presupuesto().ajuste }); return; }
+    const pr = e.target.closest('[data-pre]');
+    if (pr && pr.dataset.pre !== 'PRE-2026-041') { const x = C.PRESUPUESTOS.find(y => y.id === pr.dataset.pre); if (x.estado === 'aprobacion') L.go('m-com-aprobar.html'); else L.toast(x.id + ' · ' + L.get('proyectos').find(y => y.id === x.proyecto).n, { type: 'info', desc: `${x.ver} · ${L.ars(x.venta)} +IVA · margen ${L.pct(x.margen, 1)}. En este prototipo se edita solo PRE-2026-041.` }); }
+  });
+
+  document.getElementById('enviar').onclick = () => {
+    const p = C.presupuesto(); const k = C.calcPresu(p); const a = aprob();
+    if (k.bajoUmbral && !(a && a.estado === 'aprobado')) {
+      L.dialog({ title: 'Enviar para aprobación de dirección', icon: 'stamp', desc: `El margen queda en ${L.pct(p.margen, 1)}, debajo del ${C.UMBRAL_MARGEN} %. Hernán Rossi lo recibe en el teléfono.`,
+        body: `<div class="field"><label for="mot">Motivo para dirección</label><textarea class="inp" id="mot">El comitente pidió bajar el precio: compite con otra tablerista de la zona.</textarea></div>`,
+        actions: [{ t: 'Cancelar' }, { t: 'Enviar a Hernán', icon: 'send', fn: ov => {
+          const list = C.aprobaciones().filter(x => x.id !== aprobId);
+          list.unshift({ id: aprobId, tipo: 'presupuesto', ref: `PRE-2026-041 · v${p.version}`, proyecto: 'p1', por: 'lucas', creado: C.HOY + 'T11:05', monto: k.venta, margen: p.margen, umbral: C.UMBRAL_MARGEN, motivo: ov.querySelector('#mot').value, detalle: [['Costo', k.costo], ['Precio de venta sin IVA', k.venta], ['IVA 21 % (presentación)', k.iva]], estado: 'pendiente' });
+          C.guardarAprob(list);
+          L.update(s => s.avisos.unshift({ id: 'c-apr-041', t: 'PRE-2026-041 espera tu aprobación', d: `Margen ${L.pct(p.margen, 1)} · ${L.ars(k.venta)} +IVA`, i: 'stamp', tipo: 'wa', cuando: 'recién', href: 'm-com-aprobar.html' }));
+          L.toast('Enviado a dirección', { desc: 'Te avisamos cuando Hernán lo apruebe.', action: 'Ver en el teléfono', onAction: () => L.go('m-com-aprobar.html') });
+        } }] });
+      return;
+    }
+    L.dialog({ title: 'Enviar al comitente', icon: 'send', desc: 'Constructora Ribera recibe la vista del cliente en PDF, sin precios de compra.',
+      body: `<div class="field"><label for="para">Para</label><input class="inp" id="para" value="compras@constructoraribera.com.ar"></div><div class="row" style="justify-content:space-between"><span class="lbl">Total con IVA</span><b class="money">${L.ars(k.conIva)}</b></div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Enviar', icon: 'send', fn: () => { L.set('presupuesto', Object.assign({}, p, { estado: 'enviado' })); L.update(s => s.avisos.unshift({ id: 'c-env-041', t: 'Enviaste PRE-2026-041 a Constructora Ribera', d: `${L.ars(k.conIva)} con IVA · vale hasta ${L.fecha(k.vence)}`, i: 'send', tipo: 'pr', cuando: 'recién', href: 'd-com-presupuesto.html' })); L.toast('Presupuesto enviado', { desc: 'Vale hasta el ' + L.fecha(k.vence) }); } }] });
+  };
+
+  render();
+  L.on(() => {
+    const m = document.getElementById('margen');
+    if (m && document.activeElement === m) { const p = C.presupuesto(); const k = C.calcPresu(p); document.getElementById('sum').innerHTML = sumHTML(k, p); const m2 = document.getElementById('margen'); m2.focus(); btnEnviar(k); page.querySelector('.c-strip') && (page.querySelector('.c-strip').outerHTML = strip()); return; }
+    render();
+  });
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

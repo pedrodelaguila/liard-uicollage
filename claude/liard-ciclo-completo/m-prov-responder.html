@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Responder · liard</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css"></head>
+<body class="m" data-role="prov" data-tabs="prov" data-active="m-p-responder" data-h="h1" data-title="OC-2026-031-1" data-back="m-prov-solicitudes.html">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+(function () { const oc = new URLSearchParams(location.search).get('oc'); if (oc) document.body.dataset.title = oc; })();
+window.MOCK = { init() {
+  const page = document.getElementById('page'), est = L.q('estado');
+  const id = L.q('oc') || 'OC-2026-031-1';
+  let i = Math.max(0, +(L.q('i') || 0)), anim = false;
+  function render() {
+    const s = P.get(id);
+    if (!s) { page.innerHTML = `<div class="empty"><div class="e-ico">${L.icon('search')}</div><h3>Solicitud no encontrada</h3><a class="btn out" href="m-prov-solicitudes.html">Volver</a></div>`; return; }
+    if (est === 'error') { page.innerHTML = `<div class="empty" style="padding:48px 12px"><div class="e-ico">${L.icon('wifi-off')}</div><h3>Sin conexión</h3><p>Tus respuestas quedan guardadas en el teléfono y se mandan cuando vuelva la señal.</p><button class="btn pri" id="reint">Reintentar</button></div>`; page.querySelector('#reint').onclick = () => L.param('estado', null); return; }
+    if (s.estado !== 'SENT') {
+      page.innerHTML = `<div class="card pad col" style="text-align:center;align-items:center"><div class="e-ico" style="width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#f5f3ff;color:#6d28d9;font-size:24px">${L.icon(s.estado === 'CONFIRMED' ? 'circle-check' : 'repeat')}</div><h3 style="font-size:17px">${s.estado === 'COUNTER' ? 'Contraoferta enviada' : P.BADGE[s.estado][1]}</h3><p class="muted" style="font-size:13px">${s.contra ? `${L.ars(s.contra.total)} +IVA · plazo máx. ${P.dTxt(s.contra.plazoMax)}. Te avisamos cuando el comprador responda.` : 'Ya respondiste esta solicitud.'}</p>${s.contra ? `<div class="col" style="gap:6px;width:100%;text-align:left">${s.contra.lineas.map(x => `<div style="font-size:12px;padding:8px 10px;border-radius:10px;background:var(--muted)"><b>${L.esc((s.lineas.find(l => l.linea === x.linea) || {}).mat || '')}</b><div class="muted"><s>${L.esc(x.antes)}</s> → <span style="color:#6d28d9">${L.esc(x.despues)}</span></div></div>`).join('')}</div>` : ''}<a class="btn out block" href="m-prov-solicitudes.html">Volver a solicitudes</a></div>`;
+      L.fixLinks(page); const od = document.getElementById('dock'); if (od) od.remove(); return;
+    }
+    const b = P.borrador(id), cal = P.calcular(s, b), n = s.lineas.length;
+    i = Math.min(i, n - 1);
+    const f = cal.filas[i], l = f.l, a = f.r.a;
+    const hechas = (b.revisadas || []);
+    page.innerHTML = `
+      <div class="row" style="justify-content:space-between"><span class="lbl">Línea ${i + 1} de ${n}</span><span class="mono muted" style="font-size:12px">${L.esc(s.proyecto.split(' · ')[0])}</span></div>
+      <div class="pv-pager" role="tablist" aria-label="Líneas">${cal.filas.map((x, k) => `<button class="${k === i ? 'on ' : ''}${x.r.a === 'sinstock' ? 'out' : x.r.a !== 'confirmar' ? 'chg' : hechas.includes(x.l.linea) ? 'done' : ''}" data-i="${k}" aria-label="Línea ${k + 1}"></button>`).join('')}</div>
+      <div class="pv-line ${anim ? 'pv-swipe' : ''}">
+        <div><span class="mat">${L.esc(l.mat)}</span><div class="spec">${L.esc(l.spec)}</div><div class="spec">${L.esc((l.marca + ' ' + l.gama).trim())} · ${L.esc(l.codigo)}</div></div>
+        <div class="pv-facts"><div><span>Piden</span><b>${L.num(l.cant)} ${L.esc(l.u)}</b></div><div><span>Stock</span><b style="color:${l.stock >= l.cant ? 'var(--emerald-700)' : 'var(--rose-600)'}">${L.num(l.stock)}</b></div><div><span>Plazo</span><b>${P.dTxt(f.plazo)}</b></div></div>
+        ${l.hint ? `<div class="note warn" style="padding:10px"><span>${L.icon('database')}</span><div style="font-size:12px">${L.esc(l.hint.texto)}</div></div>` : ''}
+        ${l.alt ? `<div class="note info" style="padding:10px"><span>${L.icon('git-compare-arrows')}</span><div style="font-size:12px">También piden <b style="display:inline">${L.esc(l.alt.marca)} ${L.esc(l.alt.gama)}</b>. Elegilo en la computadora.</div></div>` : ''}
+        <div class="pv-big" role="group" aria-label="Respuesta">
+          <button class="${a === 'confirmar' && hechas.includes(l.linea) ? 'on ok' : ''}" data-a="confirmar">${L.icon('check')}Confirmar</button>
+          <button class="${a === 'plazo' ? 'on vi' : ''}" data-a="plazo">${L.icon('calendar-clock')}Plazo</button>
+          <button class="${a === 'sinstock' ? 'on er' : ''}" data-a="sinstock">${L.icon('package-x')}Sin stock</button>
+        </div>
+        ${a === 'plazo' ? `<div class="field"><label for="pl">Entrego en (días)</label><div class="pv-stepper"><button data-p="-1" aria-label="Un día menos">−</button><input id="pl" class="mono" type="number" value="${f.plazo}" aria-label="Días"><button data-p="1" aria-label="Un día más">+</button></div></div>` : ''}
+        ${['precio', 'equivalente', 'parcial'].includes(a) ? `<div class="note info" style="padding:10px"><span>${L.icon(P.ACC[a].i)}</span><div style="font-size:12px"><b style="display:inline">${P.ACC[a].t}</b> cargado desde la computadora. Tocá Confirmar para dejarla como estaba.</div></div>` : ''}
+      </div>
+      <div class="row"><button class="btn out" data-nav="-1" ${i === 0 ? 'disabled' : ''}>${L.icon('chevron-left')}Anterior</button><span class="grow"></span><button class="btn out" data-nav="1" ${i === n - 1 ? 'disabled' : ''}>Siguiente${L.icon('chevron-right')}</button></div>
+      <div id="dock-src" hidden><div class="t">Tu respuesta +IVA<b>${L.ars(cal.total)}</b>${cal.cambios.length ? `${cal.cambios.length} cambios` : 'sin cambios'} · ${hechas.length + cal.filas.filter(x => x.r.a !== 'confirmar' && !hechas.includes(x.l.linea)).length}/${n} vistas</div><button class="btn ${cal.cambios.length ? 'pri' : 'green'}" id="enviar">${L.icon('send')}${cal.cambios.length ? 'Enviar contraoferta' : 'Aceptar todo'}</button></div>`;
+    anim = false;
+    let dk = document.getElementById('dock'); if (!dk) { dk = document.createElement('div'); dk.id = 'dock'; dk.className = 'pv-mdock'; document.body.appendChild(dk); }
+    const src = document.getElementById('dock-src'); dk.innerHTML = src.innerHTML; src.remove();
+    dk.querySelector('#enviar').onclick = enviar;
+  }
+  function enviar() {
+    const s = P.get(id), cal = P.calcular(s);
+    if (!cal.cambios.length) return L.dialog({ title: 'Aceptar solicitud', icon: 'circle-check', desc: `Confirmás ${s.lineasN} líneas por ${L.ars(s.total)} +IVA. Se comparte tu contacto con el comprador.`, actions: [{ t: 'Cancelar' }, { t: 'Aceptar', cls: 'green', fn: () => { P.aceptar(s); L.toast('Solicitud aceptada', { desc: 'Ya podés ver el contacto del comprador.' }); } }] });
+    return L.dialog({ title: 'Enviar contraoferta', icon: 'send', desc: `${cal.cambios.length} líneas cambian · ${L.ars(cal.total)} +IVA (antes ${L.ars(cal.totalAntes)}).`, actions: [{ t: 'Revisar' }, { t: 'Enviar', fn: () => { P.enviarContra(s); L.toast('Contraoferta enviada', { desc: 'El comprador la ve en sus pedidos.' }); } }] });
+  }
+  const setR = r => { const b = P.borrador(id); const s = P.get(id); const l = s.lineas[i]; b.lineas[l.linea] = r; b.revisadas = Array.from(new Set((b.revisadas || []).concat(l.linea))); P.guardarBorrador(id, b); };
+  page.addEventListener('click', e => {
+    const s = P.get(id); if (!s || s.estado !== 'SENT') return;
+    const l = s.lineas[i];
+    const a = e.target.closest('[data-a]');
+    if (a) {
+      const k = a.dataset.a;
+      if (k === 'confirmar') { setR({ a: 'confirmar' }); if (i < s.lineas.length - 1) { i++; anim = true; render(); } return; }
+      if (k === 'plazo') return setR({ a: 'plazo', plazo: (l.hint && l.hint.plazo) || l.plazo + 5 });
+      if (k === 'sinstock') { setR({ a: 'sinstock' }); return L.toast('Sin stock', { type: 'warning', desc: l.mat + ' sale de tu respuesta', action: 'Deshacer', onAction: () => setR({ a: 'confirmar' }) }); }
+    }
+    const p = e.target.closest('[data-p]'); if (p) { const cur = P.borrador(id).lineas[l.linea]; return setR({ a: 'plazo', plazo: Math.max(1, (cur.plazo || l.plazo) + +p.dataset.p) }); }
+    const nv = e.target.closest('[data-nav]'); if (nv && !nv.disabled) { i += +nv.dataset.nav; anim = true; return render(); }
+    const pg = e.target.closest('[data-i]'); if (pg) { i = +pg.dataset.i; anim = true; return render(); }
+  });
+  page.addEventListener('change', e => { if (e.target.id === 'pl') setR({ a: 'plazo', plazo: Math.max(1, +e.target.value || 1) }); });
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

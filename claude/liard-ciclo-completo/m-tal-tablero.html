@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Tablero · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="bom.css"><link rel="stylesheet" href="campo.css"></head>
+<body class="m" data-role="obra" data-tabs="obra" data-active="m-tableros" data-h="h2" data-title="Tablero" data-back="m-tal-hoy.html">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="vendor/three.global.js"></script><script src="tablero3d.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const tid = L.q('tablero') || 'tgbt', vista = L.q('vista') || 'frente';
+  let ctl = null;
+  function render() {
+    const t = CP.tab(tid); if (!t) { CP.error(page, 'No encontramos ese tablero', 'El enlace está incompleto.', 'm-tal-hoy.html'); return; }
+    document.querySelector('.mbar h1').textContent = t.cod + ' · ' + t.avance + ' %';
+    const r = CP.resumenMat(tid); const pr = CP.x('protocolos.' + tid) || {};
+    const aps = CP.aparatos(tid); const mont = aps.filter(a => CP.montado(tid, a.ref)).length;
+    const puede3d = tid === 'tgbt' && window.Tablero3D && window.THREE && Tablero3D.hayWebGL();
+    page.innerHTML = `
+      <div class="cp-chips" aria-label="Tableros">${CP.tableros().map(x => `<a class="chip ${x.id === tid ? 'on' : ''}" href="m-tal-tablero.html?tablero=${x.id}${vista === '3d' ? '&vista=3d' : ''}">${L.esc(x.cod)}${x.estado === 'frenado' ? ` <small>${L.icon('octagon-pause')}</small>` : ''}</a>`).join('')}</div>
+      <div class="cp-mcard"><div style="padding:14px" class="col gap8">
+        <div class="row gap8"><span class="st ${CP.EST_ST[t.estado]}">${L.icon(CP.EST_IC[t.estado])}${CP.EST[t.estado]}</span><span class="muted ml-auto mono" style="font-size:12px">${L.esc(t.serie)}</span></div>
+        <span style="font-size:13.5px">${L.esc(t.n)} · ${L.esc(t.gabinete)}</span>
+        <div class="bar ${t.estado === 'frenado' ? 'bad' : ''}"><i style="width:${t.avance}%"></i></div>
+        <div class="row gap8" style="font-size:12.5px"><span>${mont}/${aps.length} aparatos montados</span><span class="ml-auto cp-mst ${r.er ? 'er' : r.wa ? 'wa' : 'ok'}">${r.ok + r.st}/${r.total} materiales</span></div>
+        ${t.frena ? `<div class="note bad" style="padding:10px 12px">${L.icon('octagon-pause')}<div><b>Frenado</b>Falta ${L.esc(CP.lin(t.frena).mat.toLowerCase())} ${L.esc(CP.lin(t.frena).spec)}: no se pudo cotizar. Lo resuelve ingeniería.</div></div>` : ''}
+      </div></div>
+      ${tid === 'tgbt' ? `<div class="seg" data-param="vista" data-default="frente" style="align-self:center"><button data-vista="frente" class="${vista !== '3d' ? 'on' : ''}">Frente</button><button data-vista="3d" class="${vista === '3d' ? 'on' : ''}">3D</button></div>` : ''}
+      <div class="cp-mcard"><div class="h">${L.icon('hand')}<span class="lbl">Tocá un aparato</span><span class="tag-nuevo ml-auto">Nuevo</span></div>
+        <div style="padding:0 10px 10px">${vista === '3d' && puede3d ? `<div id="v3d" style="position:relative;height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--border)"></div>` : CP.frente(tid, { compact: true })}</div>
+        ${vista === '3d' && !puede3d && tid === 'tgbt' ? `<div class="note warn" style="margin:0 14px 12px">${L.icon('triangle-alert')}<div><b>Este teléfono no puede mostrar el 3D</b>Te mostramos el frente 2D con la misma información.</div></div>` : ''}
+        <div style="padding:0 14px 14px">${CP.leyenda()}</div></div>
+      <div class="cp-mcard"><div class="h">${L.icon('clipboard-check')}<span class="lbl">Protocolo de ensayos</span></div>
+        <a class="cp-mrow" href="d-tal-protocolo.html?tablero=${tid}"><span class="ico-b ${pr.firmado ? 'ok' : t.estado === 'ensayo' ? 'pr' : ''}">${L.icon(pr.firmado ? 'stamp' : 'clipboard-check')}</span><span class="grow"><span class="t">${pr.firmado ? 'Firmado el ' + L.fecha(pr.fecha) : t.estado === 'ensayo' ? 'En curso' : 'Pendiente'}</span><span class="d">IEC 61439 · ensayos de rutina</span></span>${L.icon('chevron-right')}</a>
+        ${pr.firmado ? `<a class="cp-mrow" href="m-cli-tablero.html?tablero=${tid}"><span class="ico-b ok">${L.icon('qr-code')}</span><span class="grow"><span class="t">Lo que abre el QR</span><span class="d">Ficha pública del tablero</span></span>${L.icon('chevron-right')}</a>` : ''}
+      </div>`;
+    page.querySelectorAll('.cp-frente .ap').forEach(g => { g.onclick = () => ficha(g.dataset.ref); g.onkeydown = e => { if (e.key === 'Enter') ficha(g.dataset.ref); }; });
+    if (vista === '3d' && puede3d) {
+      const compra = {}; B.lineas.forEach(l => { const m = CP.mat(tid, l.id); compra[l.id] = m.k === 'er' ? 'NONE' : m.k === 'wa' ? 'SENT' : 'CONFIRMED'; });
+      try { ctl = Tablero3D.montar(document.getElementById('v3d'), { tablero: B.tgbt, lineas: L.get('lineas'), color: 'compra', compra, etiquetas: true,
+        onSeleccion: (lid, ref) => { if (!lid) return; const a = aps.find(x => x.linea === lid && (!ref || x.ref === ref || x.grupo === ref)) || aps.find(x => x.linea === lid); if (a) ficha(a.ref); } }); }
+      catch (e) { document.getElementById('v3d').outerHTML = CP.frente(tid, { compact: true }); }
+    }
+  }
+  function ficha(ref) {
+    const ov = L.sheet(CP.ficha(tid, ref), { label: 'Aparato ' + ref });
+    CP.fichaEventos(ov, tid, () => { if (ctl && ctl.destruir) ctl.destruir(); render(); });
+  }
+  L.on(() => { if (ctl && ctl.destruir) ctl.destruir(); render(); });
+  render();
+  if (L.q('ref')) ficha(L.q('ref'));
+} };
+</script>
+</body></html>

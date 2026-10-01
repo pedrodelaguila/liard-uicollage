@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Listas y sincronización · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css">
+</head>
+<body data-role="prov" data-user="carla" data-active="p-listas" data-h="h2"
+      data-crumbs="Catálogo|d-prov-catalogo.html>Listas y sincronización" data-title="Listas y sincronización"
+      data-sub="Conectá tu ERP para que precio y stock se actualicen solos, y armá listas con bonificación por cliente. La planilla .xlsx sigue funcionando igual.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="erp" aria-label="Sección"><button data-vista="erp">ERP</button><button data-vista="listas">Listas por cliente</button><button data-vista="historial">Historial de precios</button></div>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'), BP = window.BP, est = L.q('estado'), vista = L.q('vista') || 'erp';
+  const st = () => Object.assign({ erp: est === 'vacio' ? null : 'ebase', frec: '4h', moneda: 'ARS', sync: est === 'cargando', resueltos: [], listas: {} }, L.get('x.prov.erp') || {});
+  const save = c => L.set('x.prov.erp', Object.assign(st(), c));
+
+  function erp() {
+    const s = st(), E = BP.erp;
+    if (!s.erp) return `<div class="note info"><span data-icon="info"></span><div><b>Hoy cargás tu catálogo con planillas</b>Funciona: recordamos el mapeo de columnas. Pero tu lista más vieja tiene 41 días y el cobre se movió. Conectá tu ERP y se actualiza solo. <span class="tag-existe">la planilla existe</span> <span class="tag-h2">el conector es propuesta</span></div></div>
+      <div class="grid3">${E.conectores.map(c => `<div class="card pad col"><div class="row"><div class="card-ico">${L.icon(c.i)}</div><b>${L.esc(c.n)}</b></div><p class="muted" style="font-size:13px">${L.esc(c.d)}</p><button class="btn pri" data-con="${c.id}">Conectar ${L.esc(c.n.split(' ')[0])}</button></div>`).join('')}</div>
+      <div class="card pad"><div class="row"><div class="card-ico">${L.icon('file-spreadsheet')}</div><div class="grow"><b>Seguir con planillas</b><div class="muted" style="font-size:13px">Subí la lista cuando cambie. Te recordamos cada 15 días.</div></div><button class="btn out" data-href="d-prov-catalogo.html?vista=importar">Cargar planilla</button></div></div>`;
+    const con = E.conectores.find(c => c.id === s.erp);
+    const pend = E.conflictos.filter(c => !s.resueltos.includes(c.id));
+    const errHTML = est === 'error' ? `<div class="note bad"><span data-icon="server-off"></span><div><b>La última sincronización falló (10:00)</b>Electrobase no respondió en 60 s. Tus precios siguen siendo los de las 06:00 y los tableristas ven esa fecha. Reintentamos a las 10:30; si sigue fallando, te avisamos por mail. <button class="btn xs out" id="reint">Reintentar ahora</button></div></div>` : '';
+    return `${errHTML}<div class="grid2" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)">
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon(con.i)}</div><div><h3>${L.esc(con.n)}</h3><div class="sub">Conectado por Carla Méndez el 12/09/2026 · servidor depo-pilar</div></div><div class="r">${s.sync ? `<span class="st pr">${L.icon('refresh-cw')}Sincronizando…</span>` : est === 'error' ? `<span class="st er">${L.icon('triangle-alert')}Falló</span>` : `<span class="st ok">${L.icon('circle-check')}Al día</span>`}</div></div>
+        <div class="card-b col">
+          <div class="pv-measured"><div><b>${L.num(E.productos)}</b><span>productos que manda el ERP</span></div><div><b>${L.num(E.cambiados)}</b><span>cambiaron en la última</span></div><div><b>06:00</b><span>última sincronización</span></div><div><b>${s.sync ? 'ahora' : '10:00'}</b><span>próxima</span></div></div>
+          ${s.sync ? `<div><div class="bar"><i style="width:46%"></i></div><p class="muted" style="font-size:12px;margin-top:6px">Leyendo artículos 8.470 de 18.420 · solo se publican los que cambiaron.</p></div>` : ''}
+          <div class="grid2" style="gap:14px">
+            <div class="field"><label for="frec">Frecuencia</label><select class="inp" id="frec">${[['1h', 'Cada hora'], ['4h', 'Cada 4 horas'], ['dia', 'Una vez por día (06:00)']].map(([k, t]) => `<option value="${k}" ${s.frec === k ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+            <div class="field"><label for="mon">Moneda de tus listas</label><select class="inp" id="mon"><option value="ARS" ${s.moneda === 'ARS' ? 'selected' : ''}>Pesos (ARS)</option><option value="USD" ${s.moneda === 'USD' ? 'selected' : ''}>Dólares (USD) · al BNA vendedor del día</option></select><span class="help">${s.moneda === 'USD' ? `El comprador ve el precio en pesos al BNA (${L.ars(1540)} del 30/09) y la moneda de origen.` : 'Todo precio se guarda sin IVA.'}</span></div>
+          </div>
+          <div><span class="lbl">Qué manda el ERP</span><div class="col" style="gap:8px;margin-top:8px">${[['Precio de lista sin IVA', true, 'existe en la planilla'], ['Stock por almacén (Pilar + Escobar)', true, ''], ['Plazo de reposición del fabricante', true, ''], ['Bajas de artículos (despublicar)', false, 'Hoy las bajas las confirma Carla a mano']].map(([t, on, n], i) => `<div class="row"><button class="switch" role="switch" aria-checked="${on}" aria-label="${t}" data-sw="${i}"></button><span style="font-size:14px">${t}</span>${n ? `<span class="muted" style="font-size:12px">${n}</span>` : ''}</div>`).join('')}</div></div>
+        </div>
+        <div class="dlg-f" style="justify-content:space-between"><button class="btn ghost sm" id="desc">${L.icon('unlink')}Desconectar</button><button class="btn pri sm" id="sync" ${s.sync ? 'disabled' : ''}>${L.icon('refresh-cw', s.sync ? 'spin' : '')}Sincronizar ahora</button></div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('triangle-alert')}</div><div><h3>Para decidir</h3><div class="sub">Lo que la sincronización no resuelve sola.</div></div><div class="r"><span class="bdg ${pend.length ? 'wa' : 'ok'}">${pend.length}</span></div></div>
+        <div class="list">${pend.map(c => `<div class="li" style="align-items:flex-start"><div class="grow"><div class="t">${L.esc(c.t)}</div><div class="d mono">${L.esc(c.prod)}</div>${c.erp ? `<div style="font-size:12px;margin-top:4px">ERP <b class="mono">${L.ars(c.erp)}</b> · liard <b class="mono">${L.ars(c.liard)}</b></div>` : ''}<div class="d" style="margin-top:2px">${L.esc(c.nota)}</div>
+          <div class="row" style="margin-top:8px;gap:6px">${c.tipo === 'precio' ? `<button class="btn xs pri" data-res="${c.id}" data-t="Manda el ERP">Que mande el ERP</button><button class="btn xs out" data-res="${c.id}" data-t="Se mantiene el precio de liard">Mantener el de liard</button>` : c.tipo === 'base' ? `<a class="btn xs out" href="d-prov-catalogo.html?vista=vincular&filtro=sin">Vincular a mano</a><button class="btn xs ghost" data-res="${c.id}" data-t="Queda publicado sin componente base">Dejar así</button>` : `<button class="btn xs dan" data-res="${c.id}" data-t="Despublicado: la solicitud abierta lo va a ver sin stock">Despublicar igual</button><button class="btn xs out" data-res="${c.id}" data-t="Se despublica cuando cierre la solicitud">Esperar a que cierre</button>`}</div></div></div>`).join('') || `<div class="empty" style="padding:28px"><div class="e-ico">${L.icon('circle-check')}</div><h3>Nada para decidir</h3><p>Lo próximo aparece después de la sincronización de las 10:00.</p></div>`}</div></div>
+    </div>`;
+  }
+
+  function listas() {
+    const s = st();
+    const ls = BP.listas.map(l => Object.assign({}, l, s.listas[l.id] || {}));
+    const ej = window.B.lineas.filter(l => ['l01', 'l03', 'l05', 'l16'].includes(l.id));
+    const sel = ls.find(l => l.id === (L.q('lista') || 'ld')) || ls[1];
+    const precio = (l, lista) => { const b = lista.marcas[l.marca] != null ? lista.marcas[l.marca] : lista.bonif; return window.B.ofertas[l.id].en.precio * (1 - b / 100); };
+    return `<div class="note info"><span data-icon="info"></span><div><b>Cada cliente ve su lista, nadie ve la de otro</b>En la cotización del tablerista aparece tu precio con su bonificación ya aplicada. Una lista nueva no cambia las solicitudes ya enviadas: esas conservan el precio con el que salieron. <span class="tag-h2">Propuesta</span></div></div>
+      <div class="pv-two" style="grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)">
+        <div class="card"><div class="card-h"><div><h3>Listas</h3><div class="sub">Bonificación sobre la lista general · precios sin IVA</div></div><div class="r"><button class="btn sm out" id="nueva">${L.icon('plus')}Nueva lista</button></div></div>
+          <div class="list">${ls.map(l => `<a class="li ${l.id === sel.id ? 'on' : ''}" href="d-prov-integraciones.html?vista=listas&lista=${l.id}"><div class="grow"><div class="t">${L.esc(l.cliente)}</div><div class="d">${l.comp ? `−${l.bonif} % general${Object.keys(l.marcas).length ? ' · ' + Object.entries(l.marcas).map(([m, v]) => `${m.split(' ')[0]} −${v} %`).join(' · ') : ''}` : 'Precio de lista, sin bonificación'} · ${l.moneda}</div><div class="d mono">${L.fecha(l.desde)} → ${L.fecha(l.hasta)}</div></div><span class="st ${l.estado === 'vigente' ? 'ok' : l.estado === 'borrador' ? 'gr' : 'er'}">${{ vigente: 'Vigente', borrador: 'Borrador', vencida: 'Vencida' }[l.estado]}</span></a>`).join('')}</div></div>
+        <div class="card"><div class="card-h"><div><span class="lbl">Lista</span><h3>${L.esc(sel.cliente)}</h3><div class="sub">${sel.nota ? L.esc(sel.nota) : 'Vigencia ' + L.fecha(sel.desde) + ' → ' + L.fecha(sel.hasta)}</div></div><div class="r">${sel.estado === 'borrador' ? `<button class="btn sm pri" id="pub" data-l="${sel.id}">Publicar lista</button>` : sel.estado === 'vencida' ? `<button class="btn sm out" id="ren" data-l="${sel.id}">Renovar 30 días</button>` : ''}</div></div>
+          <div class="card-b col">${sel.comp ? `<div class="field"><label for="bon">Bonificación general (%)</label><input class="inp mono" id="bon" type="number" min="0" max="40" value="${sel.bonif}" data-l="${sel.id}" style="width:140px"></div>` : ''}
+          <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Producto</th><th class="r">Lista general</th><th class="r">Esta lista</th><th class="r">Con IVA</th></tr></thead><tbody>${ej.map(l => { const p0 = window.B.ofertas[l.id].en.precio, p = precio(l, sel); return `<tr><td><b style="font-weight:500">${L.esc(l.mat)}</b><div class="muted mono" style="font-size:11px">${L.esc(l.spec)} · ${L.esc(l.marca)}</div></td><td class="r money" style="width:1%">${L.ars(p0)}</td><td class="r money" style="font-weight:700;width:1%">${L.ars(p)}</td><td class="r money muted" style="width:1%">${L.ars(p * 1.21)}</td></tr>`; }).join('')}</tbody></table></div>
+          <p class="muted" style="font-size:12px">IVA 21 % solo como cálculo de presentación. El precio que se guarda y se compara es sin IVA.</p></div></div>
+      </div>`;
+  }
+
+  function historial() {
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('chart-line')}</div><div><h3>Cambios de precio · últimos 30 días</h3><div class="sub">ProviderPriceHistory · cada cambio con su origen. Sin IVA.</div></div><div class="r"><span class="tag-existe">el historial existe</span><span class="tag-h2">la vista es propuesta</span></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl"><thead><tr><th>Fecha</th><th>Código</th><th>Producto</th><th class="r">Antes</th><th class="r">Ahora</th><th class="r">Variación</th><th>Origen</th></tr></thead><tbody>${BP.historial.map(h => { const v = (h.despues / h.antes - 1) * 100; return `<tr><td class="mono" style="font-size:12px">${L.fecha(h.f)}</td><td class="mono" style="font-size:12px">${L.esc(h.codigo)}</td><td>${L.esc(h.prod)}</td><td class="r money muted">${L.ars(h.antes)}</td><td class="r money" style="font-weight:700">${L.ars(h.despues)}</td><td class="r mono ${v > 0 ? 'up' : 'down'}">${v > 0 ? '+' : '−'}${L.num(Math.abs(v), 1)} %</td><td><span class="bdg ${h.origen.startsWith('Manual') ? 'wa' : h.origen === 'Electrobase' ? 'pri' : ''}">${L.esc(h.origen)}</span></td></tr>`; }).join('')}</tbody></table></div></div>`;
+  }
+
+  function render() {
+    if (est === 'cargando' && vista !== 'erp') { page.innerHTML = '<div class="skel" style="height:400px"></div>'; return; }
+    page.innerHTML = vista === 'listas' ? listas() : vista === 'historial' ? historial() : erp();
+    page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => {
+    const t = e.target;
+    const c = t.closest('[data-con]'); if (c) { const k = BP.erp.conectores.find(x => x.id === c.dataset.con); return L.dialog({ title: 'Conectar ' + k.n, icon: k.i, desc: 'Instalás un conector en un equipo de tu red; solo lee artículos, precios y stock. No escribe nada en tu ERP.', body: `<div class="field"><label for="srv">Servidor o dirección</label><input class="inp mono" id="srv" value="depo-pilar:5432"></div><div class="field"><label for="tok">Código de enlace</label><input class="inp mono" id="tok" value="EN-7F3K-92QX"></div>`, actions: [{ t: 'Cancelar' }, { t: 'Conectar', fn: () => { save({ erp: k.id, sync: true }); L.toast('Conectado', { desc: 'Primera sincronización en curso.' }); setTimeout(() => save({ sync: false }), 1800); } }] }); }
+    if (t.closest('#sync') || t.closest('#reint')) { save({ sync: true }); L.toast('Sincronizando con Electrobase', { type: 'loading' }); setTimeout(() => { save({ sync: false }); L.toast('Sincronización terminada', { desc: '312 productos cambiaron de precio · 4 quedaron sin stock' }); }, 1800); return; }
+    if (t.closest('#desc')) return L.dialog({ title: 'Desconectar el ERP', icon: 'unlink', desc: 'Tus productos quedan publicados con el último precio. Vas a tener que volver a cargar planillas.', actions: [{ t: 'Cancelar' }, { t: 'Desconectar', cls: 'dan', fn: () => { save({ erp: null }); L.toast('ERP desconectado', { type: 'info' }); } }] });
+    const r = t.closest('[data-res]'); if (r) { save({ resueltos: st().resueltos.concat(r.dataset.res) }); return L.toast('Listo', { desc: r.dataset.t }); }
+    const sw = t.closest('[data-sw]'); if (sw) L.toast(sw.getAttribute('aria-checked') === 'true' ? 'Activado' : 'Desactivado', { type: 'info', desc: sw.getAttribute('aria-label') });
+    const pb = t.closest('#pub'); if (pb) { const s = st(); s.listas[pb.dataset.l] = Object.assign({}, s.listas[pb.dataset.l], { estado: 'vigente' }); save(s); return L.toast('Lista publicada', { desc: 'Rige desde el 02/10. Tableros Delta la ve en su próxima cotización.' }); }
+    const rn = t.closest('#ren'); if (rn) { const s = st(); s.listas[rn.dataset.l] = { estado: 'vigente', desde: P.HOY, hasta: P.addDias(P.HOY, 30) }; save(s); return L.toast('Lista renovada', { desc: 'Vigente hasta el ' + L.fecha(P.addDias(P.HOY, 30)) }); }
+    if (t.closest('#nueva')) return L.dialog({ title: 'Nueva lista', icon: 'plus', body: `<div class="field"><label for="nl-c">Cliente</label><select class="inp" id="nl-c"><option>Tableros Delta S.R.L.</option><option>Montajes del Sur S.R.L.</option><option>Ingeniería Ribera Norte</option></select></div><div class="field"><label for="nl-b">Bonificación general (%)</label><input class="inp mono" id="nl-b" type="number" value="5"></div><p class="muted" style="font-size:12px">Solo podés armar listas para clientes que ya te compraron por liard (con contacto revelado).</p>`, actions: [{ t: 'Cancelar' }, { t: 'Crear borrador', fn: () => L.toast('Borrador creado', { desc: 'Revisalo y publicalo cuando quieras.' }) }] });
+  });
+  page.addEventListener('change', e => {
+    if (e.target.id === 'frec') { save({ frec: e.target.value }); L.toast('Frecuencia guardada', { desc: e.target.selectedOptions[0].text }); }
+    if (e.target.id === 'mon') { save({ moneda: e.target.value }); }
+    if (e.target.id === 'bon') { const s = st(); s.listas[e.target.dataset.l] = Object.assign({}, s.listas[e.target.dataset.l], { bonif: Math.max(0, Math.min(40, +e.target.value)) }); save(s); }
+  });
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

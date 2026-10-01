@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Equipo y permisos · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css">
+</head>
+<body data-role="ing" data-active="equipo" data-user="hernan" data-h="h1"
+  data-title="Equipo, permisos y colaboración" data-sub="Quién está en Tableros Delta, qué puede hacer cada uno, qué necesita aprobación y qué se está conversando en cada obra.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="equipo" aria-label="Sección"><button data-vista="equipo">Equipo</button><button data-vista="aprobaciones">Aprobaciones</button><button data-vista="actividad">Actividad</button></div>
+  <button class="btn pri" id="inv" data-icon="user-plus">Invitar</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  P.boot();
+  const vista = L.q('vista') || (L.q('linea') ? 'actividad' : 'equipo');
+  const user = document.body.dataset.user;
+  if (L.q('linea') && !L.q('vista')) document.querySelectorAll('[data-param=vista] [data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === 'actividad'));
+  const PERF = BP.perfiles;
+  const mark = v => v === 1 ? `<span class="yes" title="Puede">${L.icon('check')}</span>` : v === 'a' ? `<span class="ap" title="Con aprobación">${L.icon('stamp')}</span>` : `<span class="no" title="No puede">${L.icon('minus')}</span>`;
+  const real = `<div class="note info">${L.icon('info')}<div><b>Hoy la app tiene un solo rol para la empresa: ENGINEER</b>En dev todos los usuarios de Tableros Delta pueden todo (y del otro lado, SUPPLIER es el distribuidor). Los perfiles de abajo son la propuesta: se suman sobre ENGINEER, sin tocar el login. <span class="tag-existe">ENGINEER · SUPPLIER existen</span> <span class="tag-nuevo">Perfiles: nuevo</span></div></div>`;
+
+  function equipo() {
+    const inv = L.get('x.pla.invitados') || [];
+    const perm = L.get('x.pla.permisos') || BP.permisos;
+    return `${real}
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('users')}</div><div><h3>Personas</h3><div class="sub">${BP.equipo.length + inv.length} de 10 lugares del plan Profesional</div></div><div class="r"><div class="search" style="width:260px">${L.icon('search')}<input class="inp" id="bus" placeholder="Buscar por nombre o correo" aria-label="Buscar persona"></div></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl" id="tp"><thead><tr><th>Persona</th><th>Rol en la app</th><th>Perfil</th><th>Último ingreso</th><th class="r">Acciones</th></tr></thead><tbody>
+        ${BP.equipo.map(e => { const u = P.u(e.u); const pf = (L.get('x.pla.perfil') || {})[e.u] || e.perfil; return `<tr data-q="${L.esc((u.n + ' ' + e.email).toLowerCase())}"><td><div class="row" style="gap:10px">${P.av(e.u)}<div><b>${L.esc(u.n)}</b><div class="muted mono" style="font-size:11.5px">${L.esc(e.email)}</div></div></div></td>
+          <td><span class="bdg mono">ENGINEER</span></td>
+          <td><select class="inp" style="height:32px;width:170px" data-perfil="${e.u}" aria-label="Perfil de ${L.esc(u.n)}" ${e.u === 'hernan' ? 'disabled title="El dueño de la cuenta siempre es Dirección"' : ''}>${Object.entries(PERF).map(([k, p]) => `<option value="${k}" ${k === pf ? 'selected' : ''}>${p.t}</option>`).join('')}</select></td>
+          <td class="mono">${L.esc(e.ultimo)}</td><td class="r"><button class="btn xs ghost" data-baja="${e.u}" ${e.u === 'hernan' ? 'disabled' : ''}>${L.icon('user-x')}Quitar</button></td></tr>`; }).join('')}
+        ${inv.map((i, k) => `<tr><td><div class="row" style="gap:10px"><span class="av sm c5">${L.icon('mail')}</span><div><b>${L.esc(i.email)}</b><div class="muted" style="font-size:11.5px">Invitación enviada ${L.esc(i.cuando)}</div></div></div></td><td><span class="bdg wa">Pendiente</span></td><td>${PERF[i.perfil].t}</td><td class="muted">—</td><td class="r"><button class="btn xs ghost" data-reenv="${k}">${L.icon('send')}Reenviar</button><button class="btn xs ghost" data-cancel="${k}">${L.icon('x')}Cancelar</button></td></tr>`).join('')}
+        </tbody></table></div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('shield-check')}</div><div><h3>Qué puede hacer cada perfil</h3><div class="sub">Tocá una celda para cambiarla · ${L.icon('stamp')} = puede, pero con aprobación</div></div><div class="r"><span class="tag-nuevo">Nuevo</span><button class="btn sm out" id="rest">${L.icon('rotate-ccw')}Volver a lo sugerido</button></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl pla-perm"><thead><tr><th>Acción</th>${Object.values(PERF).map(p => `<th class="c" title="${L.esc(p.d)}">${p.t}</th>`).join('')}</tr></thead><tbody>
+        ${perm.map((r, i) => `<tr><td>${L.esc(r[0])}</td>${r.slice(1).map((v, j) => `<td class="c"><button class="cell" data-c="${i}:${j + 1}" aria-label="${L.esc(r[0])} · ${Object.values(PERF)[j].t}" ${j === 0 ? 'disabled' : ''}>${mark(v)}</button></td>`).join('')}</tr>`).join('')}
+        </tbody></table></div></div>`;
+  }
+
+  function aprobaciones() {
+    const ra = L.get('x.pla.reglasAprob') || [];
+    const ap = L.get('x.pla.aprobaciones') || [];
+    const pend = ap.filter(a => a.estado === 'pendiente');
+    const val = r => r.u === 'ars' ? L.ars(r.valor) + ' +IVA' : r.u === 'pct' ? L.pct(r.valor) : '';
+    return `<div class="grid2" style="grid-template-columns:minmax(0,1fr) 460px;align-items:start">
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('stamp')}</div><div><h3>Esperando aprobación</h3><div class="sub">${pend.length} pendientes · se aprueban también desde el teléfono</div></div><div class="r"><span class="tag-h1">0–6 meses</span></div></div>
+        <div>${pend.length ? pend.map(a => { const r = ra.find(x => x.id === a.regla) || {}; return `<div class="pla-todo"><span class="ti wa">${L.icon(a.tipo === 'oc' ? 'shopping-cart' : 'percent')}</span><div class="grow"><b>${L.esc(a.t)}${a.ia ? ' <span class="ai-tag">' + L.icon('sparkles') + 'preparado con IA</span>' : ''}</b><small>${L.esc(a.d)} · pide ${L.esc(P.u(a.pide).n)} · ${L.esc(a.cuando)}</small><small style="margin-top:4px">${L.icon('workflow')} Regla: ${L.esc(r.t || '')} ${val(r)}${a.monto ? ' · <span class="money">' + L.ars(a.monto) + ' +IVA</span>' : ''}</small></div>
+            <div class="row gap8"><button class="btn sm dan" data-dec="${a.id}:rechazada">Rechazar</button><button class="btn sm pri" data-dec="${a.id}:aprobada">${L.icon('check')}Aprobar</button></div></div>`; }).join('')
+          : `<div class="empty"><div class="e-ico">${L.icon('check-check')}</div><h3>Nada para aprobar</h3><p>Cuando una OC o un presupuesto pase una regla, aparece acá y le llega un aviso a quien aprueba.</p></div>`}</div>
+        <div class="card-h" style="border-top:1px solid var(--border)"><div><h3 style="font-size:14px">Historial</h3></div></div>
+        <div class="list">${ap.filter(a => a.estado !== 'pendiente').map(a => `<div class="li"><span class="st ${a.estado === 'aprobada' ? 'ok' : 'er'}">${L.icon(a.estado === 'aprobada' ? 'circle-check' : 'circle-x')}${a.estado === 'aprobada' ? 'Aprobada' : 'Rechazada'}</span><div class="grow"><div class="t">${L.esc(a.t)}</div><div class="d">${L.esc(a.d)} · ${L.esc(P.u(a.por || 'hernan').n)} · ${L.esc(a.cuando)}</div></div>${a.monto ? `<b class="money">${L.ars(a.monto)}</b>` : ''}</div>`).join('')}</div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('workflow')}</div><div><h3>Reglas de aprobación</h3><div class="sub">Qué pasa por Dirección antes de salir</div></div><div class="r"><span class="tag-nuevo">Nuevo</span></div></div>
+        <div class="list">${ra.map(r => `<div class="li" style="align-items:flex-start;padding:14px 20px"><button class="switch" role="switch" data-manual="1" data-ra="${r.id}" aria-checked="${r.on}" aria-label="Activar: ${L.esc(r.t)}"></button>
+          <div class="grow col" style="gap:6px"><div class="t">${L.esc(r.t)}${r.u ? ` <b class="mono">${val(r)}</b>` : ''}</div><div class="d">${L.esc(r.d)} → aprueba ${L.esc(P.u(r.quien).n)}</div>
+          ${r.u ? `<div class="row" style="gap:8px"><input class="inp mono" style="height:30px;width:150px" data-rv="${r.id}" value="${r.u === 'ars' ? L.num(r.valor) : r.valor}" aria-label="Valor de ${L.esc(r.t)}"><span class="muted" style="font-size:12px">${r.u === 'ars' ? '$ sin IVA' : '%'}</span><button class="btn xs out" data-rs="${r.id}">Guardar</button></div>` : ''}</div></div>`).join('')}</div>
+        <div class="card-b" style="border-top:1px solid var(--border)"><div class="note warn" style="font-size:12.5px">${L.icon('triangle-alert')}<div>${(() => { const n = (L.get('pedidos') || []).flatMap(p => p.ordenes).filter(o => o.status === 'SENT' && o.total > (ra.find(r => r.id === 'oc') || {}).valor).length; return n ? `Con este monto, ${n === 1 ? 'una OC que ya salió hubiera necesitado' : n + ' OC que ya salieron hubieran necesitado'} aprobación. Las que salieron no se frenan: la regla aplica a las nuevas.` : 'Ninguna OC en espera supera el monto.'; })()}</div></div></div></div>
+    </div>`;
+  }
+
+  function actividad() {
+    const hilos = L.get('x.pla.hilos') || [];
+    const fil = L.get('x.pla.filtroHilo') || 'abierto';
+    const lin = L.q('linea');
+    const lista = hilos.filter(h => fil === 'todos' || h.estado === fil);
+    const sel = (lin && hilos.find(h => h.ref === lin)) || hilos.find(h => h.id === L.get('x.pla.hiloSel')) || lista[0];
+    const titulo = h => { if (h.tipo === 'linea') { const l = (L.get('lineas') || []).find(x => x.id === h.ref); return l ? `${l.mat} · ${l.spec}` : h.ref; } const p = (L.get('planos') || []).find(x => x.id === h.ref); return `${p ? p.cod : h.ref} · ${h.sim}`; };
+    const ir = h => h.tipo === 'linea' ? `d-bom-editor.html?linea=${h.ref}` : `d-ing-plano.html?plano=${h.ref}`;
+    const txt = t => L.esc(t).replace(/@(\w+)/g, (m, k) => (L.get('usuarios') || {})[k] ? `<span class="men">@${L.esc(P.u(k).n.split(' ')[0])}</span>` : m);
+    const feed = [
+      ...(L.get('avisos') || []).slice(0, 4).map(a => ({ i: a.i, t: a.t, d: a.cuando, c: a.tipo })),
+      { i: 'pencil', t: 'Martina Giménez editó TS-PISO: ×6 repeticiones', d: '29/09 17:50', c: 'pri' },
+      { i: 'upload', t: 'Martina Giménez subió TS-EXT (PDF)', d: 'hoy 08:30', c: 'pri' },
+    ];
+    return `<div class="split l" style="grid-template-columns:400px minmax(0,1fr)">
+      <div class="col gap16"><div class="card"><div class="card-h"><div class="card-ico">${L.icon('message-square-text')}</div><div><h3>Conversaciones</h3><div class="sub">Hospital Cañuelas · en líneas del BOM y en símbolos del plano</div></div></div>
+        <div class="card-b" style="padding:10px 20px"><div class="chips">${[['abierto', 'Abiertas'], ['resuelto', 'Resueltas'], ['todos', 'Todas']].map(([k, t]) => `<button class="chip ${fil === k ? 'on' : ''}" data-fh="${k}">${t} <small>${k === 'todos' ? hilos.length : hilos.filter(h => h.estado === k).length}</small></button>`).join('')}</div></div>
+        <div class="list">${lista.map(h => `<button class="li ${sel && sel.id === h.id ? 'on' : ''}" data-h="${h.id}" style="border:0;border-bottom:1px solid var(--border);background:none;text-align:left;width:100%;font:inherit;cursor:pointer">${L.icon(h.tipo === 'linea' ? 'table-2' : 'scan-search', 'muted')}<div class="grow"><div class="t trunc">${L.esc(titulo(h))}</div><div class="d trunc">${L.esc(P.u(h.msgs[h.msgs.length - 1].u).n.split(' ')[0])}: ${L.esc(h.msgs[h.msgs.length - 1].t)}</div></div>${h.estado === 'resuelto' ? `<span class="st ok" style="height:20px">${L.icon('check')}</span>` : `<span class="bdg mono">${h.msgs.length}</span>`}</button>`).join('') || `<div class="empty" style="padding:30px"><p>Sin conversaciones ${fil === 'resuelto' ? 'resueltas' : 'abiertas'}.</p></div>`}</div></div>
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('activity')}</div><div><h3>Actividad de la obra</h3></div></div><div class="card-b"><div class="timeline">${feed.map(f => `<div class="tl"><span class="tl-i ${f.c === 'er' ? 'er' : f.c === 'wa' ? 'wa' : f.c === 'ok' ? 'ok' : 'pri'}">${L.icon(f.i || 'bell')}</span><div><b>${L.esc(f.t)}</b><small>${L.esc(f.d)}</small></div></div>`).join('')}</div></div></div></div>
+      ${sel ? `<div class="card"><div class="card-h"><div class="card-ico">${L.icon(sel.tipo === 'linea' ? 'table-2' : 'scan-search')}</div><div class="grow"><h3>${L.esc(titulo(sel))}</h3><div class="sub">${sel.tipo === 'linea' ? 'Línea ' + sel.ref + ' del BOM consolidado' : 'Símbolo del plano ' + sel.ref.toUpperCase()} · ${sel.estado === 'resuelto' ? 'resuelta' : 'abierta'}</div></div><div class="r"><a class="btn sm out" href="${ir(sel)}">${L.icon('arrow-up-right')}${sel.tipo === 'linea' ? 'Ver la línea' : 'Ver en el plano'}</a><button class="btn sm ${sel.estado === 'resuelto' ? 'out' : 'ok'}" id="res">${L.icon(sel.estado === 'resuelto' ? 'rotate-ccw' : 'check')}${sel.estado === 'resuelto' ? 'Reabrir' : 'Resolver'}</button></div></div>
+        ${(() => { const l = sel.tipo === 'linea' && (L.get('lineas') || []).find(x => x.id === sel.ref); return l && l.estado === 'blocked' ? `<div class="card-b" style="padding-bottom:0"><div class="note bad">${L.icon('triangle-alert')}<div><b>Bloquea la cotización</b>${L.esc(l.motivo)}</div></div></div>` : ''; })()}
+        <div class="card-b"><div class="pla-thread">${sel.msgs.map(m => `<div class="pla-cm">${P.av(m.u, 'sm')}<div class="bub"><b style="font-size:13.5px">${L.esc(P.u(m.u).n)}</b><small>${L.esc(m.cuando)}</small>${m.ia ? ' <span class="ai-tag">' + L.icon('sparkles') + 'desde el asistente</span>' : ''}<div style="margin-top:2px">${txt(m.t)}</div></div></div>`).join('')}</div></div>
+        <div class="card-b" style="border-top:1px solid var(--border)"><form id="fc" class="col" style="gap:8px"><div class="pla-ment"><textarea class="inp" id="cm" placeholder="Escribí un comentario. Con @ mencionás a alguien y le llega un aviso." aria-label="Comentario"></textarea><div class="menu" id="mm" hidden></div></div>
+          <div class="row"><span class="muted" style="font-size:12px">${L.icon('bell')} Avisa a los mencionados y a quienes ya comentaron</span><button class="btn sm ghost ml-auto" type="button" id="arr">${L.icon('at-sign')}Mencionar</button><button class="btn sm pri" type="submit">${L.icon('send')}Comentar</button></div></form></div></div>`
+      : `<div class="card"><div class="empty"><div class="e-ico">${L.icon('message-square-text')}</div><h3>Elegí una conversación</h3><p>Los comentarios se dejan desde una línea del BOM o desde un símbolo del plano, y se juntan acá.</p></div></div>`}
+    </div>`;
+  }
+
+  function render() {
+    page.innerHTML = vista === 'aprobaciones' ? aprobaciones() : vista === 'actividad' ? actividad() : equipo();
+    L.fixLinks(page); wire();
+  }
+  function wire() {
+    const $ = s => page.querySelector(s), $$ = s => page.querySelectorAll(s);
+    $$('[data-perfil]').forEach(s => s.onchange = () => { L.update(st => { (st.x.pla.perfil ||= {})[s.dataset.perfil] = s.value; }); L.toast('Perfil cambiado', { desc: `${P.u(s.dataset.perfil).n} ahora es ${PERF[s.value].t}.` }); });
+    $$('[data-baja]').forEach(b => b.onclick = () => L.dialog({ title: 'Quitar a ' + P.u(b.dataset.baja).n, icon: 'user-x', desc: 'Pierde el acceso al instante. Sus comentarios y lo que hizo quedan.', actions: [{ t: 'Cancelar' }, { t: 'Quitar', cls: 'dan', fn: () => L.toast('Acceso quitado', { type: 'warning', desc: 'Se liberó un lugar del plan.', action: 'Deshacer', onAction: () => L.toast('Acceso restituido') }) }] }));
+    $$('[data-reenv]').forEach(b => b.onclick = () => L.toast('Invitación reenviada', { desc: L.get('x.pla.invitados')[+b.dataset.reenv].email }));
+    $$('[data-cancel]').forEach(b => b.onclick = () => L.update(s => { s.x.pla.invitados.splice(+b.dataset.cancel, 1); }));
+    const bus = $('#bus'); if (bus) bus.oninput = () => $$('#tp tr[data-q]').forEach(r => r.hidden = !r.dataset.q.includes(bus.value.toLowerCase()));
+    $$('[data-c]').forEach(b => b.onclick = () => { const [i, j] = b.dataset.c.split(':').map(Number); L.update(s => { const p = s.x.pla.permisos ||= JSON.parse(JSON.stringify(BP.permisos)); const v = p[i][j]; p[i][j] = v === 1 ? 'a' : v === 'a' ? 0 : 1; }); });
+    const rest = $('#rest'); if (rest) rest.onclick = () => { L.update(s => { delete s.x.pla.permisos; }); L.toast('Permisos sugeridos restaurados'); };
+    $$('[data-dec]').forEach(b => b.onclick = () => { const [id, est] = b.dataset.dec.split(':'); const a = L.get('x.pla.aprobaciones').find(x => x.id === id);
+      const go = () => { L.update(s => { const x = s.x.pla.aprobaciones.find(y => y.id === id); x.estado = est; x.por = user; x.cuando = 'recién'; }); P.aviso({ t: `${P.u(user).n} ${est === 'aprobada' ? 'aprobó' : 'rechazó'}: ${a.t}`, d: a.d, i: est === 'aprobada' ? 'circle-check' : 'circle-x', tipo: est === 'aprobada' ? 'ok' : 'er', href: 'd-pla-equipo.html?vista=aprobaciones' }); L.toast(est === 'aprobada' ? 'Aprobado' : 'Rechazado', { type: est === 'aprobada' ? 'success' : 'warning', desc: `Le avisamos a ${P.u(a.pide).n}.` }); };
+      if (est === 'rechazada') L.dialog({ title: 'Rechazar · ' + a.t, icon: 'circle-x', body: '<div class="field"><label for="mo">Motivo (le llega a quien pidió)</label><textarea id="mo" class="inp" placeholder="Ej.: con 16 % no la tomamos; probá recotizar el cable"></textarea></div>', actions: [{ t: 'Cancelar' }, { t: 'Rechazar', cls: 'dan', fn: ov => { const m = ov.querySelector('#mo'); if (!m.value.trim()) { m.classList.add('bad'); return false; } go(); } }] });
+      else go(); });
+    $$('[data-ra]').forEach(sw => sw.onclick = () => { L.update(s => { const r = s.x.pla.reglasAprob.find(x => x.id === sw.dataset.ra); r.on = !r.on; }); });
+    $$('[data-rs]').forEach(b => b.onclick = () => { const i = $(`[data-rv="${b.dataset.rs}"]`); const v = Number(i.value.replace(/\./g, '').replace(',', '.')); if (!(v > 0)) { i.classList.add('bad'); return L.toast('Poné un número mayor a cero', { type: 'error' }); } L.update(s => { s.x.pla.reglasAprob.find(x => x.id === b.dataset.rs).valor = v; }); L.toast('Regla guardada', { desc: 'Aplica a las OC y presupuestos nuevos.' }); });
+    $$('[data-fh]').forEach(b => b.onclick = () => L.set('x.pla.filtroHilo', b.dataset.fh));
+    $$('[data-h]').forEach(b => b.onclick = () => { L.set('x.pla.hiloSel', b.dataset.h); if (L.q('linea')) L.param('linea', null); });
+    const res = $('#res'); if (res) res.onclick = () => { const sid = selId(); L.update(s => { const h = s.x.pla.hilos.find(x => x.id === sid); h.estado = h.estado === 'resuelto' ? 'abierto' : 'resuelto'; h.msgs.push({ u: user, t: h.estado === 'resuelto' ? 'Marcó la conversación como resuelta.' : 'Reabrió la conversación.', cuando: 'recién' }); }); L.toast('Listo', { desc: 'Les avisamos a quienes participaron.' }); };
+    const fc = $('#fc'); if (fc) {
+      const cm = $('#cm'), mm = $('#mm');
+      const menu = () => { mm.innerHTML = BP.equipo.filter(e => e.u !== user).map(e => `<button type="button" data-m="${e.u}">${P.av(e.u, 'xs')}${L.esc(P.u(e.u).n)}<small class="muted" style="margin-left:auto">${PERF[e.perfil].t}</small></button>`).join(''); mm.hidden = false; mm.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { cm.value = cm.value.replace(/@$/, '') + '@' + b.dataset.m + ' '; mm.hidden = true; cm.focus(); }); };
+      cm.oninput = () => { if (/@$/.test(cm.value)) menu(); else mm.hidden = true; };
+      $('#arr').onclick = () => { cm.value += (cm.value && !/\s$/.test(cm.value) ? ' ' : '') + '@'; menu(); };
+      fc.onsubmit = e => { e.preventDefault(); const t = cm.value.trim(); if (!t) { cm.classList.add('bad'); return; } const sid = selId(); const men = [...new Set((t.match(/@(\w+)/g) || []).map(x => x.slice(1)).filter(k => (L.get('usuarios') || {})[k]))];
+        L.update(s => { s.x.pla.hilos.find(x => x.id === sid).msgs.push({ u: user, t, cuando: 'recién' }); });
+        men.forEach(k => P.aviso({ t: `${P.u(user).n} mencionó a ${P.u(k).n.split(' ')[0]}`, d: t.replace(/@(\w+)/g, (m, k2) => '@' + P.u(k2).n.split(' ')[0]).slice(0, 90), i: 'at-sign', tipo: 'pr', href: 'd-pla-equipo.html?vista=actividad' }));
+        L.toast('Comentario publicado', { desc: men.length ? 'Avisamos a ' + men.map(k => P.u(k).n.split(' ')[0]).join(', ') + '.' : 'Sin menciones: lo ven quienes siguen la línea.' }); };
+    }
+  }
+  function selId() { return page.querySelector('[data-h].on')?.dataset.h || (L.get('x.pla.hilos').find(h => h.ref === L.q('linea')) || L.get('x.pla.hilos')[0]).id; }
+
+  document.getElementById('inv').onclick = () => L.dialog({ title: 'Invitar a Tableros Delta', icon: 'user-plus', desc: 'Entra con el rol ENGINEER y el perfil que elijas. Quedan 4 lugares en el plan.',
+    body: `<div class="field"><label for="ie">Correo</label><input id="ie" class="inp" type="email" placeholder="nombre@tablerosdelta.com.ar"><span class="err" id="ier" hidden>Escribí un correo válido.</span></div><div class="field"><label for="ip">Perfil</label><select id="ip" class="inp">${Object.entries(PERF).filter(([k]) => k !== 'dir').map(([k, p]) => `<option value="${k}">${p.t} · ${p.d}</option>`).join('')}</select></div>`,
+    actions: [{ t: 'Cancelar' }, { t: 'Enviar invitación', icon: 'send', fn: ov => { const e = ov.querySelector('#ie'); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.value)) { e.classList.add('bad'); ov.querySelector('#ier').hidden = false; return false; } L.update(s => { s.x.pla.invitados.push({ email: e.value, perfil: ov.querySelector('#ip').value, cuando: 'recién' }); }); L.toast('Invitación enviada', { desc: e.value + ' · vence en 7 días' }); if (vista !== 'equipo') L.go('d-pla-equipo.html'); } }] });
+
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

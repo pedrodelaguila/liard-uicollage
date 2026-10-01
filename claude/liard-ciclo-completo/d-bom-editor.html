@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Editor del BOM · Hospital Regional Cañuelas · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="bom.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="s4" data-user="martina"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Regional Cañuelas · Pabellón B|d-ing-proyecto.html>Editor del BOM"
+      data-title="Editor del BOM" data-sub="BOM consolidado de los 7 tableros · cantidad dibujada y cantidad a comprar por línea, con el origen de cada dato">
+<div id="act">
+  <button class="btn out sm" id="exp" data-icon="download">Exportar</button>
+  <button class="btn pri" id="cotizar" data-icon="send">Solicitar cotización</button>
+</div>
+<main id="page"></main>
+<template id="bar-tpl"><div class="row" style="justify-content:space-between">
+  <div class="seg" data-param="vista" data-default="tabla" role="group" aria-label="Vista del BOM">
+    <button data-vista="tabla" title="Lista todos los componentes del proyecto, con el detalle del elegido">Por componentes</button>
+    <button data-vista="por-plano" title="Recorre plano por plano, con lo que cada uno aporta al BOM">Por planos</button>
+    <button data-vista="guiada" title="Destrabá la cotización en 3 pasos">Guiada <span class="tag-nuevo">Nuevo</span></button>
+  </div>
+  <div class="row gap8"><span class="muted" style="font-size:12px">Guardado hace 2 min · <span class="kbd">⌘Z</span> deshace</span><button class="btn out sm" id="undo" title="Deshacer (⌘Z)">Deshacer</button></div>
+</div></template>
+<script src="icons.js"></script><script src="data.js"></script><script src="bom.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const vista = L.q('vista') || 'tabla';
+  const estado = L.q('estado');
+  const sinIA = estado === 'sin-ia';
+  const ORDEN = ['l09', 'l11', 'l18'];          // las tres que bloquean hoy, en el orden de la bandeja
+  const ui = { sel: L.q('linea') || 'l09', filtro: L.q('filtro') || 'all', q: '', plano: L.q('plano') || 'tgbt' };
+  const pila = [];                                // deshacer: fotos de las líneas antes de cada cambio
+  const esc = L.esc, I = (n, c) => L.icon(n, c);
+  const MARCAS = ['Schneider Electric', 'ABB', 'Siemens', 'Chint', 'WEG', 'Sica', 'Genrod', 'Prysmian', 'Zoloda'];
+
+  function foto() { pila.push(JSON.stringify(L.get('lineas'))); if (pila.length > 20) pila.shift(); }
+  function selURL(id) { const p = new URLSearchParams(location.search); p.set('linea', id); history.replaceState(null, '', '?' + p.toString()); }
+
+  // ---------- Estados de página ----------
+  if (estado === 'cargando') {
+    page.innerHTML = `<div class="kpis">${'<div class="kpi"><div class="skel" style="height:22px;width:60px"></div><div class="skel" style="height:12px;width:110px;margin-top:8px"></div></div>'.repeat(5)}</div>
+      <div class="skel" style="height:150px;border-radius:18px"></div>
+      <div class="be"><div class="be-list"><div class="be-tools"><div class="skel" style="height:36px"></div><div class="skel" style="height:28px;width:70%"></div></div>${'<div style="padding:12px 14px;border-bottom:1px solid var(--border)"><div class="skel" style="height:14px;width:70%"></div><div class="skel" style="height:11px;width:45%;margin-top:6px"></div></div>'.repeat(9)}</div>
+      <div class="be-ins"><div class="row"><div class="loader" aria-hidden="true">${I('loader-circle', 'spin')}</div><span class="muted" style="font-size:13px">Armando el BOM consolidado de los 7 planos…</span></div>${'<div class="skel" style="height:64px"></div>'.repeat(4)}</div></div>`;
+    document.getElementById('cotizar').classList.add('dis');
+    return;
+  }
+  if (estado === 'vacio') {
+    page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${I('layers')}</div><h3>El BOM está vacío</h3>
+      <p>Procesá los planos del proyecto para poblarlo. Cada línea va a traer de qué plano sale, cuánto se dibujó y cuánto hay que comprar con las repeticiones de cada tablero.</p>
+      <div class="row" style="justify-content:center"><button class="btn pri" data-href="d-ing-proyecto.html">${I('layers')}Ir a los planos</button><button class="btn out" id="manual">${I('plus')}Agregar una línea a mano</button></div>
+      <p style="font-size:12px;margin-top:8px"><span class="tag-existe">existe</span> mismo mensaje que la app hoy · el atajo para cargar a mano es <span class="kbd">N</span></p></div></div>`;
+    document.getElementById('manual').onclick = () => L.toast('Línea agregada al BOM', { desc: 'Se carga como «Manual» y no entra a la cotización hasta tener componente base.' });
+    document.getElementById('cotizar').classList.add('dis');
+    return;
+  }
+
+  // ---------- Piezas ----------
+  function kpis() {
+    const c = BOM.conteo(), cot = BOM.cotizable();
+    return `<div class="kpis">
+      <div class="kpi"><b>${c.total}</b><span>Componentes</span></div>
+      <div class="kpi ok"><b>${c.ready}</b><span>Listas</span></div>
+      <div class="kpi warn"><b>${c.warning}</b><span>Se pueden cotizar con reparos</span></div>
+      <div class="kpi bad"><b>${c.blocked}</b><span>Bloquean la cotización</span></div>
+      <div class="kpi pri"><b class="money">${L.ars(cot.total)}</b><span>Mejor precio de lo cotizable · ${cot.n} líneas · sin IVA</span></div>
+    </div>`;
+  }
+
+  function opciones(l, p) {
+    if (p.tipo) return `<button class="chip" data-tipo="${l.id}">${I('box')}Usar «Gabinete» <span class="tag-s5">s5</span></button><button class="chip" data-mano="${l.id}">${I('hand')}Cotizar a mano</button>`;
+    return p.opts.map(v => `<button class="chip" data-set="${l.id}" data-attr="${esc(p.attr)}" data-val="${esc(v)}">${esc(v)}</button>`).join('');
+  }
+  function sugerencia(l) {
+    const s = BOM.SUGERENCIAS[l.id];
+    if (!s || sinIA) return '';
+    const val = s.tipo ? 'Gabinete 1800×800×400 IP55' : s.val;
+    return `<div class="sug"><div class="row"><span class="ai-tag">${I('sparkles')}IA</span><b>${esc(val)}</b><span class="cost ml-auto">confianza ${L.num(s.conf, 2)} · ${L.usd(s.costo)}</span></div>
+      <span class="muted">${esc(s.por)}</span>
+      <div class="row"><a class="src" href="${s.fuente[1] ? 'd-ing-plano.html?plano=' + s.fuente[1] : 'd-bom-editor.html?linea=' + l.id}">${I('file-search')}${esc(s.fuente[0])}</a>
+      <button class="btn xs ai ml-auto" data-sug="${l.id}">${I('check')}Confirmar</button></div></div>`;
+  }
+  function tray() {
+    const consult = BOM.priv().consultas || {};
+    const items = ORDEN.map(BOM.linea).filter(Boolean);
+    const pend = items.filter(l => l.estado === 'blocked');
+    if (!pend.length) return `<div class="note ok">${I('circle-check')}<div><b>Ninguna línea bloquea la cotización</b>Las 3 líneas que faltaban ya tienen lo que el matching necesita. <a class="src" href="d-com-cotizacion.html">${I('arrow-right')}Ir a la cotización</a></div></div>`;
+    return `<section class="tray" aria-label="Información insuficiente">
+      <div class="tray-h"><div class="card-ico">${I('circle-question-mark')}</div><div class="grow"><h3>Información insuficiente <span class="tag-s4">s4</span></h3>
+        <div class="sub">${pend.length} ${pend.length === 1 ? 'línea bloquea' : 'líneas bloquean'} la cotización. Ninguna se completa sola: elegí el valor, confirmá la sugerencia o mandale la pregunta al proyectista. Nunca se inventa un código.</div></div>
+        <button class="btn sm out" data-href="d-bom-editor.html?vista=guiada">${I('list-checks')}Resolver en 3 pasos</button></div>
+      <div class="tray-l">${items.map(l => {
+        const p = BOM.PREGUNTAS[l.id];
+        if (l.estado !== 'blocked') return `<div class="q-card ok"><div class="row"><span class="q-mat">${esc(l.mat)}</span>${BOM.chipSt(l, true)}</div><span class="q-spec">${esc(l.spec)}</span><span class="q-why">Destrabada · ${BOM.chipOrg(l)}</span><div class="q-act"><button class="btn xs ghost" data-ver="${l.id}">${I('eye')}Ver la línea</button></div></div>`;
+        return `<div class="q-card ${ui.sel === l.id ? 'on' : ''}">
+          <div><span class="q-mat">${esc(l.mat)}</span><span class="q-spec" style="display:block">${esc(l.spec)} · ${esc(l.fuentes[0])}</span></div>
+          <div class="q-p">${esc(p.q)}</div><div class="q-why">${esc(p.why)}</div>
+          <div class="q-opts">${opciones(l, p)}</div>
+          ${sugerencia(l)}
+          <div class="q-act">${p.consulta || l.id === 'l11' ? (consult[l.id] ? `<span class="bdg pri">${I('mail-check')}Consulta enviada</span>` : `<button class="btn xs out" data-consulta="${l.id}">${I('mail')}Preguntar al proyectista</button>`) : ''}
+          <button class="btn xs ghost ml-auto" data-ver="${l.id}">${I('panel-right')}Abrir</button></div>
+        </div>`;
+      }).join('')}</div></section>`;
+  }
+
+  function filtrar(ls) {
+    let r = ls;
+    if (['ready', 'warning', 'blocked'].includes(ui.filtro)) r = r.filter(l => l.estado === ui.filtro);
+    if (['det', 'inf', 'reg', 'man'].includes(ui.filtro)) r = r.filter(l => l.org === ui.filtro);
+    if (ui.q) { const t = ui.q.toLowerCase(); r = r.filter(l => (l.mat + ' ' + l.spec + ' ' + (l.marca || '')).toLowerCase().includes(t)); }
+    return r;
+  }
+  function chips() {
+    const c = BOM.conteo();
+    const ch = [['all', 'Todas', c.total], ['blocked', 'Bloquean', c.blocked], ['warning', 'Con reparos', c.warning], ['ready', 'Listas', c.ready]];
+    const oc = [['det', 'Detectado'], ['inf', 'Inferido'], ['reg', 'Por regla'], ['man', 'Manual']];
+    return `<div class="chips" role="group" aria-label="Filtrar por estado">${ch.map(([k, t, n]) => `<button class="chip ${ui.filtro === k ? 'on' : ''}" data-f="${k}">${t} <small>${n}</small></button>`).join('')}</div>
+      <div class="chips" role="group" aria-label="Filtrar por origen"><span class="lbl" style="align-self:center">Origen <span class="tag-nuevo">Nuevo</span></span>${oc.map(([k, t]) => `<button class="chip ${ui.filtro === k ? 'on' : ''}" data-f="${k}" style="height:26px;padding:0 10px">${t} <small>${c[k]}</small></button>`).join('')}</div>`;
+  }
+  function filas() {
+    const ls = filtrar(BOM.lineas());
+    if (!ls.length) return `<div class="empty" style="padding:36px 16px"><div class="e-ico">${I('search-x')}</div><p>Ninguna línea coincide con el filtro o búsqueda.</p><button class="btn sm out" data-f="all">Ver todas</button></div>`;
+    return `<ul class="be-rows" role="listbox" aria-label="Líneas del BOM" id="rows">${ls.map(l => `<li class="be-row ${l.id === ui.sel ? 'on' : ''}" role="option" aria-selected="${l.id === ui.sel}" tabindex="${l.id === ui.sel ? 0 : -1}" data-l="${l.id}">
+      ${BOM.dot(l)}<div style="min-width:0"><span class="mat">${esc(l.mat)}</span><span class="spec"><span>${esc(l.spec)}${l.marca ? ' · ' + esc(l.marca) : ''}</span>${BOM.chipOrg(l, true)}</span></div>
+      <div class="q">${BOM.qty(l.comprar, l.u)}${l.comprar !== l.dib ? `<small>${L.num(l.dib)} dib.</small>` : ''}</div></li>`).join('')}</ul>`;
+  }
+
+  function atributos(l) {
+    const t = BOM.tipoDe(l);
+    if (!t) return `<div class="note bad">${I('box')}<div><b>Sin componente base</b>${esc(l.motivo || 'Esta línea no coincidió con ningún componente base. Si es uno, elegilo y completá sus atributos.')}</div></div>
+      <div class="row">${l.manual ? `<span class="bdg wa">${I('hand')}Se cotiza a mano</span>` : `<button class="btn sm out" data-tipo="${l.id}">${I('box')}Elegir «Gabinete» <span class="tag-s5">s5</span></button><button class="btn sm ghost" data-mano="${l.id}">${I('hand')}Cotizar a mano</button>`}</div>`;
+    const h = (BOM.priv().historial || {})[l.id] || [];
+    const nuevos = h.map(e => (e.t.match(/^«(.+?)»/) || [])[1]).filter(Boolean);
+    return `<div class="row" style="gap:8px"><span class="bdg pri mono">${esc(l.tipo)}</span><b style="font-size:13px">${esc(t.n)}</b>${t.s5 ? '<span class="tag-s5">s5 · nuevo componente base</span>' : ''}
+      <span class="muted ml-auto" style="font-size:12px">${(l.faltan || []).length ? `Faltan atributos esenciales: ${esc(l.faltan.join(', '))}.` : 'Tiene todos los atributos esenciales.'}</span></div>
+      <div class="attrs">${t.a.map(([k, req, vals]) => {
+        const v = (l.attrs || {})[k]; const falta = (l.faltan || []).includes(k);
+        const cls = falta ? 'falta' : (!v ? 'vacio' : '') + (nuevos.includes(k) ? ' nuevo' : '');
+        const editor = !v ? `<select class="inp" data-attrsel="${l.id}" data-attr="${esc(k)}" aria-label="${esc(k)}"><option value="">${falta ? 'Elegí un valor…' : 'Sin valor'}</option>${vals.map(x => `<option>${esc(x)}</option>`).join('')}</select>` : `<span class="v">${esc(v)}</span>`;
+        return `<div class="attr ${cls}"><span class="k">${esc(k)}${req ? '<i title="Esencial: sin esto no hay match">*</i>' : ''}</span>${editor}</div>`;
+      }).join('')}</div>
+      <span class="muted" style="font-size:11.5px">* esencial: el matching compara componente base y estos valores por igualdad. Lo demás filtra solo si la línea lo pide.</span>`;
+  }
+
+  function traza(l) {
+    const t = BOM.traza(l);
+    const td = n => n == null ? '<td class="r muted">—</td>' : `<td class="r">${L.num(n)}</td>`;
+    const rows = t.rows.map(r => `<tr><td>${r.plano ? `<a class="src" href="d-ing-plano.html?plano=${r.plano.id}">${I('file-text')}${esc(r.cod)}</a> ` : ''}<span style="font-family:var(--sans);font-size:12.5px">${esc(r.plano ? r.plano.n : r.t)}</span></td>${td(r.dib)}<td class="r x">${r.rep > 1 ? '×' + r.rep : '×1'}</td>${td(r.comprar)}</tr>`).join('');
+    const extra = t.extra.map(e => `<tr><td>${BOM.chipOrg({ org: e.org })} <span style="font-family:var(--sans);font-size:12.5px">${esc(e.t)}</span></td>${td(e.dib)}<td></td><td class="r">${e.reemplaza ? '= ' : '+'}${L.num(e.comprar)}</td></tr>`).join('');
+    const rep = t.rows.filter(r => r.rep > 1).map(r => `${r.cod} se repite ${r.rep} veces`).join(' · ');
+    return `<div class="traza"><table><thead><tr><th>De dónde sale</th><th class="r">Dibujada</th><th class="r">Repet.</th><th class="r">A comprar</th></tr></thead>
+      <tbody>${rows}${extra}</tbody><tfoot><tr><td>Total de la línea</td><td class="r">${L.num(l.dib)} ${l.u}</td><td></td><td class="r">${L.num(l.comprar)} ${l.u}</td></tr></tfoot></table>
+      <div class="traza-por">${I('info')}<span>${esc(t.expl)}${rep ? ' ' + esc(rep) + '.' : ''}${l.regla ? ' ' + esc(l.regla) : ''}</span></div></div>`;
+  }
+
+  function mercado(l) {
+    if (l.estado === 'blocked') return `<div class="note bad">${I('search-x')}<div><b>Sin match · NOT_FOUND</b>${esc(l.motivo || '')}</div></div>`;
+    const os = BOM.ofertasDe(l); const m = BOM.mejor(l);
+    if (!os.length) return `<div class="note info">${I('clock')}<div><b>Todavía no se cotizó</b>Se destrabó recién: entra en la próxima cotización. Precio de referencia ${L.ars(l.base)} c/u sin IVA (estimado, no es una oferta).</div></div>`;
+    const prov = (L.get('proveedores') || []).find(p => p.id === m.prov);
+    return `<div class="dl" style="grid-template-columns:1fr auto 1fr auto">
+      <dt>Mejor precio unitario</dt><dd class="money">${L.ars(m.precio)}</dd><dt>Por la cantidad</dt><dd class="money">${L.ars(m.precio * l.comprar)}</dd>
+      <dt>Distribuidor</dt><dd style="font-family:var(--sans)">${esc(prov ? prov.n : m.prov)}</dd><dt>Ofertas</dt><dd>${os.length} distribuidores</dd>
+      <dt>Plazo</dt><dd>${m.plazo} días</dd><dt>Código</dt><dd>${esc(m.codigo)}</dd></div>
+      <span class="muted" style="font-size:11.5px">Precios sin IVA, de las listas cargadas por cada distribuidor. Match canónico 100 %.</span>`;
+  }
+
+  function inspector() {
+    const l = BOM.linea(ui.sel);
+    if (!l) return `<div class="empty"><div class="e-ico">${I('mouse-pointer-click')}</div><h3>Elegí una línea</h3><p>Vas a ver su componente base, sus atributos y de dónde sale cada número.</p></div>`;
+    const issues = [];
+    if (l.motivo) issues.push(['er', 'triangle-alert', l.motivo]);
+    if (l.reparo) issues.push(['wa', 'circle-alert', l.reparo]);
+    if (l.org === 'inf' && !(BOM.priv().revisadas || {})[l.id]) issues.push(['wa', 'sparkles', 'Inferido por la IA: revisalo antes de cotizar.']);
+    const pl = (l.fuentes || []).map(f => BOM.planoPorCod(f.split(' ')[0])).find(Boolean);
+    const sug = (l.faltan || []).length || (!l.tipo && !l.manual) || (l.id === 'l06' && l.reparo) ? sugerencia(l) : '';
+    return `<div class="be-ins-h"><div class="grow">
+        <h2>${esc(l.mat)}</h2><div class="spec">${esc(l.spec)}</div>
+        <div class="orgbar" style="margin-top:10px">${BOM.chipSt(l)}${BOM.chipOrg(l)}${l.conf ? `<span class="cost">confianza ${L.num(l.conf, 2)}</span>` : ''}</div>
+        ${issues.length ? `<ul class="issues">${issues.map(([c, i, t]) => `<li class="${c}">${I(i)}<span>${esc(t)}</span></li>`).join('')}</ul>` : ''}
+      </div><div class="row gap4">
+        ${l.org === 'inf' ? `<button class="btn xs out" data-rev="${l.id}">${I('badge-check')}${(BOM.priv().revisadas || {})[l.id] ? 'Revisada' : 'Marcar revisada'}</button>` : ''}
+        <button class="btn icon sm ghost" ${pl ? `data-href="d-ing-plano.html?plano=${pl.id}"` : 'disabled'} aria-label="Ver ${esc(l.mat)} en el plano" title="${pl ? 'Ver en el plano' : 'No sale de un plano'}">${I('map-pin')}</button>
+        <button class="btn icon sm ghost" id="dup" aria-label="Duplicar línea" title="Duplicar línea (⌘D)">${I('copy')}</button>
+        <button class="btn icon sm ghost" id="del" aria-label="Eliminar ${esc(l.mat)}" title="Eliminar línea (⌫)">${I('trash-2')}</button></div></div>
+      <div class="be-fields">
+        <div class="field"><label for="f-mat">Material en catálogo <span class="tag-existe">existe</span></label><input id="f-mat" class="inp" value="${esc(l.mat)}"></div>
+        <div class="field"><label for="f-spec">Especificación técnica</label><input id="f-spec" class="inp" value="${esc(l.spec)}"></div>
+        <div class="field"><label for="f-q">A comprar (${l.u})</label><input id="f-q" class="inp" type="number" min="1" value="${l.comprar}"></div>
+        <div class="field"><label for="f-marca">Marca</label><select id="f-marca" class="inp"><option value="">Cualquier marca</option>${MARCAS.map(m => `<option ${m === l.marca ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select></div>
+        <div class="field" style="grid-column:span 2"><label for="f-gama">Gama</label><input id="f-gama" class="inp" value="${esc(l.gama || '')}" placeholder="Sin gama: el distribuidor propone la más conveniente"></div>
+      </div>
+      <div class="be-sec"><span class="lbl">Componente base y atributos <span class="tag-existe">existe</span></span>${atributos(l)}${sug}</div>
+      <div class="be-sec"><span class="lbl">Por qué esta cantidad <span class="tag-s4">s4 · trazabilidad</span></span>${traza(l)}</div>
+      <div class="grid2" style="gap:20px">
+        <div class="be-sec"><span class="lbl">Historial de la línea <span class="tag-nuevo">Nuevo</span></span><div class="timeline">${BOM.historial(l).map(e => `<div class="tl"><div class="tl-i ${e.c}">${I(e.i)}</div><div><b>${esc(e.t)}</b><small>${esc([e.d, e.cuando].filter(Boolean).join(' · '))}</small></div></div>`).join('')}</div></div>
+        <div class="be-sec"><span class="lbl">Mercado <span class="tag-existe">existe</span></span>${mercado(l)}<a class="src" href="d-com-cotizacion.html?linea=${l.id}" style="align-self:flex-start">${I('arrow-right')}Ver en la cotización</a></div>
+      </div>`;
+  }
+
+  // ---------- Vistas ----------
+  function vTabla() {
+    page.innerHTML = kpis() + (sinIA ? `<div class="note warn">${I('bot-off')}<div><b>La lectura con IA está apagada para este proyecto</b>No hay sugerencias: completá los atributos a mano o con las reglas de la empresa. Nada se completa solo.</div></div>` : '') + tray() +
+      `<div class="be"><div class="be-list"><div class="be-tools">
+        <div class="search">${I('search')}<input class="inp" id="q" placeholder="Buscar material o especificación…" aria-label="Buscar en el BOM" value="${esc(ui.q)}"><kbd>/</kbd></div>${chips()}</div>
+        <div id="rows-box">${filas()}</div>
+        <div class="be-foot"><span>${filtrar(BOM.lineas()).length} de ${BOM.lineas().length} líneas</span><span>↑ ↓ para moverte</span></div></div>
+      <div class="be-ins" id="ins">${inspector()}</div></div>`;
+    const q = document.getElementById('q');
+    bindSearch();
+  }
+
+  function vPlano() {
+    const ps = L.get('planos');
+    const p = ps.find(x => x.id === ui.plano) || ps[0];
+    const deEste = BOM.lineas().map(l => { const f = (l.fuentes || []).find(f => f.split(' ')[0] === p.cod); if (!f) return null; const m = f.match(/^(\S+) (\d+)/); return m ? { l, dib: +m[2] } : null; }).filter(Boolean);
+    const ST = { COMPLETED: ['ok', 'circle-check', 'Listo'], STALE: ['wa', 'circle-alert', 'Por revisar'], ERROR: ['er', 'triangle-alert', 'Error'], PROCESSING: ['pr', 'refresh-cw', 'En proceso'], PENDING: ['gr', 'clock', 'Pendiente'] };
+    page.innerHTML = kpis() + `<div class="bp"><div class="card"><div class="card-h"><div class="card-ico">${I('layers')}</div><div><h3>Planos</h3><div class="sub">${ps.length} tableros · <span class="tag-existe">existe</span></div></div></div>
+      <div class="list">${ps.map(x => `<div class="li ${x.id === p.id ? 'on' : ''}" data-plano="${x.id}" role="button" tabindex="0"><div class="grow"><div class="t mono">${esc(x.cod)} ${x.mult > 1 ? `<span class="mult">×${x.mult}</span>` : ''}</div><div class="d trunc">${esc(x.n)}</div></div><span class="st ${ST[x.status][0]}">${I(ST[x.status][1])}${ST[x.status][2]}</span></div>`).join('')}</div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${I('file-text')}</div><div class="grow"><h3 class="mono">${esc(p.cod)} · ${esc(p.n)}</h3><div class="sub">${deEste.length} líneas aportan al BOM${p.mult > 1 ? ` · se repite ${p.mult} veces: cada cantidad dibujada se multiplica por ${p.mult}` : ''}</div></div>
+        <div class="r"><button class="btn sm out" data-href="d-ing-plano.html?plano=${p.id}">${I('eye')}Ver el plano</button></div></div>
+      ${deEste.length ? `<div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl bom"><thead><tr><th>Material / Especificación</th><th>Origen</th><th>Estado</th><th class="r">Dibujada</th><th class="r">Repet.</th><th class="r">A comprar</th></tr></thead><tbody>
+        ${deEste.map(({ l, dib }) => `<tr data-ver="${l.id}" style="cursor:pointer" class="${l.estado === 'blocked' ? 'warn' : ''}"><td><span class="mat">${esc(l.mat)}</span><span class="spec">${esc(l.spec)}</span></td><td>${BOM.chipOrg(l, true)}</td><td>${BOM.chipSt(l, true)}</td><td class="r qty">${L.num(dib)}</td><td class="r" style="color:var(--primary)">×${p.mult}</td><td class="r qty" title="Total de la línea en el proyecto: ${L.num(l.comprar)} ${l.u}">${L.num(dib * p.mult)}</td></tr>`).join('')}
+      </tbody></table></div>` : `<div class="empty"><div class="e-ico">${I(p.status === 'ERROR' ? 'triangle-alert' : 'clock')}</div><h3>${p.status === 'ERROR' ? 'Este plano no se pudo procesar' : 'Este plano todavía no aporta líneas'}</h3><p>${esc(p.error || (p.status === 'PROCESSING' ? 'Se está procesando: sus líneas aparecen apenas termine.' : 'Procesalo para que sus componentes entren al BOM.'))}</p><button class="btn out" data-href="d-ing-proyecto.html">${I('refresh-cw')}${p.status === 'ERROR' ? 'Reintentar' : 'Ir a los planos'}</button></div>`}
+      </div></div>`;
+  }
+
+  function vGuiada() {
+    const ls = ORDEN.map(BOM.linea);
+    const cur = ls.find(l => l.estado === 'blocked');
+    const steps = ls.map((l, i) => `${i ? '<span class="step-sep"></span>' : ''}<span class="step ${l.estado !== 'blocked' ? 'ok' : l === cur ? 'on' : ''}"><i>${l.estado !== 'blocked' ? I('check') : i + 1}</i>${esc({ l09: 'Seccionador NH00', l11: 'Multimedidor', l18: 'Gabinete' }[l.id])}</span>`).join('');
+    const c = BOM.conteo();
+    let body;
+    if (!cur) body = `<div class="card"><div class="empty"><div class="e-ico" style="background:#ecfdf5;color:var(--emerald-600)">${I('lock-open')}</div><h3>La cotización está destrabada</h3><p>${c.total - c.blocked} de ${c.total} líneas entran al matching. Las que destrabaste quedan marcadas con su origen y su historial.</p>
+      <div class="row" style="justify-content:center"><button class="btn pri" data-href="d-com-cotizacion.html">${I('send')}Ir a la cotización</button><button class="btn out" data-href="d-bom-editor.html">${I('table-2')}Volver al editor</button></div></div></div>`;
+    else {
+      const p = BOM.PREGUNTAS[cur.id]; const s = BOM.SUGERENCIAS[cur.id];
+      const idx = ls.indexOf(cur) + 1;
+      body = `<div class="guia"><div class="card pad col gap16">
+        <span class="lbl">Paso ${idx} de 3 · ${esc(cur.fuentes[0])}</span>
+        <div><span class="q-mat" style="font:700 15px var(--mono);color:var(--bom-material)">${esc(cur.mat)}</span><div class="muted mono" style="font-size:13px">${esc(cur.spec)}</div></div>
+        <div class="guia-q">${esc(p.q)}</div><p class="muted" style="font-size:14px">${esc(p.why)}</p>
+        ${p.tipo ? `<div class="opt-big" style="grid-template-columns:1fr 1fr"><button data-tipo="${cur.id}">Usar el componente «Gabinete»</button><button data-mano="${cur.id}">Cotizar a mano</button></div>
+          <p class="muted" style="font-size:12px"><span class="tag-s5">s5</span> «Gabinete» es uno de los componentes base que suma el Sprint 5 (matching para todos los componentes). Cotizar a mano saca la línea del matching y le pide el precio aparte a cada distribuidor.</p>`
+          : `<div class="opt-big">${p.opts.map(v => `<button class="${s && !sinIA && s.val === v ? 'sug-v' : ''}" data-set="${cur.id}" data-attr="${esc(p.attr)}" data-val="${esc(v)}">${esc(v)}</button>`).join('')}</div>`}
+        <div class="row"><button class="btn ghost sm" data-ver="${cur.id}">${I('panel-right')}Ver la línea completa</button>${p.consulta || cur.id === 'l11' ? `<button class="btn out sm" data-consulta="${cur.id}">${I('mail')}No lo sé: preguntar al proyectista</button>` : ''}<span class="muted ml-auto" style="font-size:12px"><span class="kbd">1</span>–<span class="kbd">5</span> eligen</span></div>
+      </div><div class="col">${sugerencia(cur) || `<div class="note">${I('info')}<div><b>Sin sugerencia</b>${sinIA ? 'La IA está apagada: decidilo con el plano o preguntá.' : 'Para esta línea no hay nada que inferir.'}</div></div>`}
+        <div class="card pad col gap8"><span class="lbl">Qué cambia al destrabarla</span><span style="font-size:13px">La línea pasa a <b>Lista</b>, entra en la próxima cotización y queda en el historial con quién la completó. La cotización (área de compras) la toma sin recargar.</span>
+        <div class="tri" aria-label="Avance">${'<i class="ok" style="flex:' + (c.total - c.blocked) + '"></i><i class="er" style="flex:' + c.blocked + '"></i>'}</div><span class="mono" style="font-size:12px">${c.total - c.blocked} de ${c.total} líneas cotizables</span></div></div></div>`;
+    }
+    page.innerHTML = `<div class="card pad row" style="justify-content:space-between"><div><h3 style="font-size:var(--text-base)">Destrabá la cotización en 3 pasos <span class="tag-s4">s4</span></h3><span class="muted" style="font-size:13px">Una pregunta por línea. Lo que respondas se guarda como «Manual» con tu nombre.</span></div><div class="steps">${steps}</div></div>` + body;
+  }
+
+  function render() {
+    if (vista === 'por-plano') vPlano(); else if (vista === 'guiada') vGuiada(); else vTabla();
+    page.insertAdjacentHTML('afterbegin', document.getElementById('bar-tpl').innerHTML);
+    page.querySelectorAll('[data-param]').forEach(box => box.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === vista)));
+    document.getElementById('undo').onclick = undo;
+    const c = BOM.conteo();
+    const b = document.getElementById('cotizar'); b.lastChild.textContent = c.blocked ? `Solicitar cotización · ${c.total - c.blocked}/${c.total}` : 'Solicitar cotización';
+    document.getElementById('undo').classList.toggle('dis', !pila.length);
+    L.fixLinks(page);
+  }
+
+  // ---------- Acciones ----------
+  function elegir(id, foco) {
+    ui.sel = id; selURL(id);
+    if (vista !== 'tabla') return L.go('d-bom-editor.html?linea=' + id);
+    document.querySelectorAll('.be-row').forEach(r => { const on = r.dataset.l === id; r.classList.toggle('on', on); r.setAttribute('aria-selected', on); r.tabIndex = on ? 0 : -1; if (on && foco) r.focus(); });
+    document.querySelectorAll('.q-card').forEach(c => c.classList.toggle('on', !!c.querySelector(`[data-ver="${id}"]`) && !c.classList.contains('ok')));
+    document.getElementById('ins').innerHTML = inspector(); bindIns(); L.fixLinks(page);
+  }
+  function hecho(l, antes) {
+    const n = BOM.linea(l);
+    if (antes === 'blocked' && n.estado !== 'blocked') L.toast(`${n.mat} ya se puede cotizar`, { desc: 'Entra en la próxima cotización · quedó en el historial', action: 'Ver la cotización', onAction: () => L.go('d-com-cotizacion.html') });
+    else L.toast('Línea actualizada', { desc: n.mat + ' · ' + n.spec });
+  }
+  function setAttr(id, attr, val, via) { foto(); const antes = BOM.linea(id).estado; BOM.fijarAtributo(id, attr, val, via); hecho(id, antes); }
+  function consulta(id) {
+    const l = BOM.linea(id), p = BOM.PREGUNTAS[id];
+    L.dialog({ title: 'Preguntar al proyectista', icon: 'mail', desc: 'Sale por email desde tu cuenta, con el recorte del plano adjunto. La línea sigue bloqueada hasta que respondan.',
+      body: `<div class="field"><label for="c-a">Para</label><input id="c-a" class="inp" value="estudio@ribera-ing.com.ar"></div>
+        <div class="field"><label for="c-t">Mensaje</label><textarea id="c-t" class="inp">Hola, en ${esc(l.fuentes[0].split(' ')[0])} del Hospital Regional Cañuelas · Pabellón B: ${esc(p.q)} En el plano figura «${esc(l.spec)}». Gracias.</textarea></div>
+        <span class="muted" style="font-size:12px">${I('paperclip')} recorte-${esc(l.id)}.png · se registra en el historial de la línea</span>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Enviar consulta', icon: 'send', fn: () => { L.set('x.bom.consultas.' + id, true); BOM.log(id, { t: 'Consulta enviada al proyectista', via: 'manual', org: 'man', por: 'martina' }); L.toast('Consulta enviada', { desc: 'Te avisamos cuando respondan. Mientras tanto, la línea sigue bloqueada.' }); } }] });
+  }
+
+  page.addEventListener('click', e => {
+    const t = e.target.closest('button, [data-l], [data-ver], [data-plano], [data-f]'); if (!t) return;
+    const d = t.dataset;
+    if (d.l) return elegir(d.l);
+    if (d.ver) return elegir(d.ver);
+    if (d.plano) { ui.plano = d.plano; const p = new URLSearchParams(location.search); p.set('plano', d.plano); history.replaceState(null, '', '?' + p); return render(); }
+    if (d.f) { ui.filtro = d.f; render(); bindIns(); return; }
+    if (d.set) return setAttr(d.set, d.attr, d.val, 'manual');
+    if (d.sug) { const s = BOM.SUGERENCIAS[d.sug]; foto(); const antes = BOM.linea(d.sug).estado; if (s.tipo) BOM.fijarTipo(d.sug, s.tipo, s.attrs, 'ia'); else BOM.fijarAtributo(d.sug, s.attr, s.val, 'ia'); return hecho(d.sug, antes); }
+    if (d.tipo) {
+      const s = BOM.SUGERENCIAS[d.tipo]; const T = BOM.TIPOS.ENCLOSURE;
+      return L.dialog({ title: 'Usar el componente «Gabinete»', icon: 'box', desc: 'Componente base nuevo del Sprint 5. Completá los atributos esenciales; los valores salen de la especificación que cargaste.',
+        body: `<div class="attrs">${T.a.map(([k, r, vs]) => `<div class="field"><label for="g-${esc(k)}">${esc(k)}${r ? ' *' : ''}</label><select class="inp" id="g-${esc(k)}" data-k="${esc(k)}">${vs.map(v => `<option ${s.attrs[k] === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select></div>`).join('')}</div>`,
+        actions: [{ t: 'Cancelar' }, { t: 'Usar «Gabinete»', fn: ov => { const a = {}; ov.querySelectorAll('[data-k]').forEach(x => a[x.dataset.k] = x.value); foto(); const antes = BOM.linea(d.tipo).estado; BOM.fijarTipo(d.tipo, 'ENCLOSURE', a, 'manual'); hecho(d.tipo, antes); } }] });
+    }
+    if (d.mano) return L.dialog({ title: 'Cotizar a mano', icon: 'hand', desc: 'La línea sale del matching: no se compara entre distribuidores. En la solicitud va como pedido de precio aparte, sin código.', actions: [{ t: 'Cancelar' }, { t: 'Cotizar a mano', fn: () => { foto(); BOM.cotizarAMano(d.mano); hecho(d.mano, 'blocked'); } }] });
+    if (d.consulta) return consulta(d.consulta);
+    if (d.rev) { const on = !(BOM.priv().revisadas || {})[d.rev]; BOM.marcarRevisada(d.rev, on); L.toast(on ? 'Marcada como revisada' : 'Vuelve a quedar para revisar', { desc: BOM.linea(d.rev).mat }); return; }
+  });
+  page.addEventListener('change', e => {
+    const s = e.target.closest('[data-attrsel]'); if (s && s.value) return setAttr(s.dataset.attrsel, s.dataset.attr, s.value, 'manual');
+  });
+  page.addEventListener('keydown', e => {
+    const r = e.target.closest('.be-row');
+    if (r && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); const n = e.key === 'ArrowDown' ? r.nextElementSibling : r.previousElementSibling; if (n) elegir(n.dataset.l, true); }
+    if (r && e.key === 'Enter') elegir(r.dataset.l, true);
+    const pl = e.target.closest('[data-plano]'); if (pl && e.key === 'Enter') pl.click();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea, select')) return;
+    if (e.key === '/' && document.getElementById('q')) { e.preventDefault(); document.getElementById('q').focus(); }
+    if (vista === 'guiada' && /^[1-5]$/.test(e.key)) { const b = page.querySelectorAll('.opt-big button')[+e.key - 1]; b && b.click(); }
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+  });
+  function bindSearch() { const q = document.getElementById('q'); if (q) q.oninput = () => { ui.q = q.value; document.getElementById('rows-box').innerHTML = filas(); }; }
+  function bindIns() {
+    const l = BOM.linea(ui.sel); if (!l) return;
+    const g = id => document.getElementById(id);
+    if (!g('f-marca')) return;
+    g('f-marca').onchange = e => { foto(); L.update(s => { const x = s.lineas.find(y => y.id === l.id); x.marca = e.target.value; }); BOM.log(l.id, { t: 'Marca: ' + (e.target.value || 'cualquier marca'), via: 'manual', por: 'martina' }); L.toast('Marca aplicada', { desc: e.target.value || 'Cualquier marca: el distribuidor propone el equivalente más conveniente' }); };
+    g('f-gama').onchange = e => { foto(); L.update(s => { s.lineas.find(y => y.id === l.id).gama = e.target.value; }); L.toast('Gama actualizada'); };
+    g('f-q').onchange = e => { const v = Math.max(1, +e.target.value || 1); foto(); L.update(s => { const x = s.lineas.find(y => y.id === l.id); x.comprar = v; x.org = 'man'; }); BOM.log(l.id, { t: 'A comprar: ' + L.num(v) + ' ' + l.u, via: 'manual', org: 'man', por: 'martina' }); L.toast('Cantidad a comprar actualizada', { desc: 'La línea pasa a «Manual»: la diferencia con lo dibujado queda en la trazabilidad.' }); };
+    ['f-mat', 'f-spec'].forEach(id => g(id).onchange = e => { foto(); L.update(s => { s.lineas.find(y => y.id === l.id)[id === 'f-mat' ? 'mat' : 'spec'] = e.target.value; }); L.toast('Se vuelve a leer la línea', { type: 'info', desc: 'Cambió el texto: la lectura del componente base queda pendiente (desde caché si ya se leyó).' }); });
+    g('dup').onclick = () => L.toast('Línea duplicada', { desc: 'La copia queda como «Manual» debajo de la original.', action: 'Deshacer', onAction: () => L.toast('Duplicado deshecho', { type: 'info' }) });
+    g('del').onclick = () => L.dialog({ title: 'Eliminar la línea', icon: 'trash-2', desc: `${esc(l.mat)} · ${esc(l.spec)}. Sale del BOM y de la próxima cotización.`, actions: [{ t: 'Cancelar' }, { t: 'Eliminar', cls: 'dan', fn: () => L.toast('Línea eliminada correctamente', { action: 'Deshacer', onAction: () => L.toast('La línea volvió al BOM', { type: 'info' }) }) }] });
+  }
+  function undo() {
+    if (!pila.length) return L.toast('No hay cambios para deshacer', { type: 'info' });
+    const prev = JSON.parse(pila.pop()); L.update(s => { s.lineas = prev; }); L.toast('Cambio deshecho', { type: 'info' });
+  }
+  document.getElementById('exp').onclick = () => L.dialog({ title: 'Exportar el BOM', icon: 'download', desc: 'Separa la cantidad dibujada de la cantidad a comprar, con el origen de cada línea.',
+    body: `<label class="check"><input type="radio" name="fmt" checked> XLSX (Excel)</label><label class="check"><input type="radio" name="fmt"> CSV (separado por punto y coma)</label><label class="check"><input type="checkbox" checked> Incluir columna «Origen» y fuentes por plano <span class="tag-nuevo">Nuevo</span></label>`,
+    actions: [{ t: 'Cancelar' }, { t: 'Exportar', icon: 'download', fn: () => L.toast('BOM exportado', { desc: 'hospital-canuelas-pabellon-b-bom.xlsx · 18 líneas' }) }] });
+  document.getElementById('cotizar').onclick = () => {
+    const c = BOM.conteo();
+    if (!c.blocked) return L.dialog({ title: 'Solicitar cotización', icon: 'send', desc: `Las ${c.total} líneas entran al matching contra los catálogos de 4 distribuidores.`, actions: [{ t: 'Cancelar' }, { t: 'Cotizar', fn: () => { L.toast('Cotización pedida', { desc: '18 líneas · 4 distribuidores' }); setTimeout(() => L.go('d-com-cotizacion.html'), 700); } }] });
+    L.dialog({ title: `${c.blocked} ${c.blocked === 1 ? 'línea bloquea' : 'líneas bloquean'} la cotización`, icon: 'triangle-alert', desc: `Podés cotizar las ${c.total - c.blocked} que están listas: las bloqueadas quedan como «Sin match» con su motivo y no se inventa ningún código.`,
+      actions: [{ t: 'Destrabar primero', fn: () => L.go('d-bom-editor.html?vista=guiada') }, { t: `Cotizar ${c.total - c.blocked} de ${c.total}`, fn: () => { L.toast('Cotización pedida', { desc: `${c.total - c.blocked} líneas · ${c.blocked} quedan sin match con su motivo` }); setTimeout(() => L.go('d-com-cotizacion.html'), 700); } }] });
+  };
+
+  L.on(() => { render(); bindIns(); });
+  render(); bindIns();
+  if (L.q('linea') && vista === 'tabla') setTimeout(() => { const r = document.querySelector('.be-row.on'); r && r.scrollIntoView({ block: 'nearest' }); document.querySelector('.be')?.scrollIntoView({ block: 'start' }); }, 50);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

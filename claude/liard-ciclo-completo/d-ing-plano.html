@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Plano · liard</title>
+<link rel="stylesheet" href="ingenieria.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="existe" data-user="martina"
+  data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Cañuelas|d-ing-proyecto.html>Plano"
+  data-title="Plano" data-sub="">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="experta" aria-label="Forma de revisar">
+    <button data-vista="experta" data-icon="keyboard">Experta</button>
+    <button data-vista="guiada" data-icon="list-checks">Guiada</button>
+    <button data-vista="ia" data-icon="sparkles">Asistida por IA</button>
+  </div>
+  <div class="row gap4" id="pager"></div>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const PID = L.q('plano') || 'tsbombas';
+  const vista = L.q('vista') || 'experta';
+  const estado = L.q('estado');
+  const planos = L.get('planos'); const idx = planos.findIndex(p => p.id === PID);
+  const P0 = planos[idx] || planos[3];
+  const DIBUJO = { girados: [2, 3], titulo: P0.cod };
+  const ui = { sel: L.q('linea') ? null : 's1', det: null, foco: L.q('linea'), marcados: new Set(), tab: 'cad', iaSel: new Set(['s1', 's2', 's3']), iaCorr: {}, guia: 0, todos: true, elegida: 0 };
+
+  // Encabezado: título, sub y paginador entre planos hermanos (← →, existe).
+  document.querySelector('.ph h1').textContent = `${P0.cod} · ${P0.n}`;
+  const sub = document.querySelector('.ph .sub') || document.querySelector('.ph-t').appendChild(Object.assign(document.createElement('p'), { className: 'sub' }));
+  document.querySelector('.crumbs b').textContent = P0.cod;
+  const prev = planos[idx - 1], next = planos[idx + 1];
+  document.getElementById('pager').innerHTML = `<button class="btn icon out" ${prev ? '' : 'disabled'} data-nav="${prev?.id || ''}" title="Plano anterior (atajo: ←)" aria-label="Plano anterior">${L.icon('chevron-left')}</button><span class="mono muted" style="font-size:12px;padding:0 6px">${idx + 1}/${planos.length}</span><button class="btn icon out" ${next ? '' : 'disabled'} data-nav="${next?.id || ''}" title="Plano siguiente (atajo: →)" aria-label="Plano siguiente">${L.icon('chevron-right')}</button>`;
+  document.querySelectorAll('[data-nav]').forEach(b => b.onclick = () => b.dataset.nav && L.go(`d-ing-plano.html?plano=${b.dataset.nav}&vista=${vista}`));
+
+  const sims = () => I.simbolos(PID);
+  const pend = () => sims().filter(s => s.estado === 'pendiente');
+  const lineasPlano = () => L.get('lineas').filter(l => l.fuentes.some(f => f.startsWith(P0.cod + ' ')));
+  const cantPlano = l => +(l.fuentes.find(f => f.startsWith(P0.cod + ' ')) || ' 0').match(/ (\d+)/)[1];
+  const iaApagada = estado === 'sin-ia';
+
+  // ---------- Visor CAD ----------
+  function visor(alto) {
+    const ss = sims(); const ds = BI.detectadas[PID] || [];
+    const l09 = I.linea('l09');
+    const boxD = ds.map(d => {
+      const foco = ui.foco && d.linea === ui.foco; const cls = foco ? 'fx' : (d.revisar && l09.estado === 'blocked' ? 'wa' : 'ok');
+      return `<div class="box ${cls}" style="${I.pos(d)}" data-det="${d.id}" role="button" tabindex="0" aria-label="${d.ref}: ${L.esc(I.linea(d.linea).mat)}">${foco || ui.det === d.id ? `<span class="tg">${d.ref}</span>` : ''}</div>`;
+    }).join('');
+    const boxS = ss.map(s => {
+      const cls = s.estado === 'descartado' ? 'ds' : s.estado === 'resuelto' ? 'ok' : (ui.sel === s.id ? 'er' : 'wa');
+      return `<div class="box ${cls}" style="${I.pos(s)}" data-sim="${s.id}" role="button" tabindex="0" aria-label="Símbolo sin identificar ${s.ref}"><span class="tg">${s.estado === 'pendiente' ? '?' : s.estado === 'resuelto' ? L.icon('check') : '×'} ${s.ref}</span></div>`;
+    }).join('');
+    return `<div class="cad" style="${alto ? '' : ''}">
+      <div class="cad-tb" role="toolbar" aria-label="Herramientas del visor"><button class="on" aria-label="Seleccionar" title="Seleccionar">${L.icon('mouse-pointer-2')}</button><button aria-label="Mover" title="Mover">${L.icon('hand')}</button><button data-z="in" aria-label="Acercar" title="Acercar">${L.icon('zoom-in')}</button><button data-z="out" aria-label="Alejar" title="Alejar">${L.icon('zoom-out')}</button><button data-z="fit" aria-label="Ajustar" title="Ajustar al plano">${L.icon('maximize')}</button></div>
+      <div class="ing-cad" id="cadz" style="transform-origin:center;transition:transform var(--dur-base) var(--ease-out-expo)">${I.planoSvg(DIBUJO)}${boxD}${boxS}</div>
+      <div class="cad-legend"><span><i style="border-color:var(--emerald-600)"></i>Identificado</span><span><i style="border-color:var(--amber-500)"></i>Por revisar</span><span><i style="border-color:var(--rose-600)"></i>Seleccionado</span><span><i style="border-color:var(--sky-500)"></i>Localizador</span><span><i style="border-color:var(--slate-400);border-style:dashed"></i>Descartado</span></div>
+    </div>`;
+  }
+
+  // ---------- Inspector (vista experta) ----------
+  function simPanel() {
+    const s = sims().find(x => x.id === ui.sel);
+    if (ui.det) {
+      const d = BI.detectadas[PID].find(x => x.id === ui.det); const l = I.linea(d.linea);
+      return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('scan-line')}</div><div class="grow"><span class="lbl">Símbolo seleccionado</span><h3 class="mono">${d.ref}</h3></div><button class="btn icon sm ghost" data-close aria-label="Cerrar">${L.icon('x')}</button></div>
+        <div class="card-b col gap8"><div class="crop" style="height:120px">${I.cropSvg(d, DIBUJO, 4)}</div>
+          <span class="lbl">Qué leyó el detector</span><div><b style="font-size:var(--text-sm)">${L.esc(l.mat)}</b><div class="muted mono" style="font-size:12px">${L.esc(l.spec)}</div></div>
+          <div class="row gap8"><span class="conf">${L.pct(d.conf * 100)}<span class="bar ${d.conf > .9 ? 'ok' : 'warn'}"><i style="width:${d.conf * 100}%"></i></span></span><span class="org ${l.org}">${I.ORG[l.org]}</span></div>
+          <span class="lbl">En qué fila cuenta</span><a class="src" href="d-bom-editor.html?linea=${l.id}">${L.icon('table-2')}${L.esc(l.mat)} · a comprar ${L.num(l.comprar)}</a>
+          <button class="btn out sm" id="corr" style="align-self:flex-start">${L.icon('pencil')}Corregir símbolo</button></div></div>`;
+    }
+    if (!s) return `<div class="card pad" style="border-style:dashed;text-align:center"><div class="e-ico" style="margin:0 auto 8px;width:44px;height:44px;border-radius:50%;background:var(--muted);display:grid;place-items:center">${L.icon('mouse-pointer-2')}</div><b style="font-size:var(--text-sm)">Elegí un símbolo en el plano</b><p class="muted" style="font-size:12px">o una fila del cómputo para ubicarla.</p>${pend().length ? `<button class="btn sm out" id="first" style="margin-top:8px">Ir al primer pendiente</button>` : ''}</div>`;
+    const l = I.linea(s.linea);
+    return `<div class="card"><div class="card-h"><div class="card-ico" style="color:var(--amber-600)">${L.icon('scan-search')}</div><div class="grow"><span class="lbl">Sin identificar · ${s.ref}</span><h3>${L.esc(s.desc)}</h3></div><button class="btn icon sm ghost" data-close aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div class="card-b col gap8"><div class="crop" style="height:150px">${I.cropSvg(s, DIBUJO, 5)}</div>
+        <div class="muted" style="font-size:12px">${L.icon('map-pin')} ${L.esc(s.ubic)}</div>
+        <div class="note ${iaApagada ? '' : 'ai'}" style="padding:10px 12px">${L.icon('sparkles')}<div><b>Posible: ${L.esc(s.posible)}</b>${iaApagada ? 'Sugerencia guardada al procesar el plano.' : `<span class="src">${L.esc(s.ia.fuente)}</span>`}</div></div>
+        ${s.estado === 'pendiente' ? `<div class="row gap8"><button class="btn pri sm" data-res="${s.id}">${L.icon('check')}Asignar material <span class="kbd">A</span></button><button class="btn out sm" data-dis="${s.id}">Descartar <span class="kbd">D</span></button></div>`
+          : `<div class="row gap8"><span class="st ${s.estado === 'resuelto' ? 'ok' : 'gr'}">${L.icon(s.estado === 'resuelto' ? 'circle-check' : 'circle-slash')}${s.estado === 'resuelto' ? 'Resuelto' : 'Descartado'}</span><button class="btn ghost sm" data-undo="${s.id}">${L.icon('undo-2')}Deshacer</button></div>`}
+        ${s.accion === 'attr' ? `<div class="note warn" style="padding:10px 12px">${L.icon('octagon-pause')}<div>Este texto completa <b style="display:inline">«${L.esc(s.attr)}»</b> del ${L.esc(l.mat.toLowerCase())}: hoy la línea ${l.estado === 'blocked' ? 'bloquea la cotización y frena el armado del TS-BOMBAS' : 'ya se puede cotizar'}.</div></div>` : ''}
+      </div></div>`;
+  }
+  function listaSim() {
+    const ss = sims(); const p = pend();
+    return `<div class="card" style="overflow:hidden"><div class="card-h" style="padding:12px 16px">
+        <input type="checkbox" id="selsim" aria-label="Seleccionar todos los símbolos sin resolver" style="width:16px;height:16px;accent-color:var(--primary)" ${p.length && ui.marcados.size === p.length ? 'checked' : ''} ${p.length ? '' : 'disabled'}>
+        <span class="card-ico" style="width:26px;height:26px;border-radius:8px;font-size:14px;color:var(--amber-600);background:var(--warning-surface)">${L.icon('scan-search')}</span>
+        <div class="grow"><b style="font-size:var(--text-xs)">Símbolos sin identificar</b><div class="mono muted" style="font-size:11px">${p.length} de ${ss.length} pendientes</div></div><a class="btn ghost xs" href="d-bom-editor.html" aria-label="Abrir editor para resolver en lote">Editor BOM</a></div>
+      ${ui.marcados.size ? `<div class="bulk"><span>${ui.marcados.size} elegidos</span><span class="ml-auto row gap8"><button class="btn xs pri" id="bRes">Asignar material</button><button class="btn xs out" id="bDis">Descartar</button><button class="btn icon xs ghost" id="bClr" aria-label="Limpiar la selección">${L.icon('x')}</button></span></div>` : ''}
+      ${ss.map(s => `<div class="sym ${ui.sel === s.id ? 'on' : ''} ${s.estado !== 'pendiente' ? 'done' : ''}" data-pick="${s.id}">
+        <input type="checkbox" data-mk="${s.id}" ${ui.marcados.has(s.id) ? 'checked' : ''} ${s.estado !== 'pendiente' ? 'disabled' : ''} aria-label="Elegir ${s.ref}" style="width:16px;height:16px;accent-color:var(--primary);margin-top:4px">
+        <div class="crop">${I.cropSvg(s, DIBUJO, 3)}</div>
+        <div style="min-width:0"><b>${s.ref} · ${L.esc(s.posible)}</b><small>${L.esc(s.desc)}</small>${s.estado !== 'pendiente' ? `<small style="color:${s.estado === 'resuelto' ? 'var(--emerald-700)' : 'var(--muted-foreground)'}">${s.estado === 'resuelto' ? 'Resuelto' : 'Descartado'}</small>` : ''}</div></div>`).join('')}
+      <div class="kbdrow" style="padding:10px 16px;border-top:1px solid var(--border)"><span><span class="kbd">J</span><span class="kbd">K</span> siguiente / anterior</span><span><span class="kbd">A</span> asignar</span><span><span class="kbd">D</span> descartar</span><span><span class="kbd">←</span><span class="kbd">→</span> plano</span><span class="tag-h1">J K A D · propuesta</span></div></div>`;
+  }
+  function cómputo() {
+    return `<div class="tbl-wrap"><table class="tbl bom"><thead><tr><th>Material / Código técnico</th><th class="c">En este plano</th><th class="c">A comprar (proyecto)</th><th class="r"><span class="sr">Acciones</span></th></tr></thead><tbody>
+      ${lineasPlano().map(l => `<tr class="${l.estado === 'blocked' ? 'warn' : ''} ${ui.foco === l.id ? 'sel' : ''}"><td><span class="mat">${L.esc(l.mat)}</span><span class="spec">${L.esc(l.spec)}${l.marca ? ' · ' + L.esc(l.marca) : ''}</span>${l.estado === 'blocked' ? `<span class="spec" style="color:var(--rose-600)">${L.esc(l.motivo)}</span>` : ''}</td><td class="c qty">${cantPlano(l)}</td><td class="c qty">${L.num(l.comprar)}</td>
+        <td class="r"><button class="btn xs out" data-loc="${l.id}">${L.icon('crosshair')}Ver en el plano</button></td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+  function experta() {
+    return `<div class="split" style="grid-template-columns:minmax(0,1fr) 400px">
+      <div class="col gap16" style="min-width:0">
+        <div class="tabs" role="tablist"><button class="${ui.tab === 'cad' ? 'on' : ''}" data-t="cad" role="tab">Visor CAD <span class="kbd">1</span></button><button class="${ui.tab === 'bom' ? 'on' : ''}" data-t="bom" role="tab">Cómputo BOM <span class="kbd">2</span> <span class="cnt">${lineasPlano().length}</span></button><span class="ml-auto row gap8" style="padding-bottom:6px">${multField()}</span></div>
+        ${ui.tab === 'cad' ? visor() : cómputo()}
+        ${ui.foco ? `<div class="note info">${L.icon('crosshair')}<div class="grow"><b>Localizador: ${L.esc(I.linea(ui.foco).mat)}</b>${(BI.detectadas[PID] || []).filter(d => d.linea === ui.foco).length} ${(BI.detectadas[PID] || []).filter(d => d.linea === ui.foco).length === 1 ? 'símbolo ubicado' : 'símbolos ubicados'} en este plano (en celeste). <span class="tag-existe">existe</span></div><button class="btn xs ghost" id="nofoco">Quitar</button></div>` : ''}
+      </div>
+      <div class="col gap16">${simPanel()}${listaSim()}</div></div>`;
+  }
+  function multField() {
+    const p = I.plano(PID);
+    return `<span class="muted" style="font-size:12px">Repeticiones</span><span class="mult" aria-label="Repeticiones del plano"><button data-mu="-1" aria-label="Una repetición menos">${L.icon('minus')}</button><span>×${p.mult}</span><button data-mu="1" aria-label="Una repetición más">${L.icon('plus')}</button></span>`;
+  }
+
+  // ---------- Vista guiada ----------
+  function guiada() {
+    const ss = sims(); const p = pend();
+    const dots = `<div class="dots" aria-label="Avance">${ss.map(s => `<i class="${s.estado === 'resuelto' ? 'ok' : s.estado === 'descartado' ? 'ds' : (p[0] && p[0].id === s.id ? 'on' : '')}"></i>`).join('')}</div>`;
+    if (!p.length) return `<div class="card"><div class="empty"><div class="e-ico" style="background:#ecfdf5;color:var(--emerald-600)">${L.icon('circle-check')}</div><h3>Revisaste todo el ${L.esc(P0.cod)}</h3><p>${ss.filter(s => s.estado === 'resuelto').length} resueltos y ${ss.filter(s => s.estado === 'descartado').length} descartados. El plano pasó a «Listo» y el BOM consolidado ya los cuenta.</p>
+      <div class="row gap8"><a class="btn pri" href="d-bom-editor.html?linea=l09">${L.icon('table-2')}Ver el BOM</a><a class="btn out" href="d-ing-aprendizaje.html">${L.icon('brain')}Recordar estas correcciones</a><button class="btn ghost" id="rehacer">${L.icon('undo-2')}Volver a revisar</button></div></div></div>`;
+    const s = p[0]; const l = I.linea(s.linea);
+    const iguales = p.filter(x => x.grupo && x.grupo === s.grupo);
+    const opciones = s.accion === 'attr'
+      ? [{ t: `Corriente nominal ${s.valor}`, d: `Completa el ${l.mat.toLowerCase()} ${l.spec}`, k: '1', main: true }, { t: 'Es otro aparato', d: 'Elegir material a mano', k: '2' }, { t: 'No es un aparato', d: 'Es un texto o una cota: descartar', k: '3', dis: true }]
+      : [{ t: l.mat + ' · ' + l.spec, d: `Suma 1 a la línea (hoy ${L.num(l.dib)} dibujados)`, k: '1', main: true }, { t: 'Contactor · 3P 25 A bobina 220 V CA AC3', d: 'Suma 1 a la línea del contactor', k: '2', alt: 'l07' }, { t: 'No es un aparato', d: 'Descartar', k: '3', dis: true }];
+    return `<div class="guided"><div class="card"><div class="card-h"><div class="grow"><span class="lbl">Símbolo ${ss.findIndex(x => x.id === s.id) + 1} de ${ss.length} · ${s.ref}</span><h3 style="font-size:var(--text-lg)">¿Qué es esto?</h3></div>${dots}</div>
+        <div class="card-b col gap16"><div class="crop bigcrop">${I.cropSvg(s, DIBUJO, 9)}</div>
+          <div class="row gap8 muted" style="font-size:12px">${L.icon('map-pin')}${L.esc(s.ubic)} · ${L.esc(s.desc)}<button class="btn xs ghost ml-auto" id="vercontexto">${L.icon('maximize')}Ver en el plano completo</button></div></div></div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-checks')}</div><div><h3>Elegí una respuesta</h3><div class="sub">Con el teclado: 1, 2, 3 · Enter confirma · S salta</div></div></div>
+        <div class="card-b col gap16"><div class="sugg" role="radiogroup">${opciones.map((o, i) => `<button role="radio" aria-checked="${ui.elegida === i}" class="${ui.elegida === i ? 'on' : ''}" data-op="${i}"><span class="kbd">${o.k}</span><span><b>${L.esc(o.t)}</b><small>${L.esc(o.d)}</small></span>${o.main && !iaApagada ? '<span class="k ai-tag">IA</span>' : ''}</button>`).join('')}</div>
+          ${iguales.length > 1 ? `<label class="check" style="font-size:var(--text-xs);align-items:flex-start"><input type="checkbox" id="todos" ${ui.todos ? 'checked' : ''}><span>Aplicar a los <b>${iguales.length}</b> iguales de este plano (${iguales.map(x => x.ref).join(', ')}) <span class="tag-h1">h1</span></span></label>` : ''}
+          <div class="row gap8"><button class="btn pri" id="conf">${L.icon('check')}Confirmar <span class="kbd" style="background:rgba(255,255,255,.2);color:#fff;border-color:transparent">Enter</span></button><button class="btn ghost" id="saltar">Saltar <span class="kbd">S</span></button></div>
+          <div class="note info" style="padding:10px 12px">${L.icon('info')}<div>Lo que confirmás actualiza el plano y la línea del BOM al momento. <span class="tag-existe">resolver existe</span> · el paso a paso es <span class="tag-h1">propuesta</span></div></div></div></div></div>`;
+  }
+
+  // ---------- Vista asistida por IA ----------
+  function ia() {
+    const ss = sims(); const p = pend();
+    if (iaApagada) return `<div class="note bad">${L.icon('cloud-off')}<div class="grow"><b>La revisión asistida no está disponible ahora</b>No pudimos consultar al modelo. Lo que se detectó al procesar el plano sigue acá: revisalo a mano, nada se pierde.<div class="row gap8" style="margin-top:8px"><a class="btn xs pri" href="d-ing-plano.html?plano=${PID}&vista=guiada&estado=sin-ia">${L.icon('list-checks')}Revisar de a uno</a><a class="btn xs out" href="d-ing-plano.html?plano=${PID}&vista=experta&estado=sin-ia">Ir al visor</a></div></div></div>` + experta();
+    const elegidos = p.filter(s => ui.iaSel.has(s.id)); const costo = elegidos.reduce((a, s) => a + s.ia.costo, 0);
+    return `<div class="split" style="grid-template-columns:minmax(0,1fr) 380px"><div class="card" style="overflow:hidden">
+        <div class="card-h"><div class="card-ico" style="color:#4f46e5">${L.icon('sparkles')}</div><div class="grow"><h3>Propuestas para los ${ss.length} símbolos sin identificar</h3><div class="sub">El modelo miró cada recorte con la tabla de referencia y el texto cercano. Revisá, corregí lo que no cierre y aceptá en lote.</div></div><span class="ai-tag">${L.icon('sparkles')}IA</span></div>
+        <table class="tbl"><thead><tr><th style="width:36px"><input type="checkbox" id="iaAll" aria-label="Elegir todas las propuestas" ${elegidos.length === p.length && p.length ? 'checked' : ''} style="accent-color:var(--primary)"></th><th>Símbolo</th><th>Propuesta</th><th>Confianza</th><th>Fuente</th><th class="r">Costo</th></tr></thead><tbody>
+        ${ss.map(s => { const c = ui.iaCorr[s.id]; return `<tr class="${s.estado !== 'pendiente' ? '' : ui.iaSel.has(s.id) ? 'sel' : ''}">
+          <td>${s.estado === 'pendiente' ? `<input type="checkbox" data-ia="${s.id}" ${ui.iaSel.has(s.id) ? 'checked' : ''} aria-label="Elegir ${s.ref}" style="accent-color:var(--primary)">` : L.icon(s.estado === 'resuelto' ? 'circle-check' : 'circle-slash')}</td>
+          <td><div class="row gap8"><div class="crop" style="width:72px;height:52px">${I.cropSvg(s, DIBUJO, 3)}</div><b class="mono">${s.ref}</b></div></td>
+          <td><b style="font-size:var(--text-xs)">${L.esc(c || s.posible)}</b>${c ? ' <span class="org man">Corregido</span>' : ' <span class="org inf">Inferido</span>'}${s.estado === 'pendiente' ? `<div><button class="btn xs ghost" data-corr="${s.id}" style="padding:0;height:20px;color:var(--primary)">Corregir</button></div>` : `<div class="muted" style="font-size:11px">${s.estado === 'resuelto' ? 'Aceptado' : 'Descartado'}</div>`}</td>
+          <td><span class="conf">${L.pct(s.ia.conf * 100)}<span class="bar ${s.ia.conf >= .85 ? 'ok' : 'warn'}"><i style="width:${s.ia.conf * 100}%"></i></span></span></td>
+          <td style="max-width:230px"><a class="src wrap" href="#" data-src="${s.id}">${L.icon('file-search')}${L.esc(s.ia.fuente)}</a></td>
+          <td class="r cost">US$ ${L.num(s.ia.costo, 2)}</td></tr>`; }).join('')}
+        </tbody></table></div>
+      <div class="col gap16"><div class="card pad col gap8"><span class="lbl">Aceptar en lote</span>
+          <div class="row" style="align-items:baseline;gap:8px"><b class="mono" style="font-size:var(--text-lg)">${elegidos.length}</b><span class="muted" style="font-size:12px">${elegidos.length === 1 ? 'propuesta elegida' : 'propuestas elegidas'}</span></div>
+          <div class="muted" style="font-size:12px">Ya gastado en estas propuestas: <span class="cost">US$ ${L.num(costo, 2)}</span>. Aceptar no gasta más.</div>
+          <button class="btn ai" id="iaOk" ${elegidos.length ? '' : 'disabled'}>${L.icon('check')}Aceptar ${elegidos.length}</button>
+          <span class="muted" style="font-size:11.5px">Lo aceptado queda «Manual» con tu nombre, no «Detectado»: la trazabilidad dice que lo confirmó una persona.</span></div>
+        <div class="card pad col gap8"><span class="lbl">Tope de IA del mes</span><div class="bar ${L.get('consumoIA').usadoUsd / L.get('consumoIA').topeUsd > .8 ? 'warn' : ''}"><i style="width:${L.get('consumoIA').usadoUsd / L.get('consumoIA').topeUsd * 100}%"></i></div><span class="muted mono" style="font-size:12px">US$ ${L.num(L.get('consumoIA').usadoUsd, 2)} de US$ ${L.get('consumoIA').topeUsd}</span><a class="src" href="d-pla-plan.html" style="align-self:flex-start">Plan y consumo</a></div>
+        ${p.some(s => s.ia.conf < .85) ? `<div class="note warn">${L.icon('circle-alert')}<div>Las de menos de 85 % conviene mirarlas una por una.</div></div>` : ''}
+      </div></div>`;
+  }
+
+  // ---------- Otros planos (estados) ----------
+  function otro() {
+    const p = I.plano(PID);
+    if (p.status === 'ERROR') return `<div class="card"><div class="empty"><div class="e-ico" style="background:#fff1f2;color:var(--rose-600)">${L.icon('triangle-alert')}</div><h3>No se pudo cargar el cómputo de este plano</h3><p>${L.esc(p.error)}</p><div class="row gap8"><a class="btn pri" href="d-ing-proyecto.html?estado=error">${L.icon('scissors')}Recortar en zonas</a><a class="btn out" href="d-ing-proyecto.html">Volver al proyecto</a></div></div></div>`;
+    if (p.status === 'PROCESSING' || p.status === 'PENDING') return `<div class="card"><div class="empty"><div class="e-ico">${L.icon(p.status === 'PROCESSING' ? 'refresh-cw' : 'clock', p.status === 'PROCESSING' ? 'spin' : '')}</div><h3>${p.status === 'PROCESSING' ? 'Buscando los símbolos…' : 'Este plano todavía no se procesó'}</h3><p>${p.status === 'PROCESSING' ? 'La detección tarda entre 3 y 5 minutos. Podés cerrar la pestaña: te avisamos.' : 'Está en la cola del proyecto.'}</p><div class="bar ${p.status === 'PROCESSING' ? 'sheen' : ''}" style="width:224px;height:4px"><i style="width:${p.status === 'PROCESSING' ? 60 : 0}%"></i></div></div></div>`;
+    return `<div class="split" style="grid-template-columns:minmax(0,1fr) 400px"><div class="cad"><div class="ing-cad">${I.planoSvg({ titulo: p.cod, bombas: 4 })}</div></div>
+      <div class="card"><div class="empty"><div class="e-ico" style="background:#ecfdf5;color:var(--emerald-600)">${L.icon('circle-check')}</div><h3>Sin símbolos por revisar</h3><p>${p.comp} componentes identificados en ${L.esc(p.cod)}. En la demo, el detalle de cajas está cargado para el TS-BOMBAS.</p><a class="btn out" href="d-ing-plano.html?plano=tsbombas">Abrir el TS-BOMBAS</a></div></div></div>`;
+  }
+
+  function render() {
+    const p = I.plano(PID);
+    sub.innerHTML = `${I.badge(p.status)} <span style="margin-left:8px">${p.comp} componentes · ${p.fmt} · actualizado ${L.fecha(p.act)}${p.sinId ? ` · <b style="color:var(--amber-700)">${p.sinId} sin identificar</b>` : ''}</span>`;
+    if (estado === 'cargando') { page.innerHTML = `<div class="split" style="grid-template-columns:minmax(0,1fr) 400px"><div class="cad" style="aspect-ratio:1000/560;display:grid;place-items:center"><div class="col" style="align-items:center"><span class="muted" style="font-size:var(--text-xs)">Cargando el plano…</span><div class="bar" style="width:224px;height:4px"><i style="width:45%"></i></div></div></div><div class="col gap16">${I.skel(1, 260)}${I.skel(3, 64)}</div></div>`; return; }
+    if (PID !== 'tsbombas') { page.innerHTML = otro(); return; }
+    page.innerHTML = vista === 'guiada' ? guiada() : vista === 'ia' ? ia() : experta();
+    bind();
+  }
+
+  function asignar(ids) {
+    const ss = sims().filter(s => ids.includes(s.id) && s.estado === 'pendiente'); if (!ss.length) return;
+    const s = ss[0]; const l = I.linea(s.linea);
+    const ov = L.dialog({ title: ss.length > 1 ? `Asignar material a ${ss.length} símbolos` : `Asignar material a ${s.ref}`, icon: 'check', desc: ss.length > 1 ? 'Los símbolos elegidos se suman a la misma línea del BOM.' : L.esc(s.desc),
+      body: `<div class="field"><label for="am">Material</label><input class="inp" id="am" value="${L.esc(l.mat)}" placeholder="Ej: Guardamotor GV2P16"></div>
+        <div class="field"><label for="as">Especificación</label><input class="inp mono" id="as" value="${L.esc(s.accion === 'attr' ? l.spec + ' · ' + s.valor : l.spec)}" placeholder="Ej: Schneider · 9-14A Magnetotérmico"></div>
+        <div class="note info">${L.icon('table-2')}<div>${s.accion === 'attr' ? `Completa «${L.esc(s.attr)}» = <b style="display:inline">${L.esc(s.valor)}</b> en la línea del ${L.esc(l.mat.toLowerCase())}. No suma cantidad.` : `Suma ${ss.length} a «${L.esc(l.mat)} ${L.esc(l.spec)}»: dibujado ${L.num(l.dib)} → <b style="display:inline">${L.num(l.dib + ss.length)}</b>.`}</div></div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Asignar', icon: 'check', fn: () => { if (!ov.querySelector('#am').value.trim()) { ov.querySelector('#am').classList.add('bad'); return false; } hecho(ss.map(x => x.id), 'manual'); } }] });
+  }
+  function hecho(ids, via) {
+    ids.forEach(id => I.resolver(PID, id, { via })); ui.marcados.clear();
+    const n = ids.length; const p = pend();
+    if (!p.find(x => x.id === ui.sel)) ui.sel = p[0]?.id || null;
+    L.toast(n === 1 ? 'Símbolo resuelto' : `${n} símbolos resueltos`, { desc: p.length ? `Quedan ${p.length} en el ${P0.cod}` : `El ${P0.cod} quedó listo · el BOM consolidado ya lo cuenta`, action: 'Deshacer', onAction: () => { ids.forEach(id => I.deshacer(PID, id)); } });
+  }
+  function descartar(ids) {
+    const ss = sims().filter(s => ids.includes(s.id) && s.estado === 'pendiente'); if (!ss.length) return;
+    L.dialog({ title: ss.length > 1 ? `¿Descartar ${ss.length} símbolos?` : '¿Descartar este símbolo?', icon: 'circle-slash', desc: 'No se va a contar en el BOM. Lo podés recuperar desde la lista del plano.', actions: [{ t: 'Cancelar' }, { t: ss.length > 1 ? `Descartar ${ss.length} símbolos` : 'Descartar símbolo', cls: 'dan', fn: () => {
+      ss.forEach(s => I.descartar(PID, s.id)); ui.marcados.clear(); const p = pend(); ui.sel = p[0]?.id || null;
+      L.toast(ss.length > 1 ? `${ss.length} símbolos descartados` : 'Símbolo descartado', { type: 'info', action: 'Deshacer', onAction: () => ss.forEach(s => I.deshacer(PID, s.id)) });
+    } }] });
+  }
+  function confirmarGuia() {
+    const p = pend(); const s = p[0]; if (!s) return;
+    if (ui.elegida === 2) { I.descartar(PID, s.id); L.toast('Descartado', { type: 'info', desc: s.ref, action: 'Deshacer', onAction: () => I.deshacer(PID, s.id) }); ui.elegida = 0; return; }
+    if (ui.elegida === 1) { ui.elegida = 0; return asignar([s.id]); }
+    const ids = ui.todos && s.grupo ? p.filter(x => x.grupo === s.grupo).map(x => x.id) : [s.id];
+    ui.elegida = 0; hecho(ids, 'guiada');
+  }
+
+  function bind() {
+    page.querySelectorAll('[data-sim]').forEach(b => b.onclick = () => { ui.sel = b.dataset.sim; ui.det = null; if (vista !== 'experta') return; render(); });
+    page.querySelectorAll('[data-det]').forEach(b => b.onclick = () => { ui.det = b.dataset.det; ui.sel = null; render(); });
+    page.querySelectorAll('[data-pick]').forEach(r => r.onclick = e => { if (e.target.closest('input')) return; ui.sel = r.dataset.pick; ui.det = null; render(); });
+    page.querySelectorAll('[data-mk]').forEach(c => c.onchange = () => { c.checked ? ui.marcados.add(c.dataset.mk) : ui.marcados.delete(c.dataset.mk); render(); });
+    page.querySelector('#selsim')?.addEventListener('change', e => { ui.marcados = new Set(e.target.checked ? pend().map(s => s.id) : []); render(); });
+    page.querySelector('#bRes')?.addEventListener('click', () => { const ids = [...ui.marcados]; const lin = new Set(sims().filter(s => ids.includes(s.id)).map(s => s.linea + s.accion)); if (lin.size > 1) { L.toast('Los elegidos van a líneas distintas', { type: 'warning', desc: 'Asignalos por grupo: Q2 y Q3 son guardamotores, Q0 completa el seccionador.' }); return; } asignar(ids); });
+    page.querySelector('#bDis')?.addEventListener('click', () => descartar([...ui.marcados]));
+    page.querySelector('#bClr')?.addEventListener('click', () => { ui.marcados.clear(); render(); });
+    page.querySelectorAll('[data-res]').forEach(b => b.onclick = () => asignar([b.dataset.res]));
+    page.querySelectorAll('[data-dis]').forEach(b => b.onclick = () => descartar([b.dataset.dis]));
+    page.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => { I.deshacer(PID, b.dataset.undo); L.toast('Se deshizo', { type: 'info' }); });
+    page.querySelectorAll('[data-close]').forEach(b => b.onclick = () => { ui.sel = null; ui.det = null; render(); });
+    page.querySelector('#first')?.addEventListener('click', () => { ui.sel = pend()[0].id; render(); });
+    page.querySelector('#corr')?.addEventListener('click', () => L.dialog({ title: 'Corregir símbolo', icon: 'pencil', desc: 'Reclasificá el símbolo: se mueve a otra línea del BOM. Antes de guardar ves cómo queda.', body: `<div class="field"><label for="rc">Nueva línea</label><select class="inp" id="rc">${lineasPlano().map(l => `<option>${L.esc(l.mat)} · ${L.esc(l.spec)}</option>`).join('')}</select></div>`, actions: [{ t: 'Cancelar' }, { t: 'Ver cómo queda', fn: () => L.toast('Vista previa de la reclasificación', { type: 'info', desc: 'Existe: reclassify/preview' }) }] }));
+    page.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { ui.tab = b.dataset.t; render(); });
+    page.querySelectorAll('[data-loc]').forEach(b => b.onclick = () => { ui.foco = b.dataset.loc; ui.tab = 'cad'; ui.sel = null; ui.det = null; render(); });
+    page.querySelector('#nofoco')?.addEventListener('click', () => { ui.foco = null; render(); });
+    page.querySelectorAll('[data-mu]').forEach(b => b.onclick = () => { const p = I.plano(PID); const n = Math.max(1, p.mult + +b.dataset.mu); I.multiplicar(PID, n); L.toast(`${P0.cod} ×${n}`, { desc: 'El BOM consolidado se recalculó' }); });
+    let zoom = 1; page.querySelectorAll('[data-z]').forEach(b => b.onclick = () => { zoom = b.dataset.z === 'in' ? Math.min(2, zoom + .25) : b.dataset.z === 'out' ? Math.max(1, zoom - .25) : 1; page.querySelector('#cadz').style.transform = `scale(${zoom})`; });
+    // Guiada
+    page.querySelectorAll('[data-op]').forEach(b => b.onclick = () => { ui.elegida = +b.dataset.op; render(); });
+    page.querySelector('#todos')?.addEventListener('change', e => { ui.todos = e.target.checked; });
+    page.querySelector('#conf')?.addEventListener('click', confirmarGuia);
+    page.querySelector('#saltar')?.addEventListener('click', () => { const p = pend(); if (p.length < 2) return L.toast('Es el último pendiente', { type: 'info' }); L.toast(`${p[0].ref} queda para después`, { type: 'info' }); BI.simbolos[PID].push(BI.simbolos[PID].splice(BI.simbolos[PID].findIndex(x => x.id === p[0].id), 1)[0]); render(); });
+    page.querySelector('#rehacer')?.addEventListener('click', () => { sims().forEach(s => I.deshacer(PID, s.id)); });
+    page.querySelector('#vercontexto')?.addEventListener('click', () => { const s = pend()[0]; L.dialog({ title: `${s.ref} en el ${P0.cod}`, wide: true, body: `<div class="ing-cad cad">${I.planoSvg(DIBUJO)}<div class="box er" style="${I.pos(s)}"><span class="tg">${s.ref}</span></div></div>`, actions: [{ t: 'Cerrar' }] }); });
+    // IA
+    page.querySelectorAll('[data-ia]').forEach(c => c.onchange = () => { c.checked ? ui.iaSel.add(c.dataset.ia) : ui.iaSel.delete(c.dataset.ia); render(); });
+    page.querySelector('#iaAll')?.addEventListener('change', e => { ui.iaSel = new Set(e.target.checked ? pend().map(s => s.id) : []); render(); });
+    page.querySelectorAll('[data-src]').forEach(a => a.onclick = e => { e.preventDefault(); const s = sims().find(x => x.id === a.dataset.src); L.dialog({ title: `Fuente de la propuesta para ${s.ref}`, wide: true, desc: L.esc(s.ia.fuente), body: `<div class="ing-cad cad">${I.planoSvg(DIBUJO)}<div class="box er" style="${I.pos(s)}"><span class="tg">${s.ref}</span></div>${s.grupo ? (BI.detectadas[PID] || []).filter(d => d.ref === 'Q1').map(d => `<div class="box fx" style="${I.pos(d)};box-shadow:none"><span class="tg">Q1 · referencia</span></div>`).join('') : ''}</div>`, actions: [{ t: 'Cerrar' }] }); });
+    page.querySelectorAll('[data-corr]').forEach(b => b.onclick = () => { const s = sims().find(x => x.id === b.dataset.corr); const ov = L.dialog({ title: `Corregir la propuesta para ${s.ref}`, icon: 'pencil', body: `<div class="field"><label for="cv">Qué es</label><input class="inp" id="cv" value="${L.esc(s.posible)}"></div>`, actions: [{ t: 'Cancelar' }, { t: 'Guardar corrección', fn: () => { ui.iaCorr[s.id] = ov.querySelector('#cv').value.trim() || s.posible; render(); } }] }); });
+    page.querySelector('#iaOk')?.addEventListener('click', () => { const ids = pend().filter(s => ui.iaSel.has(s.id)).map(s => s.id); L.dialog({ title: `Aceptar ${ids.length} ${ids.length === 1 ? 'propuesta' : 'propuestas'}`, icon: 'sparkles', desc: 'Se aplican al plano y al BOM. Las líneas tocadas quedan como corregidas por vos.', body: `<div class="list" style="border:1px solid var(--border);border-radius:12px">${ids.map(id => { const s = sims().find(x => x.id === id); return `<div class="li" style="padding:8px 12px"><b class="mono" style="width:40px">${s.ref}</b><span class="grow" style="font-size:var(--text-xs)">${L.esc(ui.iaCorr[id] || s.posible)}</span><span class="conf">${L.pct(s.ia.conf * 100)}</span></div>`; }).join('')}</div>`, actions: [{ t: 'Cancelar' }, { t: 'Aceptar y aplicar', cls: 'ai', fn: () => hecho(ids, 'ia') }] }); });
+  }
+
+  document.addEventListener('keydown', e => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName) || document.querySelector('.ov') || e.metaKey || e.ctrlKey) return;
+    const k = e.key.toLowerCase();
+    if (e.key === 'ArrowLeft' && prev) return L.go(`d-ing-plano.html?plano=${prev.id}&vista=${vista}`);
+    if (e.key === 'ArrowRight' && next) return L.go(`d-ing-plano.html?plano=${next.id}&vista=${vista}`);
+    if (vista === 'guiada') {
+      if (['1', '2', '3'].includes(k)) { ui.elegida = +k - 1; render(); }
+      if (k === 'enter') confirmarGuia();
+      if (k === 's') page.querySelector('#saltar')?.click();
+      return;
+    }
+    if (vista !== 'experta' && !iaApagada) return;
+    if (k === '1' || k === '2') { ui.tab = k === '1' ? 'cad' : 'bom'; render(); }
+    const ss = sims(); const i = ss.findIndex(s => s.id === ui.sel);
+    if (k === 'j') { ui.sel = ss[(i + 1) % ss.length].id; ui.det = null; render(); }
+    if (k === 'k') { ui.sel = ss[(i - 1 + ss.length) % ss.length].id; ui.det = null; render(); }
+    if (k === 'a' && ui.sel) asignar([ui.sel]);
+    if (k === 'd' && ui.sel) descartar([ui.sel]);
+  });
+  L.on(render);
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

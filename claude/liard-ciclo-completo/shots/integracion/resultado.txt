@@ -1,0 +1,12 @@
+✓ 1. La cotización muestra el seccionador NH00 (l09) como no cotizable
+✓ 2. El editor guarda l09 como lista en el estado compartido
+✓ 3. La cotización deja de marcar l09 como bloqueada
+✓ 4. El taller pasa el freno del TS-BOMBAS de «no se pudo cotizar» a «falta pedirlo»
+✓ 5. El distribuidor envía la contraoferta: 4 cambios, total 21135260
+✓ 6. Pedidos muestra la contraoferta pendiente
+✓ 7. El inicio de dirección carga con el estado modificado
+✓ 8. Los avisos del teléfono listan los avisos del estado
+✓ 9. Un marco de la galería (marco=1) no modifica el estado de la demo
+✓ 10. «Reiniciar demo» borra el estado y la demo vuelve a la semilla
+✓ 11. ⌘K encuentra «tablero 3D» y navega
+✓ 12. Sin errores de consola en todo el recorrido

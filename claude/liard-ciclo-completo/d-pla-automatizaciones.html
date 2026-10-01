@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Automatizaciones · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css">
+</head>
+<body data-role="ing" data-active="reglas" data-user="sofia" data-h="h2"
+  data-title="Automatizaciones" data-sub="«Cuando pasa esto, hacé aquello»: avisos y recordatorios que hoy alguien hace a mano. Probalas con un caso de ejemplo antes de activarlas.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="reglas" aria-label="Sección"><button data-vista="reglas">Reglas</button><button data-vista="historial">Historial</button></div>
+  <button class="btn pri" id="nueva" data-icon="plus">Nueva regla</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  P.boot();
+  const estado = L.q('estado'), vista = L.q('vista') || 'reglas';
+  const user = document.body.dataset.user;
+  if (estado === 'vacio' && !L.get('x.pla.vacioOk')) L.update(s => { s.x.pla.reglas = []; s.x.pla.ejecuciones = []; s.x.pla.vacioOk = true; });
+
+  // Disparadores y acciones que el constructor ofrece (todos salen de datos que la app ya tiene o va a tener)
+  const CUANDO = [
+    ['Un plano queda Listo', 'existe', 'ElectricalPlan.status = COMPLETED'],
+    ['Una lista de precios tiene más de 30 días', 'existe', 'priceUpdatedAt del catálogo'],
+    ['Una OC no se responde en 24 h', 'existe', 'PurchaseOrder SENT + responseDeadlineAt'],
+    ['Llega un remito parcial', 'nuevo', 'Recepción en obra (Fabricación y obra)'],
+    ['Un faltante frena un tablero', 'nuevo', 'Línea bloqueada + tablero en armado'],
+    ['El BOM queda sin bloqueos', 'existe', 'Ninguna línea «Bloquea la cotización»'],
+  ];
+  const ENTONCES = ['Avisar a Presupuesto', 'Avisar a Compras', 'Avisar al taller con lo que falta', 'Pedir actualización al distribuidor', 'Recordar al distribuidor y avisar a Compras'];
+  const PLANT = [
+    { t: 'Plano listo → presupuesto', i: 'layers', cuando: 'Un plano queda Listo', entonces: 'Avisar a Presupuesto', a: 'lucas', d: 'Para que nadie espere mirando la cola.' },
+    { t: 'Lista vieja → pedir actualización', i: 'clock-alert', cuando: 'Una lista de precios tiene más de 30 días', entonces: 'Pedir actualización al distribuidor', a: 'sofia', d: 'Con inflación de 1,7 % mensual, 30 días ya mueve el precio.' },
+    { t: 'OC sin respuesta → recordatorio', i: 'mail', cuando: 'Una OC no se responde en 24 h', entonces: 'Recordar al distribuidor y avisar a Compras', a: 'sofia', d: 'El email es el canal formal de los distribuidores.' },
+    { t: 'Remito parcial → taller', i: 'package-check', cuando: 'Llega un remito parcial', entonces: 'Avisar al taller con lo que falta', a: 'ramiro', d: 'El jefe de taller sabe antes qué tablero se frena.' },
+  ];
+
+  // Evento de ejemplo por disparador: usa datos reales del estado
+  function ejemplo(r) {
+    const ocs = (L.get('pedidos') || []).flatMap(p => p.ordenes.map(o => ({ ...o, ped: p })));
+    const prov = id => (L.get('proveedores') || []).find(p => p.id === id) || {};
+    const c = r.cuando;
+    if (/Listo/.test(c)) { const p = (L.get('planos') || []).find(x => x.status === 'COMPLETED'); return { canal: 'aviso', para: P.u(r.a).n, asunto: `${p.cod} quedó Listo · Hospital Cañuelas`, cuerpo: `${p.n}: ${p.comp} componentes detectados${p.mult > 1 ? `, ×${p.mult} repeticiones` : ''}. Ya está en el BOM consolidado.`, href: 'd-ing-proyecto.html', ev: `${p.cod} pasó a COMPLETED` }; }
+    if (/30 días/.test(c)) { const p = (L.get('proveedores') || []).find(x => P.dias('2026-10-01', x.act) > 30) || prov('volta'); return { canal: 'email', para: `ventas@${p.n.split(' ')[1].toLowerCase()}.com.ar`, asunto: `Pedido de lista actualizada · Tableros Delta S.R.L.`, cuerpo: `Hola, ${p.n}: su lista en liard es del ${L.fecha(p.act)} (${P.dias('2026-10-01', p.act)} días). Tenemos 7 líneas del Hospital Regional Cañuelas para adjudicar esta semana. ¿Nos mandan la lista vigente, con precios +IVA y plazo? Gracias, ${P.u(r.a).n} · Compras.`, href: 'd-com-recotizar.html', ev: `Lista de ${p.n}: ${P.dias('2026-10-01', p.act)} días` }; }
+    if (/24 h/.test(c)) { const o = ocs.find(x => x.status === 'SENT'); const p = prov(o.prov); return { canal: 'email', para: `ventas@${p.n.split(' ')[1].toLowerCase()}.com.ar`, asunto: `Recordatorio: ${o.id} sin respuesta`, cuerpo: `Hola, ${p.n}: el ${L.fecha(o.ped.enviado)} les enviamos la OC ${o.id} (${o.lineas} líneas, ${L.ars(o.total)} +IVA). Vence el ${L.fecha(o.vence)}. ¿Pueden confirmarla, rechazarla o proponer un cambio desde liard? El contacto del comprador se habilita cuando la confirman.`, href: 'd-com-pedidos.html', ev: `${o.id} enviada hace más de 24 h` }; }
+    if (/remito/.test(c)) return { canal: 'aviso', para: P.u(r.a).n, asunto: 'Remito parcial de Distribuidora Ohm · OC-2026-031-2', cuerpo: 'Llegaron 3 de 4 líneas. Falta: contactor 3P 25 A bobina 220 V (6 u) · lo usa TS-BOMBAS.', href: 'd-tal-taller.html', ev: 'Recepción con 1 línea faltante' };
+    if (/frena/.test(c)) { const t = (L.get('tableros') || []).find(x => x.estado === 'frenado'); return { canal: 'aviso', para: P.u(r.a).n, asunto: `${t.cod} frenado: falta seccionador NH00`, cuerpo: `El tablero está al ${t.avance} % y la línea l09 bloquea la cotización (falta la corriente nominal).`, href: 'd-tal-taller.html', ev: `${t.cod} en armado con l09 bloqueada` }; }
+    const n = P.faltantes().bloquean.length;
+    return { canal: 'aviso', para: P.u(r.a).n, asunto: 'El BOM del Hospital Cañuelas se puede cotizar completo', cuerpo: n ? `Hoy todavía bloquean ${n} líneas: con el evento de ejemplo suponemos que se resolvieron.` : 'Ninguna línea bloquea la cotización.', href: 'd-com-cotizacion.html', ev: 'Última línea bloqueada resuelta' };
+  }
+
+  function probar(r) {
+    const e = ejemplo(r);
+    L.sheet(`<div class="card-h"><div class="card-ico">${L.icon('play')}</div><div><h3>Probar: ${L.esc(r.cuando)}</h3><div class="sub">Evento de ejemplo con datos de tus obras · no se envía nada</div></div><div class="r"><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div></div>
+      <div class="card-b col">
+        <div class="timeline">
+          <div class="tl"><span class="tl-i pri">${L.icon('zap')}</span><div><b>Evento</b><small>${L.esc(e.ev)}</small></div></div>
+          <div class="tl"><span class="tl-i pri">${L.icon('funnel')}</span><div><b>Condición: ${L.esc(r.si)}</b><small>Se cumple</small></div></div>
+          <div class="tl"><span class="tl-i ok">${L.icon(e.canal === 'email' ? 'mail' : 'bell')}</span><div><b>${L.esc(r.entonces)}</b><small>${e.canal === 'email' ? 'Email simulado (el envío real llega en el Sprint 5)' : 'Aviso dentro de liard'}</small></div></div>
+        </div>
+        <div class="card" style="border-radius:14px;overflow:hidden">
+          <div class="card-b col" style="gap:4px;background:var(--muted);font-size:12.5px"><div class="row"><span class="lbl" style="width:56px">Para</span><span class="mono">${L.esc(e.para)}</span></div><div class="row"><span class="lbl" style="width:56px">Asunto</span><b>${L.esc(e.asunto)}</b></div></div>
+          <div class="card-b" style="font-size:14px;line-height:1.55">${L.esc(e.cuerpo)}<div style="margin-top:12px"><span class="btn sm pri" aria-hidden="true">${e.canal === 'email' ? 'Responder en liard' : 'Abrir'}</span></div></div></div>
+        <div class="row" style="margin-top:4px"><button class="btn out" data-x>Cerrar</button><button class="btn pri ml-auto" id="env">${L.icon('send')}Mandármelo a mí como aviso</button></div>
+      </div>`, { label: 'Probar regla' });
+    document.getElementById('env').onclick = ev => { P.aviso({ t: 'Prueba: ' + e.asunto, d: 'Regla «' + r.cuando + '» · solo a vos', i: 'flask-conical', tipo: 'pr', href: 'd-pla-automatizaciones.html' }); L.update(s => { s.x.pla.ejecuciones.unshift({ id: 'e' + Date.now(), r: r.id, cuando: 'recién', obj: e.ev, res: 'prueba', d: 'Prueba enviada a ' + P.u(user).n }); }); L.close(ev.target); L.toast('Prueba enviada', { desc: 'Mirá Avisos: te llegó a vos solo.' }); };
+  }
+
+  function editor(r) {
+    const nueva = !r || !r.id; r = r || { cuando: CUANDO[0][0], si: 'Cualquier obra', entonces: ENTONCES[0], a: 'lucas', canal: 'aviso' };
+    L.dialog({ title: nueva ? 'Nueva regla' : 'Editar regla', icon: 'workflow', wide: true, desc: 'Elegí qué la dispara y qué hace. Antes de activarla, probala con un caso de ejemplo.',
+      body: `<div class="pla-build">
+        <span class="k">Cuando</span><select class="inp" id="bc" aria-label="Cuando">${CUANDO.map(([t, ex, d]) => `<option ${t === r.cuando ? 'selected' : ''} value="${L.esc(t)}">${L.esc(t)} · ${ex === 'existe' ? 'dato que ya existe' : 'nuevo'}</option>`).join('')}</select>
+        <span class="k">Si</span><input class="inp" id="bs" value="${L.esc(r.si)}" aria-label="Condición">
+        <span class="k">Entonces</span><select class="inp" id="be" aria-label="Entonces">${ENTONCES.map(t => `<option ${t === r.entonces ? 'selected' : ''}>${L.esc(t)}</option>`).join('')}</select>
+        <span class="k">A</span><select class="inp" id="ba" aria-label="A quién">${BP.equipo.map(e => `<option value="${e.u}" ${e.u === r.a ? 'selected' : ''}>${L.esc(P.u(e.u).n)} · ${BP.perfiles[e.perfil].t}</option>`).join('')}</select>
+        <span class="k">Por</span><div class="seg" id="bk" role="group" aria-label="Canal"><button type="button" data-k="aviso" class="${r.canal === 'aviso' ? 'on' : ''}">Aviso en liard</button><button type="button" data-k="email" class="${r.canal === 'email' ? 'on' : ''}">Email (Sprint 5)</button></div>
+      </div><p class="muted" style="font-size:12px" id="bd">${L.esc((CUANDO.find(x => x[0] === r.cuando) || CUANDO[0])[2])}</p>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Probar', cls: 'out', icon: 'play', fn: ov => { probar(leer(ov, r)); return false; } }, { t: nueva ? 'Crear y activar' : 'Guardar', icon: 'check', fn: ov => {
+        const x = leer(ov, r);
+        L.update(s => { const rs = s.x.pla.reglas; if (nueva) rs.unshift({ ...x, id: 'r' + Date.now(), on: true, h: 'h2', veces: 0, ultima: '', nueva: true }); else Object.assign(rs.find(y => y.id === r.id), x); });
+        L.toast(nueva ? 'Regla creada y activa' : 'Regla guardada', { desc: x.cuando + ' → ' + x.entonces });
+      } }] });
+    const ov = document.querySelectorAll('.ov'); const d = ov[ov.length - 1];
+    d.querySelector('#bc').onchange = e => d.querySelector('#bd').textContent = (CUANDO.find(x => x[0] === e.target.value) || [])[2] || '';
+    d.querySelectorAll('[data-k]').forEach(b => b.onclick = () => d.querySelectorAll('[data-k]').forEach(x => x.classList.toggle('on', x === b)));
+  }
+  function leer(ov, r) { return { ...r, cuando: ov.querySelector('#bc').value, si: ov.querySelector('#bs').value || 'Cualquier obra', entonces: ov.querySelector('#be').value, a: ov.querySelector('#ba').value, canal: ov.querySelector('[data-k].on')?.dataset.k || 'aviso' }; }
+
+  function reglas() {
+    const rs = L.get('x.pla.reglas') || [];
+    const err = estado === 'error';
+    return `${err ? `<div class="note bad">${L.icon('mail-x')}<div><b>«Una OC no se responde en 24 h» falló 2 veces hoy</b>El email a ventas@electricanorte.com.ar rebotó (casilla llena). Avisamos a Sofía por adentro de liard; el distribuidor igual ve la OC en su bandeja.<div class="row" style="margin-top:8px"><button class="btn sm out" id="reint">${L.icon('refresh-cw')}Reintentar ahora</button><button class="btn sm ghost" data-href="d-pla-automatizaciones.html?vista=historial&estado=error">Ver el historial</button></div></div></div>` : ''}
+      <div class="split" style="grid-template-columns:minmax(0,1fr) 380px">
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('workflow')}</div><div><h3>Tus reglas</h3><div class="sub">${rs.filter(r => r.on).length} activas · ${rs.filter(r => !r.on).length} en pausa · corren solas, todos los días</div></div><div class="r"><span class="tag-h2">6–18 meses</span></div></div>
+        <div>${rs.length ? rs.map(r => `<div class="pla-rule ${r.on ? '' : 'off'}">
+            <button class="switch" role="switch" data-manual="1" data-on="${r.id}" aria-checked="${r.on}" aria-label="${r.on ? 'Pausar' : 'Activar'}: ${L.esc(r.cuando)}"></button>
+            <div class="col" style="gap:6px;min-width:0"><div class="pla-flow"><span class="k">Cuando</span><span class="p">${L.esc(r.cuando)}</span><span class="ar">${L.icon('arrow-right')}</span><span class="k">Entonces</span><span class="p then">${L.icon(r.canal === 'email' ? 'mail' : 'bell')}${L.esc(r.entonces)}</span>${r.nueva ? '<span class="tag-nuevo">Recién creada</span>' : ''}</div>
+              <div class="muted" style="font-size:12px">${L.esc(r.si)} · a ${L.esc(P.u(r.a).n)} · ${r.veces ? `corrió ${r.veces} ${r.veces === 1 ? 'vez' : 'veces'}, la última ${L.esc(r.ultima)}` : 'todavía no corrió'}${!r.on ? ' · en pausa' : ''}${err && r.id === 'r3' ? ' · <b class="up">2 fallas hoy</b>' : ''}</div></div>
+            <div class="row gap8"><button class="btn sm out" data-prob="${r.id}">${L.icon('play')}Probar</button><button class="btn icon sm ghost" data-ed="${r.id}" aria-label="Editar" title="Editar">${L.icon('pencil')}</button><button class="btn icon sm ghost" data-del="${r.id}" aria-label="Borrar" title="Borrar">${L.icon('trash-2')}</button></div></div>`).join('')
+          : `<div class="empty"><div class="e-ico">${L.icon('workflow')}</div><h3>Todavía no tenés automatizaciones</h3><p>Empezá con una plantilla: son los avisos y recordatorios que hoy alguien hace a mano, por mail o WhatsApp.</p><button class="btn pri" id="vac">${L.icon('plus')}Usar «OC sin respuesta → recordatorio»</button></div>`}</div></div>
+      <div class="col gap16"><div class="card"><div class="card-h"><div class="card-ico">${L.icon('layout-template')}</div><div><h3>Plantillas</h3><div class="sub">Las cuatro que más piden los talleres</div></div></div>
+        <div class="list">${PLANT.map((p, i) => { const ya = rs.some(r => r.cuando === p.cuando); return `<div class="li" style="align-items:flex-start">${L.icon(p.i, 'muted')}<div class="grow"><div class="t">${L.esc(p.t)}</div><div class="d">${L.esc(p.d)}</div></div>${ya ? '<span class="st ok" style="height:22px">Activa</span>' : `<button class="btn xs out" data-pl="${i}">${L.icon('plus')}Usar</button>`}</div>`; }).join('')}</div></div>
+        <div class="card pad col" style="gap:8px"><span class="lbl">Qué ya existe</span><p style="font-size:12.5px">Los datos que disparan estas reglas ya están en dev: estado del plano, fecha de la lista, vencimiento de la OC <span class="tag-existe">existe</span>. Los emails llegan con el Sprint 5 <span class="tag-s5">Sprint 5</span>; remitos y taller son de Fabricación y obra <span class="tag-nuevo">Nuevo</span>.</p></div></div></div>`;
+  }
+
+  function historial() {
+    const ex = L.get('x.pla.ejecuciones') || []; const rs = L.get('x.pla.reglas') || [];
+    const err = estado === 'error';
+    const filas = err ? [{ id: 'ex1', r: 'r3', cuando: 'hoy 09:00', obj: 'OC-2026-031-1 · Eléctrica Norte', res: 'error', d: 'Rebotó: casilla llena (550). Se avisó a Sofía en liard.' }, { id: 'ex2', r: 'r3', cuando: 'hoy 10:00', obj: 'OC-2026-031-1 · Eléctrica Norte', res: 'error', d: 'Segundo intento: rebotó igual. No se reintenta más hasta mañana.' }, ...ex] : ex;
+    const fr = L.get('x.pla.filtroEj') || 'todas';
+    const ver = filas.filter(e => fr === 'todas' || e.res === fr);
+    const ST = { ok: ['ok', 'circle-check', 'Corrió'], omitida: ['gr', 'circle-pause', 'Omitida'], error: ['er', 'circle-alert', 'Falló'], prueba: ['sk', 'flask-conical', 'Prueba'] };
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-checks')}</div><div><h3>Historial de ejecuciones</h3><div class="sub">Qué disparó cada regla, a quién y con qué resultado · últimos 30 días</div></div>
+      <div class="r"><div class="chips">${[['todas', 'Todas'], ['ok', 'Corrieron'], ['omitida', 'Omitidas'], ['error', 'Fallaron']].map(([k, t]) => `<button class="chip ${fr === k ? 'on' : ''}" data-fe="${k}">${t} <small>${k === 'todas' ? filas.length : filas.filter(e => e.res === k).length}</small></button>`).join('')}</div></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Cuándo</th><th>Regla</th><th>Sobre</th><th>Resultado</th><th>Detalle</th></tr></thead><tbody>
+      ${ver.length ? ver.map(e => { const r = rs.find(x => x.id === e.r) || BP.seed.reglas.find(x => x.id === e.r) || { cuando: '—' }; const s = ST[e.res] || ST.ok; return `<tr><td class="mono">${L.esc(e.cuando)}</td><td>${L.esc(r.cuando)}</td><td class="mono" style="font-size:12px">${L.esc(e.obj)}</td><td><span class="st ${s[0]}">${L.icon(s[1])}${s[2]}</span></td><td class="muted">${L.esc(e.d)}</td></tr>`; }).join('') : `<tr><td colspan="5"><div class="empty" style="padding:30px"><p>No hay ejecuciones con ese filtro.</p></div></td></tr>`}
+      </tbody></table></div></div>`;
+  }
+
+  function render() {
+    page.innerHTML = vista === 'historial' ? historial() : reglas();
+    L.fixLinks(page);
+    const $$ = s => page.querySelectorAll(s);
+    $$('[data-on]').forEach(sw => sw.onclick = () => { const r = L.get('x.pla.reglas').find(x => x.id === sw.dataset.on); L.update(s => { const x = s.x.pla.reglas.find(y => y.id === r.id); x.on = !x.on; }); L.toast(r.on ? 'Regla en pausa' : 'Regla activa', { type: r.on ? 'warning' : 'success', desc: r.on ? 'No corre hasta que la actives. Lo que ya disparó queda.' : r.cuando }); });
+    $$('[data-prob]').forEach(b => b.onclick = () => probar(L.get('x.pla.reglas').find(x => x.id === b.dataset.prob)));
+    $$('[data-ed]').forEach(b => b.onclick = () => editor(L.get('x.pla.reglas').find(x => x.id === b.dataset.ed)));
+    $$('[data-del]').forEach(b => b.onclick = () => { const r = L.get('x.pla.reglas').find(x => x.id === b.dataset.del); L.dialog({ title: 'Borrar la regla', icon: 'trash-2', desc: L.esc(r.cuando + ' → ' + r.entonces), body: '<p style="font-size:14px">Si solo querés que deje de correr un tiempo, pausala: conserva el historial.</p>', actions: [{ t: 'Pausar', cls: 'out', fn: () => L.update(s => { s.x.pla.reglas.find(y => y.id === r.id).on = false; }) }, { t: 'Borrar', cls: 'dan', fn: () => { L.update(s => { s.x.pla.reglas = s.x.pla.reglas.filter(y => y.id !== r.id); }); L.toast('Regla borrada', { type: 'warning' }); } }] }); });
+    $$('[data-pl]').forEach(b => b.onclick = () => { const p = PLANT[+b.dataset.pl]; editor({ cuando: p.cuando, si: 'Cualquier obra', entonces: p.entonces, a: p.a, canal: /distribuidor/.test(p.entonces) ? 'email' : 'aviso', id: null }); });
+    $$('[data-fe]').forEach(b => b.onclick = () => L.set('x.pla.filtroEj', b.dataset.fe));
+    const v = page.querySelector('#vac'); if (v) v.onclick = () => { const p = PLANT[2]; L.update(s => { s.x.pla.reglas.unshift({ id: 'r' + Date.now(), on: true, h: 'h1', cuando: p.cuando, si: 'OC en espera', entonces: p.entonces, a: p.a, canal: 'email', veces: 0, ultima: '', nueva: true }); }); L.toast('Regla creada y activa', { desc: p.t }); };
+    const ri = page.querySelector('#reint'); if (ri) ri.onclick = () => { ri.innerHTML = L.icon('loader-circle', 'spin') + 'Reintentando…'; setTimeout(() => { L.toast('Rebotó de nuevo', { type: 'error', desc: 'Pedile a Eléctrica Norte otra casilla desde la ficha del distribuidor.' }); ri.innerHTML = L.icon('refresh-cw') + 'Reintentar ahora'; }, 900); };
+  }
+  document.getElementById('nueva').onclick = () => editor(null);
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Avisos · liard</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css"></head>
+<body class="m" data-role="ing" data-tabs="ing" data-active="m-avisos" data-h="h1" data-title="Avisos">
+<div id="act"><button class="btn xs ghost" id="leer" data-icon="check-check">Leídos</button></div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+// La barra inferior depende del rol: ?rol=obra | prov (app.js la arma con data-tabs)
+(function () {
+  const r = new URLSearchParams(location.search).get('rol');
+  const b = document.body;
+  if (r === 'obra') { b.dataset.role = 'obra'; b.dataset.tabs = 'obra'; }
+  if (r === 'prov') { b.dataset.role = 'prov'; b.dataset.tabs = 'prov'; b.dataset.active = 'm-p-avisos'; }
+})();
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  P.boot();
+  const rol = L.q('rol') || 'ing';
+  // Avisos propios de cada rol (además de los compartidos que le corresponden)
+  const PROPIOS = {
+    obra: [
+      { id: 'o1', t: 'Llega hoy el remito de Distribuidora Ohm', d: 'OC-2026-031-2 · 4 líneas · entre 10 y 13 h en el obrador', i: 'truck', tipo: 'pr', cuando: 'hace 1 h', href: 'm-tal-recibir.html' },
+      { id: 'o2', t: 'TSG-PB listo para entregar', d: 'Ensayo al 95 %: protocolo pendiente de firma', i: 'package-check', tipo: 'ok', cuando: 'ayer', href: 'm-tal-tablero.html' },
+    ],
+    prov: [
+      { id: 'v1', t: 'Nueva solicitud de Tableros Delta', d: 'OC-2026-031-1 · 7 líneas · $ 21.894.500 +IVA · vence 02/10', i: 'clipboard-list', tipo: 'pr', cuando: 'ayer', href: 'm-prov-solicitudes.html' },
+      { id: 'v2', t: 'Recordatorio: la solicitud vence mañana', d: 'OC-2026-031-1 · respondé, rechazá o proponé un cambio', i: 'clock-alert', tipo: 'wa', cuando: 'hoy 09:00', href: 'm-prov-responder.html' },
+      { id: 'v3', t: 'Tu lista tiene 2 días', d: 'Eléctrica Norte · actualizada el 29/09: todo en orden', i: 'circle-check', tipo: 'ok', cuando: 'hoy', href: 'd-prov-integraciones.html' },
+    ],
+  };
+  // Obra ve lo que escribe Fabricación y obra (área E): avisos con rol 'obra', que apuntan a d-tal-* / m-tal-*, o que hablan del taller o de entregas.
+  const DEL_ROL = {
+    ing: () => true,
+    obra: a => a.rol === 'obra' || /^(d|m)-tal-/.test(a.href || '') || /taller|frenado|remito|entreg|recep|protocolo/i.test((a.t || '') + ' ' + (a.d || '')),
+    prov: a => a.rol === 'prov' || /^(d|m)-prov-/.test(a.href || ''),
+  };
+  const FILT = [['todos', 'Todos'], ['er', 'Urgentes'], ['ok', 'Confirmaciones'], ['pr', 'Menciones y avances']];
+  function render() {
+    const leidos = L.get('x.pla.leidos') || [];
+    const fil = L.get('x.pla.filtroAv') || 'todos';
+    const todos = [...(PROPIOS[rol] || []), ...(L.get('avisos') || []).filter(DEL_ROL[rol] || DEL_ROL.ing)];
+    const grupo = a => (a.tipo === 'er' || a.tipo === 'wa') ? 'er' : a.tipo === 'ok' ? 'ok' : 'pr';
+    const ver = todos.filter(a => fil === 'todos' || grupo(a) === fil);
+    const sin = todos.filter(a => !leidos.includes(a.id)).length;
+    page.innerHTML = `<div class="row"><span class="muted" style="font-size:13px">${sin ? sin + ' sin leer' : 'Todo leído'} · ${rol === 'prov' ? 'Eléctrica Norte' : rol === 'obra' ? 'Obra Hospital Cañuelas' : 'Tableros Delta'}</span><span class="tag-nuevo ml-auto">Nuevo</span></div>
+      <div class="pla-filt">${FILT.map(([k, t]) => `<button class="chip ${fil === k ? 'on' : ''}" data-f="${k}">${t} <small>${k === 'todos' ? todos.length : todos.filter(a => grupo(a) === k).length}</small></button>`).join('')}</div>
+      ${ver.length ? `<div class="card">${ver.map(a => `<a class="pla-av ${leidos.includes(a.id) ? '' : 'new'}" href="${a.href || '#'}" data-av="${a.id}"><span class="st ${a.tipo}" style="width:34px;height:34px;padding:0;justify-content:center;border-radius:10px">${L.icon(a.i || 'bell')}</span><div style="min-width:0"><b>${L.esc(a.t)}</b><small>${L.esc(a.d || '')}</small><span class="cu">${L.esc(a.cuando || '')}</span></div></a>`).join('')}</div>`
+        : `<div class="empty" style="padding:40px 10px"><div class="e-ico">${L.icon('bell')}</div><h3>Sin avisos acá</h3><p>Cambiá el filtro para ver los demás.</p></div>`}
+      <div class="card pad col" style="gap:10px"><span class="lbl">Qué te avisamos</span>
+        ${[['Confirmaciones y rechazos de OC', true], ['Menciones en comentarios', true], ['Planos que terminan de procesar', rol === 'ing'], ['Resumen diario por email (Sprint 5)', false]].map(([t, on], i) => `<div class="row" style="font-size:13.5px"><span class="grow">${t}</span><button class="switch" role="switch" aria-checked="${on}" aria-label="${t}" data-sw="${i}"></button></div>`).join('')}</div>`;
+    L.fixLinks(page);
+    page.querySelectorAll('[data-f]').forEach(b => b.onclick = () => L.set('x.pla.filtroAv', b.dataset.f));
+    page.querySelectorAll('[data-av]').forEach(a => a.addEventListener('click', () => L.update(s => { if (!s.x.pla.leidos.includes(a.dataset.av)) s.x.pla.leidos.push(a.dataset.av); })));
+    page.querySelectorAll('[data-sw]').forEach(s => s.addEventListener('click', () => L.toast('Preferencia guardada', { type: 'info' })));
+    document.getElementById('leer').onclick = () => { L.update(s => { s.x.pla.leidos = [...new Set([...s.x.pla.leidos, ...todos.map(a => a.id)])]; }); L.toast('Todo marcado como leído'); };
+  }
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

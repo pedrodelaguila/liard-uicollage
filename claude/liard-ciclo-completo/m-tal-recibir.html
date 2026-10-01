@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Recibir materiales · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css"></head>
+<body class="m" data-role="obra" data-tabs="obra" data-active="m-recibir" data-h="h1" data-title="Recibir materiales" data-back="m-tal-hoy.html">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page'), rh = K.remitoHoy;
+  const sinIA = L.q('estado') === 'sin-ia';
+  let paso = L.q('paso') || 'escanear', foto = false, remitoN = rh.remito;
+  const o = () => CP.ped().ordenes.find(x => x.id === (L.q('oc') && L.q('oc') !== rh.oc ? L.q('oc') : rh.oc));
+  // Cantidades: lo que dice el remito, ajustable por línea
+  const pedidoDe = id => CP.lin(id).comprar;
+  let lineas = rh.lineas.map(x => ({ linea: x.linea, remito: x.remito, recibido: x.remito, pedido: pedidoDe(x.linea), previo: CP.recibido(x.linea) }));
+
+  function escanear() {
+    const oc = o();
+    if (oc.status === 'SENT') return `<div class="note warn">${L.icon('triangle-alert')}<div><b>${L.esc(oc.id)} todavía no está confirmada</b>${L.esc(CP.prov(oc.prov).n)} no respondió. Si igual llegó mercadería, recibila: queda registrada y compras recibe el aviso.</div></div>` + escanearBase();
+    return escanearBase();
+  }
+  function escanearBase() {
+    return `<div class="cp-scan" role="img" aria-label="Cámara apuntando al remito"><div class="papel"><i class="b"></i><i></i><i style="width:80%"></i><i></i><i style="width:60%"></i><i></i><i style="width:70%"></i><i></i></div><div class="marco"></div><div class="linea"></div><div class="hint">Encuadrá el remito completo</div></div>
+      <button class="btn pri lg block" id="scan">${L.icon('scan-line')}Escanear remito</button>
+      <button class="btn out block" id="manual">${L.icon('keyboard')}Cargar sin escanear</button>
+      <p class="muted" style="font-size:12.5px;text-align:center">La lectura del remito la hace la IA <span class="ai-tag">${L.icon('sparkles')}IA</span> <span class="cost">≈ US$ 0,01</span>. Siempre confirmás vos las cantidades.</p>`;
+  }
+  function pasoLineas() {
+    const oc = o(); const falt = lineas.filter(x => x.recibido + x.previo < x.pedido);
+    return `<div class="cp-mcard"><div class="h">${L.icon('receipt')}<span class="lbl">Remito ${L.esc(remitoN)}</span>${sinIA ? '<span class="org man ml-auto">Manual</span>' : `<span class="org inf ml-auto">Leído por IA</span>`}</div>
+        <div style="padding:0 14px 12px" class="col gap4"><b>${L.esc(CP.prov(oc.prov).n)}</b><span class="muted" style="font-size:13px">${L.esc(oc.id)} · <span class="ost ${oc.status}">${CP.OST[oc.status]}</span> · ${lineas.length} líneas del remito coinciden con la OC</span>
+        <div class="bar ok" style="margin-top:6px"><i style="width:${Math.round(lineas.filter(x => x.recibido + x.previo >= x.pedido).length / lineas.length * 100)}%"></i></div></div>
+        ${lineas.map((x, i) => { const l = CP.lin(x.linea); const falta = x.pedido - x.previo - x.recibido;
+          return `<div class="cp-rl ${falta > 0 ? 'falta' : ''}"><div><span class="m">${L.esc(l.mat)}</span><span class="s" style="display:block">${L.esc(l.spec)}</span></div>
+            <div class="row gap8"><div class="cp-qty"><button data-q="${i}" data-d="-1" aria-label="Uno menos">${L.icon('minus')}</button><output aria-live="polite">${x.recibido}</output><button data-q="${i}" data-d="1" aria-label="Uno más">${L.icon('plus')}</button></div>
+              <span class="grow" style="font-size:12.5px;line-height:1.35">de <b class="mono">${L.num(x.pedido)}</b> pedidas${x.recibido !== x.remito ? `<br><span style="color:var(--amber-700)">El remito dice ${x.remito}</span>` : ''}${falta > 0 ? `<br><span style="color:var(--amber-700);font-weight:600">Faltan ${L.num(falta)}</span>` : `<br><span style="color:var(--emerald-700);font-weight:600">${L.icon('check')} Completo</span>`}</span>
+              <button class="btn icon sm ghost" data-ok="${i}" aria-label="Recibí todo lo pedido">${L.icon('check-check')}</button></div></div>`; }).join('')}
+      </div>
+      <div class="cp-mcard"><div class="h">${L.icon('camera')}<span class="lbl">Foto del remito firmado</span></div><div style="padding:0 14px 14px"><button class="cp-foto ${foto ? 'ok' : ''}" id="foto" aria-label="${foto ? 'Foto tomada' : 'Sacar foto'}">${foto ? '<span>Remito firmado · 08:52</span>' : L.icon('camera') + ' Sacá la foto'}</button></div></div>
+      ${falt.length ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>Entrega parcial: ${falt.length} línea${falt.length > 1 ? 's' : ''} con faltante</b>Al confirmar, compras recibe el aviso con lo pendiente para reclamarlo a ${L.esc(CP.prov(oc.prov).n)}.</div></div>` : ''}
+      <div class="cp-sticky"><button class="btn pri lg block" id="conf">${L.icon('package-check')}Confirmar recepción</button></div>`;
+  }
+  function listo() {
+    const r = CP.recs().find(x => x.remito === remitoN); const falt = r ? r.lineas.filter(x => x.recibido + (x.previo || 0) < x.pedido) : [];
+    return `<div class="cp-mcard"><div class="empty" style="padding:32px 18px"><div class="e-ico" style="color:var(--emerald-600);background:color-mix(in srgb, var(--emerald-500) 12%, var(--card))">${L.icon('package-check')}</div><h3>Recepción registrada</h3><p>${L.esc(remitoN)} · ${r ? r.lineas.length : 0} líneas.${falt.length ? ' Compras ya tiene el aviso del faltante.' : ' Todo completo.'}</p></div>
+      ${falt.map(x => { const l = CP.lin(x.linea); return `<div class="cp-mrow"><span class="ico-b wa">${L.icon('package-open')}</span><span class="grow"><span class="t">Faltan ${L.num(x.pedido - x.recibido - (x.previo || 0))} · ${L.esc(l.mat)}</span><span class="d">${L.esc(l.spec)} · prometido ${L.fechaCorta(rh.promesa)}</span></span></div>`; }).join('')}</div>
+      <a class="btn out lg block" href="d-tal-entregas.html">${L.icon('monitor')}Ver en Obras y entregas</a>
+      <a class="btn pri lg block" href="m-tal-hoy.html">${L.icon('calendar-check')}Volver a Hoy</a>`;
+  }
+
+  function render() {
+    page.innerHTML = paso === 'lineas' ? pasoLineas() : paso === 'listo' ? listo() : escanear();
+    const sc = document.getElementById('scan');
+    if (sc) sc.onclick = () => {
+      sc.classList.add('dis'); sc.innerHTML = L.icon('loader-circle', 'spin') + 'Leyendo el remito…';
+      setTimeout(() => {
+        if (sinIA) { L.toast('No pudimos leer el remito', { type: 'warning', desc: 'La lectura automática no está disponible: cargalo a mano' }); manual(); return; }
+        paso = 'lineas'; render(); L.toast('Remito leído', { desc: remitoN + ' · 4 de 4 líneas coinciden con ' + rh.oc });
+      }, 900);
+    };
+    const mn = document.getElementById('manual'); if (mn) mn.onclick = manual;
+    page.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { const x = lineas[+b.dataset.q]; x.recibido = Math.max(0, x.recibido + +b.dataset.d); render(); });
+    page.querySelectorAll('[data-ok]').forEach(b => b.onclick = () => { const x = lineas[+b.dataset.ok]; x.recibido = Math.max(0, x.pedido - x.previo); render(); });
+    const f = document.getElementById('foto'); if (f) f.onclick = () => { foto = !foto; render(); if (foto) L.toast('Foto guardada', { desc: 'Se adjunta al remito' }); };
+    const c = document.getElementById('conf'); if (c) c.onclick = confirmar;
+  }
+  function manual() {
+    const ocs = CP.ped().ordenes;
+    L.sheet(`<div class="cp-ficha"><div class="row"><h2 class="grow" style="font-size:18px">Cargar el remito a mano</h2><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div class="field"><label for="mn-oc">Orden de compra</label><select class="inp" id="mn-oc">${ocs.map(x => `<option value="${x.id}" ${x.id === rh.oc ? 'selected' : ''}>${L.esc(x.id)} · ${L.esc(CP.prov(x.prov).n)}</option>`).join('')}</select></div>
+      <div class="field"><label for="mn-n">Número de remito</label><input class="inp mono" id="mn-n" value="${L.esc(rh.remito)}" inputmode="numeric"></div>
+      <p class="muted" style="font-size:12.5px">Se precargan las líneas de la OC con lo pendiente: corregí lo que llegó de verdad.</p>
+      <button class="btn pri lg block" id="mn-go">${L.icon('arrow-right')}Seguir</button></div>`, { label: 'Cargar a mano' });
+    document.getElementById('mn-go').onclick = () => { remitoN = document.getElementById('mn-n').value.trim() || rh.remito; document.querySelector('.ov').remove(); paso = 'lineas'; render(); };
+  }
+  function confirmar() {
+    if (!foto) { L.toast('Falta la foto del remito firmado', { type: 'warning', desc: 'Es la constancia si después hay un reclamo' }); document.getElementById('foto').classList.add('pulse-in'); return; }
+    const oc = o(); const falt = lineas.filter(x => x.recibido + x.previo < x.pedido);
+    const rec = { id: 'rc-' + Date.now(), oc: oc.id, prov: oc.prov, proyecto: 'p1', remito: remitoN, fecha: B.HOY, por: 'diego', foto: true, faltante: falt.length > 0,
+      lineas: lineas.map(x => ({ linea: x.linea, pedido: x.pedido, recibido: x.recibido, previo: x.previo })),
+      nota: falt.length ? 'Entrega parcial: ' + falt.map(x => (x.pedido - x.previo - x.recibido) + ' ' + CP.lin(x.linea).mat.toLowerCase()).join(', ') + ' pendientes.' : '' };
+    L.update(s => { s.recepciones = (s.recepciones || K.recepciones.slice()).concat([rec]); });
+    if (falt.length) CP.aviso({ t: 'Entrega parcial de ' + CP.prov(oc.prov).n, d: falt.map(x => 'Faltan ' + (x.pedido - x.previo - x.recibido) + ' ' + CP.lin(x.linea).mat.toLowerCase()).join(' · ') + ' (' + oc.id + ')', i: 'package-open', tipo: 'wa', href: 'd-tal-entregas.html' });
+    else CP.aviso({ t: 'Recibido completo ' + oc.id, d: remitoN + ' · ' + lineas.length + ' líneas', i: 'package-check', tipo: 'ok', href: 'd-tal-entregas.html' });
+    paso = 'listo'; render();
+    L.toast('Recepción registrada', { desc: falt.length ? 'Aviso de faltante enviado a Sofía Benítez (compras)' : 'Sin faltantes' });
+  }
+  render();
+} };
+</script>
+</body></html>

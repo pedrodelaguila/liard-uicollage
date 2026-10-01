@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Inicio · liard</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css"></head>
+<body class="m" data-role="ing" data-tabs="ing" data-active="m-inicio" data-h="h1" data-title="Hoy">
+<div id="act"><button class="btn icon sm ghost" data-cmdk aria-label="Buscar o preguntar" data-icon="search"></button></div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  P.boot();
+  const user = L.q('u') || 'hernan';
+  function render() {
+    const hecho = L.get('x.pla.hecho') || [];
+    const ap = (L.get('x.pla.aprobaciones') || []).filter(a => a.estado === 'pendiente');
+    const f = P.faltantes(); const c = P.consumo();
+    const ocs = (L.get('pedidos') || []).flatMap(p => p.ordenes).filter(o => o.status === 'SENT');
+    const tb = (L.get('tableros') || []).filter(t => t.estado === 'frenado');
+    const items = [
+      ...ap.map(a => ({ id: 'ap-' + a.id, i: 'stamp', c: 'wa', t: a.t, d: L.ars(a.monto) + ' +IVA · pide ' + P.u(a.pide).n.split(' ')[0], ap: a.id })),
+      ...tb.map(t => ({ id: 'tb-' + t.id, i: 'octagon-pause', c: 'er', t: t.cod + ' frenado en el taller', d: 'Falta el seccionador NH00 · avance ' + t.avance + ' %', href: 'm-tal-tablero.html' })),
+      ...ocs.map(o => ({ id: 'oc-' + o.id, i: 'clock', c: 'wa', t: o.id + ' sin respuesta', d: P.prov(o.prov) + ' · vence ' + L.fecha(o.vence).slice(0, 5), href: 'm-com-aprobar.html' })),
+      { id: 'ln-p1', i: 'list-checks', c: 'er', t: f.bloquean.length + ' líneas bloquean la cotización', d: 'Hospital Cañuelas · ' + f.bloquean.map(l => l.id).join(', '), href: 'm-pla-asistente.html' },
+    ];
+    page.innerHTML = `<div><span class="lbl">Miércoles 1 de octubre</span><h2 style="font-size:20px;margin-top:2px">Hola, ${L.esc(P.u(user).n.split(' ')[0])}</h2><p class="muted" style="font-size:13px">${items.filter(t => !hecho.includes(t.id)).length} cosas para hoy · <span class="tag-nuevo">Nuevo</span></p></div>
+      <div class="card">${items.map(t => `<div class="pla-todo ${hecho.includes(t.id) ? 'done' : ''}"><span class="ti ${t.c}">${L.icon(t.i)}</span><div class="grow" ${t.href ? `data-href="${t.href}" style="cursor:pointer"` : ''}><b>${L.esc(t.t)}</b><small>${L.esc(t.d)}</small></div>${t.ap ? `<button class="btn sm pri" data-ap="${t.ap}">Aprobar</button>` : `<button class="btn icon sm ghost" data-h="${t.id}" aria-label="Marcar como hecho">${L.icon(hecho.includes(t.id) ? 'undo-2' : 'check')}</button>`}</div>`).join('')}</div>
+      <div class="kpis" style="grid-auto-flow:row;grid-template-columns:1fr 1fr"><div class="kpi" style="border-bottom:1px solid var(--border)"><b>${L.pct(P.presupuesto().margen * 100, 1)}</b><span>Margen Hospital Cañuelas</span></div><div class="kpi" style="border-right:0;border-bottom:1px solid var(--border)"><b>89 %</b><span>Carga del taller</span></div>
+        <div class="kpi"><b>14 %</b><span>Presupuestos ganados</span></div><div class="kpi ${c.enAviso ? 'warn' : ''}" style="border-right:0"><b>${L.pct(c.pct * 100)}</b><span>Tope de IA</span></div></div>
+      <div class="card pad col" style="gap:8px"><div class="row"><span class="lbl">Obras</span><a class="btn xs ghost ml-auto" href="d-pla-inicio.html?vista=direccion">Ver todas</a></div>
+        ${(L.get('proyectos') || []).slice(0, 4).map(p => `<div class="row" style="font-size:13px"><span class="grow trunc">${L.esc(p.n.split(' · ')[0])}</span><span class="bdg">${L.esc((BP.etapaObra[p.id] || {}).etapa || '')}</span></div>`).join('')}</div>`;
+    L.fixLinks(page);
+    page.querySelectorAll('[data-h]').forEach(b => b.onclick = () => { const id = b.dataset.h; L.update(s => { const h = s.x.pla.hecho; h.includes(id) ? h.splice(h.indexOf(id), 1) : h.push(id); }); });
+    page.querySelectorAll('[data-ap]').forEach(b => b.onclick = () => { const a = L.get('x.pla.aprobaciones').find(x => x.id === b.dataset.ap);
+      L.sheet(`<div class="card-b col"><div class="row"><b style="font-size:16px" class="grow">${L.esc(a.t)}</b><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div><p class="muted" style="font-size:13px">${L.esc(a.d)}</p><div class="row"><span class="lbl">Monto</span><b class="money ml-auto">${L.ars(a.monto)} +IVA</b></div><div class="row"><span class="lbl">Pide</span><span class="ml-auto">${L.esc(P.u(a.pide).n)}</span></div>
+        <button class="btn ok lg block" id="si">${L.icon('check')}Aprobar</button><button class="btn dan lg block" id="no">Rechazar</button></div>`, { label: 'Aprobar' });
+      const dec = est => { L.update(s => { const x = s.x.pla.aprobaciones.find(y => y.id === a.id); x.estado = est; x.por = user; x.cuando = 'recién'; }); P.aviso({ t: `${P.u(user).n} ${est === 'aprobada' ? 'aprobó' : 'rechazó'}: ${a.t}`, d: a.d, i: est === 'aprobada' ? 'circle-check' : 'circle-x', tipo: est === 'aprobada' ? 'ok' : 'er', href: 'd-pla-equipo.html?vista=aprobaciones' }); document.querySelector('.ov').remove(); L.toast(est === 'aprobada' ? 'Aprobado' : 'Rechazado', { desc: 'Le avisamos a ' + P.u(a.pide).n.split(' ')[0] + '.' }); };
+      document.getElementById('si').onclick = () => dec('aprobada'); document.getElementById('no').onclick = () => dec('rechazada'); });
+  }
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

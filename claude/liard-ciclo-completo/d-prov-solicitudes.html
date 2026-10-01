@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Solicitudes · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css">
+</head>
+<body data-role="prov" data-user="julian" data-active="p-recibidas" data-h="existe"
+      data-crumbs="Solicitudes|d-prov-solicitudes.html>Solicitudes recibidas" data-title="Solicitudes recibidas">
+<div id="act"></div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+(function () {
+  // Antes de armar el shell: ítem activo, título y ruta según la URL.
+  const q = new URLSearchParams(location.search), d = document.body.dataset;
+  const oc = q.get('oc'), est = q.get('estado');
+  if (oc) {
+    d.title = 'Solicitud número ' + oc; d.crumbs = 'Solicitudes|d-prov-solicitudes.html>Solicitud ' + oc; d.h = 'h1';
+    d.sub = 'Respondé línea por línea: confirmá, cambiá precio o plazo, ofrecé un equivalente o una entrega parcial.';
+  } else if (est === 'aceptadas') { d.active = 'p-aceptadas'; d.title = 'Solicitudes aceptadas'; d.crumbs = 'Solicitudes|d-prov-solicitudes.html>Solicitudes aceptadas'; }
+  else if (est === 'rechazadas') { d.active = 'p-rechazadas'; d.title = 'Solicitudes rechazadas'; d.crumbs = 'Solicitudes|d-prov-solicitudes.html>Solicitudes rechazadas'; }
+})();
+
+window.MOCK = { init() {
+  const page = document.getElementById('page'), act = document.getElementById('act');
+  const oc = L.q('oc'), est = L.q('estado'), vista = L.q('vista');
+  const BP = window.BP;
+  const ui = { buscar: '', desde: '', hasta: '' };
+
+  // ---------------------------------------------------------------- LISTA
+  function lista() {
+    act.innerHTML = `<div class="seg" data-param="vista" data-default="tarjetas" aria-label="Vista"><button data-vista="tarjetas">${L.icon('layout-grid')}Tarjetas</button><button data-vista="bandeja">${L.icon('rows-3')}Bandeja por vencimiento</button></div>`;
+    act.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === (vista || 'tarjetas')));
+    if (est === 'cargando') {
+      page.innerHTML = filtros() + `<div class="pv-grid">${[1, 2, 3].map(() => `<div class="pv-rc"><div class="skel" style="height:40px"></div><div class="skel" style="height:40px;width:66%"></div><div class="skel" style="height:40px;width:50%"></div><div class="skel" style="height:36px"></div></div>`).join('')}</div><p class="muted" style="font-size:13px">${L.icon('loader-circle', 'spin')} Cargando solicitudes… <span class="tag-existe">existe</span></p>`;
+      return;
+    }
+    if (est === 'error') {
+      page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('circle-alert')}</div><h3>No pudimos cargar las solicitudes</h3><p>Hubo un problema al traer los datos. Volvé a intentar en unos minutos. Las solicitudes no se pierden: siguen esperando tu respuesta hasta que vencen.</p><div class="row" style="justify-content:center"><button class="btn pri" id="reint">${L.icon('refresh-cw')}Reintentar</button><button class="btn out" data-href="d-prov-inicio.html">Ir al inicio</button></div><span class="tag-existe" style="margin-top:8px">existe</span></div></div>`;
+      document.getElementById('reint').onclick = () => L.param('estado', null);
+      return;
+    }
+    const tab = est === 'aceptadas' ? 'ok' : est === 'rechazadas' ? 'rej' : 'rec';
+    let ss = P.solicitudes().filter(s => tab === 'rec' ? ['SENT', 'COUNTER'].includes(s.estado) : tab === 'ok' ? s.estado === 'CONFIRMED' : ['REJECTED', 'EXPIRED'].includes(s.estado));
+    if (est === 'vacio') ss = [];
+    const t = ui.buscar.toLowerCase();
+    ss = ss.filter(s => (!t || (s.id + ' ' + s.proyecto + ' ' + P.quien(s)).toLowerCase().includes(t)) && (!ui.desde || s.total >= +ui.desde) && (!ui.hasta || s.total <= +ui.hasta));
+    const vencen = ss.filter(s => s.estado === 'SENT' && P.dias(s.vence) <= 1);
+    let html = filtros();
+    if (tab === 'rec' && vencen.length) html += `<div class="note warn"><span data-icon="clock-alert"></span><div><b>${vencen.length === 1 ? 'Una solicitud vence' : vencen.length + ' solicitudes vencen'} antes de mañana a la noche</b>${vencen.map(s => `${L.esc(s.id)} (${L.esc(P.venceTxt(s.vence))})`).join(' · ')}. Si no respondés, la solicitud vence y el comprador la adjudica a otro distribuidor. <span class="tag-nuevo">Nuevo</span></div></div>`;
+    if (!ss.length) {
+      const msg = { rec: ['Sin solicitudes', 'Cuando un tablerista te pida cotización, la solicitud aparece acá. Mantené tu lista al día: las que llegan dependen de que tus productos estén vinculados.', 'Revisá tu catálogo', 'd-prov-catalogo.html?vista=vincular'], ok: ['Sin solicitudes aceptadas', 'Las solicitudes que aceptes quedan acá con el contacto del comprador.', 'Ver las recibidas', 'd-prov-solicitudes.html'], rej: ['Sin solicitudes rechazadas', 'Acá quedan las que rechazaste y las que vencieron sin respuesta.', 'Ver las recibidas', 'd-prov-solicitudes.html'] }[tab];
+      page.innerHTML = html + `<div class="card" style="border-style:dashed"><div class="empty"><div class="e-ico">${L.icon('inbox')}</div><h3>${msg[0]}</h3><p>${msg[1]}</p><button class="btn out" data-href="${msg[3]}">${msg[2]}</button><span class="tag-existe" style="margin-top:8px">existe</span></div></div>`;
+      bindFiltros(); return;
+    }
+    if ((vista || 'tarjetas') === 'bandeja') html += bandeja(ss); else html += `<div class="pv-grid">${ss.map(tarjeta).join('')}</div>`;
+    html += `<p class="muted" style="font-size:12px">Mostrando ${ss.length} ${ss.length === 1 ? 'solicitud' : 'solicitudes'}. Precios sin IVA. La tarjeta muestra el <b>proyecto</b> bajo «Proyecto» (en dev dice «Nombre del cliente» y muestra el proyecto) y el comprador anónimo hasta que confirmás. <span class="tag-nuevo">Refinado</span></p>`;
+    page.innerHTML = html;
+    bindFiltros();
+  }
+  function filtros() {
+    return `<div class="pv-filters"><label class="search"><span class="sr">Buscar solicitud</span>${L.icon('search')}<input class="inp" id="f-q" placeholder="Buscar por número, proyecto o comprador" value="${L.esc(ui.buscar)}"></label>
+      <span class="lbl">Desde</span><input class="inp mono" id="f-d" type="number" min="0" step="100000" placeholder="$ 0" aria-label="Monto desde" value="${L.esc(ui.desde)}"><span class="muted">a</span><input class="inp mono" id="f-h" type="number" min="0" step="100000" placeholder="$ 0" aria-label="Monto hasta" value="${L.esc(ui.hasta)}"><span class="tag-existe">existe</span></div>`;
+  }
+  function bindFiltros() {
+    const f = (id, k) => { const el = document.getElementById(id); if (!el) return; el.oninput = () => { ui[k] = el.value; const pos = el.selectionStart; render(); const n = document.getElementById(id); n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) { /* number */ } }; };
+    f('f-q', 'buscar'); f('f-d', 'desde'); f('f-h', 'hasta');
+  }
+  function venceChip(s) {
+    if (s.estado !== 'SENT' && s.estado !== 'COUNTER') return '';
+    const d = P.dias(s.vence), c = d <= 1 ? 'hot' : d <= 2 ? 'warm' : 'ok';
+    return `<span class="pv-vence ${c}">${L.icon('clock')} ${L.esc(P.venceTxt(s.vence))}</span>`;
+  }
+  function tarjeta(s) {
+    return `<article class="pv-rc">
+      <div class="hd"><div class="f" style="min-width:0"><b>Proyecto</b><span>${L.esc(s.proyecto)}</span></div><div class="f" style="text-align:right"><b>Nro de solicitud</b><span class="mono">${L.esc(s.id)}</span></div></div>
+      <div class="f"><b>Comprador</b><span>${P.revelado(s) ? L.esc(P.comprador(s).n) : `${L.icon('lock')} ${L.esc(P.comprador(s).anon)} · ${P.comprador(s).pedidos} pedidos en liard`}</span></div>
+      <div class="hd"><div class="f"><b>Fecha</b><span>${L.fecha(s.enviado)}</span></div><div class="f" style="text-align:right"><b>Materiales</b><span>${s.lineasN}</span></div></div>
+      <div class="f"><b>Precio total estimado</b><span class="money">${L.ars(s.total, true)}</span></div>
+      <div class="meta">${P.badge(s)}${venceChip(s)}${s.alternativas ? `<span class="bdg pri">${L.icon('git-compare-arrows')}BOM alternativo · ${s.alternativas} líneas</span>` : ''}</div>
+      <div class="ft">${P.revelado(s) ? `<button class="btn out" data-href="d-prov-solicitudes.html?oc=${s.id}#contacto">Contacto</button>` : ''}<button class="btn pri" data-href="d-prov-solicitudes.html?oc=${s.id}">Detalle</button></div>
+    </article>`;
+  }
+  function bandeja(ss) {
+    const rows = ss.slice().sort((a, b) => a.vence.localeCompare(b.vence)).map(s => {
+      const g = P.get(s.id); const cob = g.lineas.filter(l => l.stock >= l.cant).length / g.lineas.length;
+      return `<tr data-href="d-prov-solicitudes.html?oc=${s.id}"><td class="mono" style="white-space:nowrap"><b>${L.esc(s.id)}</b><div class="muted" style="font-size:12px">${L.fechaCorta(s.enviado)}${s.hora ? ' · ' + s.hora : ''}</div></td><td><b style="font-weight:500">${L.esc(s.proyecto)}</b><div class="muted" style="font-size:12px">${L.esc(P.quien(s))}</div></td><td class="r mono">${s.lineasN}</td><td class="r money">${L.ars(s.total)}</td><td><div class="pv-cov"><div class="bar ${cob === 1 ? 'ok' : cob > .7 ? 'warn' : 'bad'}"><i style="width:${Math.round(cob * 100)}%"></i></div><span class="mono" style="font-size:12px">${L.pct(cob * 100)}</span></div></td><td>${venceChip(s) || `<span class="muted" style="font-size:12px">${s.respondido ? 'respondida ' + L.fechaCorta(s.respondido) : '—'}</span>`}</td><td>${P.badge(s)}</td><td class="r"><button class="btn sm ${s.estado === 'SENT' ? 'pri' : 'out'}" data-href="d-prov-solicitudes.html?oc=${s.id}">${s.estado === 'SENT' ? 'Responder' : 'Ver'}</button></td></tr>`;
+    }).join('');
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('rows-3')}</div><div><h3>Bandeja por vencimiento</h3><div class="sub">La que vence primero, arriba. «Stock» = líneas que cubrís con el stock que informó tu ERP a las 06:00.</div></div><div class="r"><span class="tag-h1">Propuesta</span></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl pv-tray"><thead><tr><th>Solicitud</th><th>Proyecto · comprador</th><th class="r">Líneas</th><th class="r">Total +IVA</th><th>Stock</th><th>Vence</th><th>Estado</th><th class="r"><span class="sr">Acción</span></th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  // ---------------------------------------------------------------- DETALLE
+  let s;
+  function detalle() {
+    if (est === 'cargando') { page.innerHTML = `<div class="skel" style="height:40px;width:260px"></div><div class="skel" style="height:160px"></div><div class="skel" style="height:220px"></div>`; return; }
+    s = P.get(oc);
+    if (s) { const act2 = s.estado === 'CONFIRMED' ? 'p-aceptadas' : ['REJECTED', 'EXPIRED'].includes(s.estado) ? 'p-rechazadas' : 'p-recibidas'; document.querySelectorAll('.sb-i.sb-sub').forEach(a => { const on = a.getAttribute('href').includes(act2 === 'p-recibidas' ? 'solicitudes.html' : act2 === 'p-aceptadas' ? 'aceptadas' : 'rechazadas') && (act2 !== 'p-recibidas' || !a.getAttribute('href').includes('estado=')); if (a.getAttribute('href').includes('d-prov-solicitudes')) a.classList.toggle('on', on); }); }
+    if (!s) {
+      page.innerHTML = `<div class="empty"><div class="e-ico">${L.icon('search')}</div><h3>Solicitud no encontrada</h3><p>La solicitud que buscás no existe o ya no está disponible.</p><button class="btn out" data-href="d-prov-solicitudes.html">Volver a mis solicitudes</button><span class="tag-existe">existe</span></div>`; return;
+    }
+    if (est === 'error') {
+      page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('circle-alert')}</div><h3>No pudimos cargar la solicitud</h3><p>Hubo un problema al traer los datos. Volvé a intentar en unos minutos. Tu borrador de respuesta quedó guardado en este navegador.</p><div class="row" style="justify-content:center"><button class="btn pri" id="reint">Reintentar</button><button class="btn out" data-href="d-prov-solicitudes.html">Volver a mis solicitudes</button></div><span class="tag-existe" style="margin-top:8px">existe</span></div></div>`;
+      document.getElementById('reint').onclick = () => L.param('estado', null); return;
+    }
+    // Marco «contraoferta enviada»: se arma en memoria, sin escribir el estado.
+    if (est === 'contraoferta' && !s.contra && s.estado === 'SENT') { s.contra = P.contraDe(s, P.calcular(s, ejemplo())); s.estado = 'COUNTER'; s.demo = true; }
+    const editable = s.estado === 'SENT';
+    const modoDev = vista === 'dev';
+    act.innerHTML = `<div class="seg" data-param="vista" data-default="linea" aria-label="Vista del detalle"><button data-vista="linea">${L.icon('list-checks')}Respuesta por línea</button><button data-vista="dev">Como en dev</button></div><button class="btn ghost sm" data-href="d-prov-solicitudes.html">${L.icon('arrow-left')}Volver</button>`;
+    act.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === (vista || 'linea')));
+    const c = P.comprador(s);
+    let html = `<div class="card"><div class="card-h"><h3 class="muted" style="font-size:14px">Datos de la solicitud</h3><div class="r">${P.badge(s)}<span class="tag-existe">existe</span></div></div>
+      <div class="card-b pv-sum">
+        <div class="f"><b>Proyecto</b><span>${L.esc(s.proyecto)}</span></div>
+        <div class="f"><b>Fecha</b><span>${L.fecha(s.enviado)}</span></div>
+        <div class="f"><b>Materiales</b><span>${s.lineasN}</span></div>
+        <div class="f"><b>Precio total estimado</b><span class="money">${L.ars(s.total, true)} +IVA</span></div>
+        <div class="f"><b>Vence <span class="tag-nuevo">Nuevo</span></b><span>${editable || s.estado === 'COUNTER' ? `${L.fecha(s.vence)} · ${L.esc(P.venceTxt(s.vence))}` : s.respondido ? 'Respondida el ' + L.fecha(s.respondido) : 'Venció el ' + L.fecha(s.vence)}</span></div>
+        <div class="f" style="grid-column:span 3"><b>Comprador <span class="tag-nuevo">Nuevo</span></b><span>${P.revelado(s) ? L.esc(c.n) : `${L.esc(c.anon)} · ${c.pedidos} pedidos en liard · adjudica el ${L.pct(c.adjudica * 100)} de lo que pide${c.verificado ? ' · CUIT verificado' : ''}`}</span></div>
+      </div></div>`;
+    html += P.revelado(s) ? `<div id="contacto">${P.contactoHTML(s)}</div>` : `<div class="pv-lock">${L.icon('lock')}<div><b style="color:var(--foreground);font-size:14px">El contacto del comprador se ve cuando aceptás</b>Si mandás una contraoferta, se ve cuando el comprador la acepta. Hasta entonces solo sabés su zona y su historial en liard. <span class="tag-existe">existe</span></div></div>`;
+    if (s.estado === 'REJECTED' || s.estado === 'EXPIRED') html += `<div class="note ${s.estado === 'REJECTED' ? 'bad' : ''}"><span data-icon="${s.estado === 'REJECTED' ? 'circle-x' : 'clock'}"></span><div><b>${s.estado === 'REJECTED' ? 'Rechazaste esta solicitud' : 'Esta solicitud venció sin respuesta'}</b>${s.motivo ? 'Motivo: ' + L.esc(s.motivo) : s.estado === 'EXPIRED' ? 'El comprador la adjudicó a otro distribuidor. Las vencidas cuentan para tu tasa de respuesta.' : ''}</div></div>`;
+    if (s.contra) html += contraCard();
+    if (s.alternativas && !modoDev) html += `<div class="note info"><span data-icon="git-compare-arrows"></span><div><b>El comprador armó un BOM alternativo en ${s.alternativas} líneas <span class="tag-s5">Sprint 5</span></b>En las líneas marcadas te pide cotizar también otra marca o gama. Elegí en cada una si cotizás la principal, la alternativa o las dos: el total de abajo suma lo que el comprador puede adjudicar (la principal o la alternativa, nunca las dos).</div></div>`;
+    html += modoDev ? tablaDev() : tablaLineas(editable);
+    if (editable && !modoDev) html += dock();
+    if (modoDev && editable) html += `<div class="row" style="gap:12px"><button class="btn acc-ok" style="flex:1" id="d-ok">Aceptar</button><button class="btn acc-rej" style="flex:1" id="d-rej">Rechazar</button></div><p class="muted" style="font-size:12px">Así se responde hoy en dev: todo o nada. <span class="tag-existe">existe</span></p>`;
+    if (!editable && s.estado !== 'COUNTER') html += `<p class="muted" style="font-size:13px">Ya respondiste esta solicitud, no se puede volver a responder. <span class="tag-existe">existe</span></p>`;
+    page.innerHTML = html;
+    const ok = document.getElementById('d-ok'); if (ok) ok.onclick = aceptarDlg;
+    const rj = document.getElementById('d-rej'); if (rj) rj.onclick = rechazarDlg;
+    if (location.hash === '#contacto') setTimeout(() => { const el = document.getElementById('contacto'); if (el) el.scrollIntoView({ block: 'start' }); }, 50);
+  }
+  function ejemplo() {
+    return { lineas: { l05: { a: 'plazo', plazo: 12, nota: 'Reposición del fabricante.' }, l06: { a: 'equivalente', eq: 'ABB-XT5-630' }, l16: { a: 'parcial', ahora: 800, plazo: 7 } }, alt: { l01: 'ambas' }, revisadas: [] };
+  }
+  function tablaDev() {
+    const rows = s.lineas.map(l => `<tr><td class="mono">${L.esc(l.codigo)}</td><td>${L.esc(l.mat)} ${L.esc(l.spec)}</td><td class="r mono">${L.num(l.cant)}</td><td class="r money">${L.ars(l.precio, true)}</td><td class="r money">${L.ars(l.precio * l.cant, true)}</td></tr>`).join('');
+    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Código de producto</th><th>Nombre</th><th class="r">Cantidad</th><th class="r">Precio unitario ARS</th><th class="r">Total</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="4" class="r" style="padding:12px 14px;font-weight:600">Total</td><td class="r money" style="padding:12px 14px;font-weight:700">${L.ars(s.total, true)}</td></tr></tfoot></table></div>`;
+  }
+  function tablaLineas(editable) {
+    const b = P.borrador(s.id), cal = P.calcular(s, s.demo ? ejemplo() : b);
+    const sug = s.lineas.filter(l => l.hint).length;
+    const rows = cal.filas.map(f => {
+      const l = f.l, r = f.r, cambio = r.a !== 'confirmar' || f.alt !== 'principal';
+      const st = l.stock === 0 ? 'no' : l.stock < l.cant ? 'low' : 'si';
+      const acc = Object.entries(P.ACC).map(([k, v]) => `<button class="${r.a === k ? 'on ' + v.c : ''}" data-acc="${k}" data-l="${l.linea}" title="${v.t}" aria-label="${v.t} · ${L.esc(l.mat)}" ${editable ? '' : 'disabled'}>${L.icon(v.i)}</button>`).join('');
+      const chg = r.a === 'confirmar' ? '' : `<span class="pv-chg">${L.icon(P.ACC[r.a].i)}${P.ACC[r.a].t}${r.a === 'plazo' ? ': ' + P.dTxt(f.plazo) : ''}${r.a === 'precio' ? ': ' + L.ars(f.precio) : ''}${r.a === 'equivalente' ? ': ' + L.esc(f.prod.marca + ' ' + f.prod.gama) : ''}${r.a === 'parcial' ? `: ${L.num(f.ahora)} ahora + ${L.num(l.cant - f.ahora)} en ${P.dTxt(f.plazoResto)}` : ''}</span>`;
+      const hint = l.hint && editable && r.a === 'confirmar' ? `<div class="pv-hint">${L.icon('database')}<div><b>Tu ERP dice:</b> ${L.esc(l.hint.texto)} <button class="btn xs out" data-hint="${l.linea}">${P.ACC[l.hint.tipo].t}</button></div></div>` : '';
+      const alt = l.alt ? `<div class="pv-alt">${L.icon('git-compare-arrows')}<span>Alternativa pedida: <b>${L.esc(l.alt.marca)} ${L.esc(l.alt.gama)}</b> · <span class="mono">${L.ars(l.alt.precio)}</span> · stock ${L.num(l.alt.stock)}</span><div class="seg" role="group" aria-label="Qué cotizás">${[['principal', 'Principal'], ['alternativa', 'Alternativa'], ['ambas', 'Las dos']].map(([k, t]) => `<button class="${f.alt === k ? 'on' : ''}" data-alt="${k}" data-l="${l.linea}" ${editable ? '' : 'disabled'}>${t}</button>`).join('')}</div></div>` : '';
+      return `<tr class="${r.a === 'sinstock' ? 'out' : cambio ? 'chg' : ''}">
+        <td><span class="mat">${L.esc(f.prod.desc === l.mat + ' ' + l.spec ? l.mat : f.prod.desc)}</span><span class="spec">${f.prod.desc === l.mat + ' ' + l.spec ? L.esc(l.spec) + ' · ' : ''}${L.esc((f.prod.marca + ' ' + f.prod.gama).trim())} · ${L.esc(f.prod.codigo)}</span>${chg}${hint}${alt}</td>
+        <td class="r qty">${r.a === 'parcial' ? `${L.num(f.ahora)}<span class="pv-was" style="text-decoration:none">de ${L.num(l.cant)}</span>` : L.num(l.cant)} <span class="muted" style="font-weight:400">${L.esc(l.u)}</span></td>
+        <td class="r"><span class="pv-stock ${st}">${st === 'no' ? 'sin stock' : L.num(l.stock)}</span></td>
+        <td class="r money">${f.precio !== l.precio ? `<span class="pv-was">${L.ars(l.precio)}</span><span class="pv-now">${L.ars(f.precio)}</span>` : L.ars(l.precio)}</td>
+        <td class="r mono">${f.plazo !== l.plazo ? `<span class="pv-was">${P.dTxt(l.plazo)}</span><span class="pv-now">${P.dTxt(f.plazo)}</span>` : P.dTxt(l.plazo)}</td>
+        <td class="r money" style="font-weight:700">${L.ars(f.sub)}${f.extra ? `<span class="pv-was" style="text-decoration:none">+ alt. ${L.ars(f.extra)}</span>` : ''}</td>
+        <td class="r"><div class="acc" role="group" aria-label="Respuesta">${acc}</div></td></tr>`;
+    }).join('');
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-checks')}</div><div><h3>Materiales pedidos</h3><div class="sub">Precios unitarios sin IVA. Stock y plazo según tu ERP (Electrobase, 06:00).</div></div><div class="r"><span class="tag-h1">Propuesta</span>${editable && sug ? `<button class="btn out sm" id="sug">${L.icon('database')}Aplicar lo que dice el ERP (${sug})</button>` : ''}${editable && cal.cambios.length ? `<button class="btn ghost sm" id="limpiar">${L.icon('rotate-ccw')}Confirmar todo</button>` : ''}</div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl bom pv-lines"><thead><tr><th>Material / especificación</th><th class="r">Cantidad</th><th class="r">Stock</th><th class="r">Precio unit.</th><th class="r">Plazo</th><th class="r">Subtotal</th><th class="r">Respuesta</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  function dock() {
+    const cal = P.calcular(s), dif = cal.total - cal.totalAntes, n = cal.cambios.length;
+    return `<div class="pv-dock" role="region" aria-label="Tu respuesta">
+      <div class="tot"><div><span class="lbl">Pedido</span><s>${L.ars(cal.totalAntes)}</s></div><div><span class="lbl">Tu respuesta +IVA</span><b>${L.ars(cal.total)}</b></div><div><span class="lbl">Diferencia</span><span class="mono ${dif > 0 ? 'up' : dif < 0 ? 'down' : 'muted'}" style="font-weight:600">${dif === 0 ? '—' : (dif > 0 ? '+' : '−') + L.ars(Math.abs(dif)).slice(2)}</span></div><div><span class="lbl">Plazo máx.</span><span class="mono" style="font-weight:600">${P.dTxt(cal.plazoMax)}</span></div><div><span class="lbl">Con IVA (21 %)</span><span class="mono muted">${L.ars(cal.total * 1.21)}</span></div></div>
+      <div class="acts"><span class="muted" style="font-size:12px">${n ? `${n} ${n === 1 ? 'línea cambia' : 'líneas cambian'}` : 'Sin cambios'}</span><button class="btn acc-rej" id="b-rej" data-key="r">Rechazar <span class="k">R</span></button>${n ? `<button class="btn pri" id="b-ctr" data-key="e">${L.icon('send')}Enviar contraoferta <span class="k">E</span></button>` : `<button class="btn green" id="b-ok" data-key="a">${L.icon('check')}Aceptar tal cual <span class="k">A</span></button>`}</div></div>`;
+  }
+  function contraCard() {
+    const k = s.contra, est2 = k.estado;
+    const filas = k.lineas.map(x => { const l = s.lineas.find(y => y.linea === x.linea) || {}; return `<div class="lbl" style="align-self:center">${L.esc({ precio: 'Precio', plazo: 'Plazo', equivalente: x.bomAlternativo ? 'BOM alternativo' : 'Equivalente', parcial: x.sinStock ? 'Sin stock' : 'Entrega parcial' }[x.cambio])}</div><div><b style="font-weight:500">${L.esc(l.mat || '')}</b> <span class="muted">${L.esc(l.spec || '')}</span><div class="a">${L.esc(x.antes)}</div></div><div class="d">${L.esc(x.despues)}${x.nota ? `<div class="muted" style="font-weight:400">${L.esc(x.nota)}</div>` : ''}</div>`; }).join('');
+    const tit = est2 === 'aceptada' ? 'El comprador aceptó tu contraoferta' : est2 === 'rechazada' ? 'El comprador rechazó tu contraoferta' : 'Contraoferta enviada · esperando al comprador';
+    return `<div class="card pv-ctr"><div class="card-h"><div class="card-ico" style="color:#6d28d9">${L.icon('repeat')}</div><div><h3>${tit}</h3><div class="sub">Enviada el ${L.fecha(k.enviada)} por ${L.esc(P.usuario(k.por).n)} · válida hasta ${L.fecha(k.validez)} · ${new Set(k.lineas.map(x => x.linea)).size} líneas</div></div><div class="r"><span class="tag-h1">Propuesta</span></div></div>
+      <div class="card-b"><div class="pv-diff">${filas}</div></div>
+      <div class="card-b row wrap" style="border-top:1px solid var(--border)"><span class="mono" style="font-weight:700">${L.ars(k.total)} +IVA</span><span class="muted mono" style="text-decoration:line-through">${L.ars(k.totalAntes)}</span><span class="muted" style="font-size:12px">plazo máx. ${P.dTxt(k.plazoMax)}</span>
+        <span class="ml-auto"></span>${est2 === 'pendiente' ? `<a class="btn ghost sm" href="d-com-pedidos.html?vista=contraoferta">${L.icon('eye')}Cómo la ve el comprador</a><button class="btn out sm" id="c-edit">${L.icon('pencil')}Editar</button><button class="btn dan sm" id="c-ret">Retirar</button>` : ''}</div></div>`;
+  }
+
+  // ---------------------------------------------------------------- PANEL DE UNA LÍNEA
+  function panel(lineaId, accion) {
+    const l = s.lineas.find(x => x.linea === lineaId); if (!l) return;
+    const b = P.borrador(s.id); const r = b.lineas[lineaId] || {};
+    let a = accion || (r.a && r.a !== 'confirmar' ? r.a : 'precio');
+    const eqs = BP.equivalentes[lineaId] || [];
+    const ov = L.sheet(`<div class="pv-pnl"><div class="pnl-h"><div class="card-ico">${L.icon('pencil')}</div><div class="grow"><span class="lbl">Responder la línea</span><h2 style="font-size:17px;margin-top:2px">${L.esc(l.mat)}</h2><div class="mono muted" style="font-size:13px">${L.esc(l.spec)} · ${L.esc((l.marca + ' ' + l.gama).trim())}</div><div class="mono" style="font-size:12px;margin-top:4px">${L.num(l.cant)} ${L.esc(l.u)} × ${L.ars(l.precio)} · stock ${L.num(l.stock)} · ${P.dTxt(l.plazo)}</div></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div class="pnl-b"><div class="pv-opts" role="group" aria-label="Tipo de cambio">${['precio', 'plazo', 'equivalente', 'parcial', 'sinstock', 'confirmar'].map(k => `<button class="pv-opt ${k === a ? 'on' : ''}" data-op="${k}">${L.icon(P.ACC[k].i)}${P.ACC[k].t}</button>`).join('')}</div><div id="pf"></div></div>
+      <div class="pnl-f"><button class="btn out" data-x>Cancelar</button><button class="btn pri" id="pg">Guardar en la respuesta</button></div></div>`, { label: 'Responder ' + l.mat });
+    let eqSel = r.eq || (eqs[0] && eqs[0].codigo);
+    const form = () => {
+      const pf = ov.querySelector('#pf');
+      if (a === 'precio') pf.innerHTML = `<div class="field"><label for="p-precio">Precio unitario sin IVA</label><input class="inp mono" id="p-precio" type="number" min="1" value="${r.precio || l.precio}"><span class="help" id="p-delta"></span></div><div class="field"><label for="p-nota">Nota para el comprador (opcional)</label><input class="inp" id="p-nota" value="${L.esc(r.nota || '')}" placeholder="Ej.: precio por pago a 30 días"></div>`;
+      if (a === 'plazo') pf.innerHTML = `<div class="field"><label for="p-plazo">Plazo de entrega (días)</label><input class="inp mono" id="p-plazo" type="number" min="1" max="120" value="${r.plazo || (l.hint && l.hint.plazo) || l.plazo + 5}"><span class="help">Hoy figura ${P.dTxt(l.plazo)}.</span></div><div class="field"><label for="p-nota">Nota (opcional)</label><input class="inp" id="p-nota" value="${L.esc(r.nota || (l.hint && l.hint.tipo === 'plazo' ? 'Reposición del fabricante.' : ''))}"></div>`;
+      if (a === 'parcial') pf.innerHTML = `<div class="field"><label for="p-ahora">Entrego ahora (${L.esc(l.u)})</label><input class="inp mono" id="p-ahora" type="number" min="1" max="${l.cant - 1}" value="${r.ahora || (l.hint && l.hint.ahora) || Math.floor(l.cant / 2)}"><span class="help">De ${L.num(l.cant)} ${L.esc(l.u)} pedidos.</span></div><div class="field"><label for="p-plazo">El resto, en (días)</label><input class="inp mono" id="p-plazo" type="number" min="1" value="${r.plazo || (l.hint && l.hint.plazo) || 7}"></div><div class="note info"><span data-icon="info"></span><div>El comprador recibe dos entregas sobre la misma OC. El remito de cada una lo registra el taller al recibir.</div></div>`;
+      if (a === 'sinstock') pf.innerHTML = `<div class="note bad"><span data-icon="package-x"></span><div><b>La línea sale de tu respuesta</b>El comprador la puede pedir a otro distribuidor. Cuenta como demanda perdida «Sin stock» en tu panel.</div></div><div class="field"><label for="p-nota">Nota (opcional)</label><input class="inp" id="p-nota" value="${L.esc(r.nota || '')}" placeholder="Ej.: entra stock el 15/10"></div>`;
+      if (a === 'confirmar') pf.innerHTML = `<div class="note ok"><span data-icon="circle-check"></span><div><b>Se cotiza tal como la pidieron</b>${L.num(l.cant)} ${L.esc(l.u)} a ${L.ars(l.precio)} en ${P.dTxt(l.plazo)}.</div></div>`;
+      if (a === 'equivalente') {
+        pf.innerHTML = eqs.length ? `<p class="muted" style="font-size:13px">Productos de tu catálogo con el <b>mismo componente base</b> (${L.esc(l.mat)}). Solo se ofrecen si coinciden todos los atributos esenciales.</p>` + eqs.map(e => {
+          const keys = Object.keys(l.attrs || {});
+          const att = keys.map(k => { const v1 = l.attrs[k] || '—', v2 = e.attrs[k] || '—'; return `<span class="k">${L.esc(k)}</span><span>${L.esc(v1)}</span><span class="${v1 === v2 ? 'same' : 'diff'}">${L.esc(v2)} ${v1 === v2 ? '✓' : ''}</span>`; }).join('');
+          return `<div class="pv-eq ${e.codigo === eqSel ? 'on' : ''}" data-eq="${e.codigo}" role="button" tabindex="0" aria-label="Elegir ${L.esc(e.desc)}"><div class="row"><b style="font-size:14px">${L.esc(e.marca)} ${L.esc(e.gama)}</b><span class="mono muted" style="font-size:12px">${L.esc(e.codigo)}</span><span class="ml-auto mono" style="font-weight:700">${L.ars(e.precio)}</span></div><div style="font-size:12px">${L.esc(e.desc)} · stock ${L.num(e.stock)} · ${P.dTxt(e.plazo)}</div><div class="pv-attrs"><span class="k lbl">Atributo</span><span class="lbl">Pedido</span><span class="lbl">Ofrecido</span>${att}</div></div>`;
+        }).join('') + `<div class="note warn"><span data-icon="triangle-alert"></span><div><b>Equivalente técnico, no idéntico</b>Mismo componente base y mismos atributos esenciales. Si cambia la marca del interruptor en un tablero ensayado, la verificación de diseño (IEC 61439) puede quedar a cargo del tablerista: se lo avisamos con la contraoferta.</div></div><div class="field"><label for="p-nota">Nota (opcional)</label><input class="inp" id="p-nota" value="${L.esc(r.nota || '')}" placeholder="Ej.: mismo frente, misma maniobra"></div>`
+          : `<div class="empty" style="padding:24px"><div class="e-ico">${L.icon('replace')}</div><h3>No tenés equivalentes vinculados</h3><p>Para ofrecer otra marca, el producto tiene que estar en tu catálogo con este componente base y sus atributos completos.</p><a class="btn out sm" href="d-prov-catalogo.html?vista=vincular">Ir a vincular</a></div>`;
+      }
+      pf.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+      const pr = pf.querySelector('#p-precio'), dl = pf.querySelector('#p-delta');
+      if (pr) { const upd = () => { const v = +pr.value; const d = (v - l.precio) * l.cant; dl.textContent = v > 0 ? `Subtotal ${L.ars(v * l.cant)} (${d === 0 ? 'sin cambio' : (d > 0 ? '+' : '−') + L.ars(Math.abs(d)).slice(2)})` : 'Poné un precio mayor a cero.'; pr.classList.toggle('bad', !(v > 0)); }; pr.oninput = upd; upd(); }
+      L.fixLinks(pf);
+    };
+    form();
+    ov.addEventListener('click', e => {
+      const o = e.target.closest('[data-op]'); if (o) { a = o.dataset.op; ov.querySelectorAll('[data-op]').forEach(x => x.classList.toggle('on', x === o)); form(); }
+      const q2 = e.target.closest('[data-eq]'); if (q2) { eqSel = q2.dataset.eq; ov.querySelectorAll('[data-eq]').forEach(x => x.classList.toggle('on', x === q2)); }
+      if (e.target.closest('#pg')) {
+        const v = id => { const el = ov.querySelector(id); return el ? el.value : ''; };
+        const nr = { a };
+        if (a === 'precio') { nr.precio = +v('#p-precio'); if (!(nr.precio > 0)) return L.toast('Revisá el precio', { type: 'error', desc: 'Tiene que ser mayor a cero.' }); }
+        if (a === 'plazo') { nr.plazo = +v('#p-plazo'); if (!(nr.plazo > 0)) return L.toast('Revisá el plazo', { type: 'error' }); }
+        if (a === 'parcial') { nr.ahora = +v('#p-ahora'); nr.plazo = +v('#p-plazo'); if (!(nr.ahora > 0 && nr.ahora < l.cant)) return L.toast('Revisá la cantidad', { type: 'error', desc: `Tiene que ser entre 1 y ${L.num(l.cant - 1)}.` }); }
+        if (a === 'equivalente') { if (!eqs.length) return; nr.eq = eqSel; }
+        const n = v('#p-nota'); if (n) nr.nota = n;
+        setLinea(lineaId, nr); ov.remove();
+        L.toast('Línea actualizada', { desc: `${l.mat}: ${P.ACC[a].t.toLowerCase()}` });
+      }
+    });
+  }
+  function setLinea(id, r) { const b = P.borrador(s.id); b.lineas[id] = r; P.guardarBorrador(s.id, b); }
+
+  // ---------------------------------------------------------------- DIÁLOGOS
+  function aceptarDlg() {
+    L.dialog({ title: 'Aceptar solicitud', icon: 'circle-check', desc: 'Al aceptar la solicitud, se compartirán tus datos de contacto con el solicitante para que pueda contactarte.', body: `<div class="note info"><span>${L.icon('info')}</span><div>Confirmás ${s.lineasN} líneas por <b class="mono">${L.ars(s.total)} +IVA</b>. El pago y el flete se arreglan con el comprador, por fuera de liard.</div></div>`, actions: [{ t: 'Cancelar' }, { t: 'Aceptar', cls: 'green', fn: () => {
+      P.aceptar(s);
+      L.dialog({ title: 'Solicitud aceptada', icon: 'circle-check', desc: 'Ya podés ver el contacto del comprador.', actions: [{ t: 'Volver a mis solicitudes', fn: () => L.go('d-prov-solicitudes.html') }, { t: 'Ver contacto', cls: 'green', fn: () => { location.hash = 'contacto'; render(); } }] });
+    } }] });
+  }
+  function rechazarDlg() {
+    const mot = ['Sin stock de lo principal', 'No llego con el plazo', 'No trabajo esas marcas', 'Precio fuera de lista', 'Otro motivo'];
+    L.dialog({ title: 'Rechazar solicitud', icon: 'circle-x', desc: 'Al rechazar la solicitud, el solicitante va a verla como rechazada y no vas a poder responderla de nuevo.', body: `<div class="field"><span class="lbl">Motivo <span class="tag-nuevo">Nuevo</span></span>${mot.map((m, i) => `<label class="check"><input type="radio" name="mot" value="${L.esc(m)}" ${i === 0 ? 'checked' : ''}>${L.esc(m)}</label>`).join('')}</div><div class="field"><label for="mot-t">Detalle para el comprador (opcional)</label><textarea class="inp" id="mot-t" placeholder="Ej.: el NSX630F entra recién en noviembre"></textarea></div><p class="muted" style="font-size:12px">¿Podés cubrir una parte? Mejor mandá una contraoferta con «Sin stock» en esas líneas: el comprador puede adjudicarte el resto.</p>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Rechazar', cls: 'dan', fn: ov => { const m = ov.querySelector('input[name=mot]:checked').value; const t = ov.querySelector('#mot-t').value.trim(); P.rechazar(s, t ? m + ': ' + t : m); L.toast('Rechazaste la solicitud.', { desc: s.id }); } }] });
+  }
+
+  // ---------------------------------------------------------------- EVENTOS
+  page.addEventListener('click', e => {
+    const ac = e.target.closest('[data-acc]');
+    if (ac && !ac.disabled) {
+      const k = ac.dataset.acc, id = ac.dataset.l;
+      if (k === 'confirmar') { setLinea(id, { a: 'confirmar' }); return; }
+      if (k === 'sinstock') { const prev = P.borrador(s.id).lineas[id]; setLinea(id, { a: 'sinstock' }); L.toast('Línea marcada sin stock', { type: 'warning', desc: 'Sale de tu respuesta.', action: 'Deshacer', onAction: () => setLinea(id, prev || { a: 'confirmar' }) }); return; }
+      return panel(id, k);
+    }
+    const al = e.target.closest('[data-alt]');
+    if (al && !al.disabled) { const b = P.borrador(s.id); b.alt = b.alt || {}; b.alt[al.dataset.l] = al.dataset.alt; P.guardarBorrador(s.id, b); return; }
+    const h = e.target.closest('[data-hint]');
+    if (h) { const l = s.lineas.find(x => x.linea === h.dataset.hint); return panel(l.linea, l.hint.tipo); }
+    if (e.target.closest('#sug')) {
+      const b = P.borrador(s.id);
+      s.lineas.filter(l => l.hint).forEach(l => { b.lineas[l.linea] = l.hint.tipo === 'plazo' ? { a: 'plazo', plazo: l.hint.plazo, nota: 'Reposición del fabricante.' } : l.hint.tipo === 'parcial' ? { a: 'parcial', ahora: l.hint.ahora, plazo: l.hint.plazo } : { a: 'equivalente', eq: (BP.equivalentes[l.linea] || [])[0].codigo }; });
+      P.guardarBorrador(s.id, b); L.toast('Aplicamos lo que dice tu ERP', { desc: 'Revisá cada línea antes de enviar.' }); return;
+    }
+    if (e.target.closest('#limpiar')) { P.guardarBorrador(s.id, { lineas: {}, alt: {}, revisadas: [] }); return; }
+    if (e.target.closest('#b-ok')) return aceptarDlg();
+    if (e.target.closest('#b-rej')) return rechazarDlg();
+    if (e.target.closest('#b-ctr')) {
+      const cal = P.calcular(s);
+      return L.dialog({ title: 'Enviar contraoferta', icon: 'send', desc: `${cal.cambios.length} líneas cambian. El comprador la ve en sus pedidos y en su correo; puede aceptarla, rechazarla o adjudicar solo una parte.`, body: `<div class="pv-inv"><span>Pedido original</span><span class="r">${L.ars(cal.totalAntes)}</span><span>Tu contraoferta (sin IVA)</span><span class="r">${L.ars(cal.total)}</span><span class="muted">IVA 21 % (presentación)</span><span class="r muted">${L.ars(cal.total * 0.21)}</span><span class="tt">Total con IVA</span><span class="r tt">${L.ars(cal.total * 1.21)}</span></div><div class="field"><label for="val">Validez de la contraoferta</label><select class="inp" id="val"><option>7 días (hasta el ${L.fecha(P.addDias(P.HOY, 7))})</option><option>3 días</option><option>15 días</option></select></div>`,
+        actions: [{ t: 'Seguir editando' }, { t: 'Enviar contraoferta', icon: 'send', fn: () => { P.enviarContra(s); L.toast('Contraoferta enviada', { desc: `${s.id} · el comprador recibe un aviso` }); } }] });
+    }
+    if (e.target.closest('#c-ret')) { if (s.demo) { L.param('estado', null); return; } P.retirarContra(s); L.toast('Retiraste la contraoferta', { type: 'info', desc: 'La solicitud vuelve a estar sin responder.' }); return; }
+    if (e.target.closest('#c-edit')) { if (s.demo) { P.guardarBorrador(s.id, ejemplo()); L.param('estado', null); return; } P.retirarContra(s); L.toast('Editando la contraoferta', { type: 'info', desc: 'Tu borrador sigue como lo dejaste.' }); }
+  });
+
+  function render() { if (oc) detalle(); else lista(); L.fixLinks(page); page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); }); }
+  render();
+  L.on(render);
+  if (oc && s && s.estado === 'SENT') {
+    const lq = L.q('linea'); if (lq) panel(lq, lq === 'l06' ? 'equivalente' : null);
+    if (L.q('dialogo') === 'rechazar') rechazarDlg();
+    if (L.q('dialogo') === 'contraoferta') { if (!P.calcular(s).cambios.length) P.guardarBorrador(s.id, ejemplo()); page.querySelector('#b-ctr') && page.querySelector('#b-ctr').click(); }
+  }
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

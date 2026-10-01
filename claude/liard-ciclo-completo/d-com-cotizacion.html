@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Cotización · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="compras.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="existe" data-user="sofia"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Cañuelas|d-ing-proyecto.html>BOM|d-bom-editor.html>Cotización"
+      data-title="Adjudicación de materiales" data-sub="Hospital Regional Cañuelas · Pabellón B · rev. 3 contra 4 listas de distribuidores · precios sin IVA">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="matriz"><button data-vista="matriz">Matriz</button><button data-vista="lista">Lista</button></div>
+  <button class="btn out" data-href="d-com-escenarios.html" data-icon="git-compare-arrows">Comparar escenarios</button>
+  <button class="btn pri" id="ejecutar" data-icon="send">Ejecutar orden</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="compras.js"></script>
+<script>
+window.MOCK = { init() {
+  const E = L.q('estado'), V = L.q('vista') || 'matriz';
+  const page = document.getElementById('page');
+  const esc = L.esc;
+  let soloSin = false, buscar = '';
+
+  if (E === 'cargando') {
+    document.getElementById('ejecutar').classList.add('dis');
+    page.innerHTML = `<div class="note info"><span data-icon="loader-circle" class="spin"></span><div><b>Buscando ofertas en 4 listas de precios…</b>Matcheando 18 líneas por componente base y atributos esenciales. Tarda unos segundos.</div></div>
+      <div class="bar"><i style="width:58%"></i></div>
+      <div class="skel" style="height:80px"></div><div class="skel" style="height:56px"></div>
+      <div class="col">${Array.from({ length: 7 }, () => '<div class="skel" style="height:64px"></div>').join('')}</div>`;
+    page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+    page.querySelector('.ico').classList.add('spin');
+    return;
+  }
+  if (E === 'error') {
+    document.getElementById('ejecutar').classList.add('dis');
+    page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('circle-alert')}</div><h3>No pudimos armar la cotización</h3><p>El servicio de precios no respondió a tiempo. Tu BOM y las adjudicaciones que ya hiciste no se tocaron.</p><div class="row" style="justify-content:center"><button class="btn out" data-href="d-ing-proyecto.html">${L.icon('arrow-left')}Volver al proyecto</button><button class="btn pri" id="re">${L.icon('refresh-cw')}Reintentar</button></div></div></div>`;
+    page.querySelector('#re').onclick = () => { L.toast('Reintentando…', { type: 'loading', ms: 1200 }); setTimeout(() => L.param('estado', ''), 900); };
+    return;
+  }
+
+  function render() {
+    const ls = C.lineas(), ps = C.provs();
+    const compra = C.compra(); const adj = compra.adjudicadas;
+    const r = C.resumen(adj);
+    const parcial = E === 'parcial', vencida = E === 'vencida';
+    const visibles = ps.filter(p => !(parcial && p.id === 'sur') || true);
+    const nf = ls.filter(l => !C.cotizable(l) && !C.aMano(l)); const man = ls.filter(C.aMano);
+    const planos = L.get('planos');
+    const listos = planos.filter(p => p.status === 'COMPLETED').length;
+    const conBase = ls.filter(l => l.tipo).length;
+    const asignadas = Object.keys(adj).filter(id => { const l = C.linea(id); return l && C.cotizable(l); }).length;
+    const sinAsignar = ls.filter(l => C.cotizable(l) && !adj[l.id]).length;
+    const pct = Math.round(asignadas / ls.length * 100);
+    const pedidaAct = L.get('x.compras.pedidoAct') || {};
+    const ESTR = { barato: 'Mixto · más barato', rapido: 'Mixto · más rápido', menos: 'Escenario: menos distribuidores', marcas: 'Escenario: marcas preferidas', manual: 'A mano', single: 'Único proveedor' };
+
+    const flow = `<div class="c-flow" aria-label="Recorrido de punta a punta">
+      <a href="d-ing-proyecto.html"><span class="n ${listos === planos.length ? 'ok' : 'wa'}">1</span><div class="grow"><b>Planos</b><small>${listos} de ${planos.length} procesados</small></div></a>
+      <a href="d-bom-editor.html"><span class="n ok">2</span><div class="grow"><b>BOM consolidado</b><small>${ls.length} líneas · ${L.num(ls.reduce((s, l) => s + l.comprar, 0))} unidades a comprar</small></div></a>
+      <a href="d-bom-editor.html?linea=l18"><span class="n ${conBase === ls.length ? 'ok' : 'wa'}">3</span><div class="grow"><b>Catálogo base</b><small>${conBase} con componente base · ${ls.length - conBase} sin</small></div></a>
+      <a href="${nf.length ? 'd-bom-editor.html?linea=' + nf[0].id : 'd-bom-editor.html'}"><span class="n ${nf.length ? 'wa' : 'ok'}">4</span><div class="grow"><b>Matching</b><small>${ls.length - nf.length - man.length} con match · ${nf.length} sin match${man.length ? ' · ' + man.length + ' a mano' : ''}</small></div></a>
+      <div><span class="n pr">5</span><div class="grow"><b>Cotización <span class="tag-s4">Sprint 4</span></b><small>${asignadas} adjudicadas · ${r.nOC} ${r.nOC === 1 ? 'OC' : 'OC'}</small></div></div>
+    </div>`;
+
+    const hud = `<div class="c-hud">
+      <div><div class="grow"><span class="lbl">Cobertura</span><div class="v">${asignadas} de ${ls.length} ítems</div></div><div class="c-ring" title="${pct} % adjudicado"><svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15.9" fill="none" stroke="var(--secondary-100)" stroke-width="3.5"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="${sinAsignar || nf.length ? 'var(--amber-500)' : 'var(--emerald-500)'}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="${pct} 100" pathLength="100"/></svg><span>${pct}%</span></div></div>
+      <div><div class="grow"><span class="lbl">Estado</span><div class="v">${asignadas} asignados</div><div class="muted" style="font-size:11.5px">${nf.length} sin match · ${sinAsignar} sin elegir${man.length ? ' · ' + man.length + ' a mano' : ''}</div></div><button class="btn xs ${soloSin ? 'pri' : 'out'}" id="fsin" aria-pressed="${soloSin}" title="Filtrar materiales sin proveedor asignado">${L.icon('circle-alert')}${sinAsignar + nf.length} sin asignar</button></div>
+      <div><div class="grow"><span class="lbl">Distribuidores</span><div class="v">${r.nOC} ${r.nOC === 1 ? 'seleccionado' : 'seleccionados'}</div></div><div class="c-avs">${Object.keys(r.porProv).map(pid => `<span class="av xs ${C.COLOR[pid]}" title="${esc(C.prov(pid).n)}: ${r.porProv[pid].n} ítems">${C.INI[pid]}</span>`).join('')}</div></div>
+      <div><div class="grow"><span class="lbl">Monto total · +IVA</span><div class="big c-num" id="tot">${L.ars(r.total)}</div><div class="muted" style="font-size:11.5px;margin-top:4px">${esc(ESTR[compra.estrategia] || compra.estrategia)}</div></div></div>
+    </div>`;
+
+    const banner = vencida
+      ? `<div class="note bad"><span data-icon="clock-alert"></span><div class="grow"><b>Esta cotización venció</b>Se armó el 15/09 con listas que ya no rigen: los precios se muestran como referencia y no se puede ejecutar la orden hasta volver a cotizar. <div class="row" style="margin-top:8px"><button class="btn sm pri" id="recot">${L.icon('refresh-cw')}Volver a cotizar con las listas de hoy</button><a class="btn sm out" href="d-com-recotizar.html">${L.icon('git-compare-arrows')}Ver qué cambió en una cotización vieja</a></div></div></div>`
+      : parcial
+      ? `<div class="note warn"><span data-icon="loader-circle"></span><div><b>Cotización parcial · falta la lista de Electro Sur</b>Electro Sur subió una lista nueva hace 4 minutos y la lectura con IA va por el 62 %. Podés adjudicar con lo que hay; sus ofertas aparecen solas cuando termine.</div></div>`
+      : (nf.length ? `<div class="note warn"><span data-icon="triangle-alert"></span><div class="grow"><b>${nf.length} ${nf.length === 1 ? 'línea no encontró' : 'líneas no encontraron'} match: no se cotizan ni se ocultan</b>Quedan al final de la matriz con el motivo. Se destraban en el BOM completando el atributo esencial o el componente base; al guardar, aparecen cotizadas acá.</div><a class="btn sm out" href="d-bom-editor.html?linea=${nf[0].id}">${L.icon('pencil')}Destrabar en el BOM</a></div>` : `<div class="note ok"><span data-icon="circle-check"></span><div><b>Todas las líneas tienen match</b>El BOM se destrabó completo: no queda ninguna línea sin cotizar.</div></div>`);
+
+    const stale = ps.filter(p => C.vencida({ vence: p.id === 'volta' ? '2026-09-30' : '2026-10-15' }));
+    const tb = `<div class="c-tb" role="toolbar" aria-label="Estrategia de adjudicación">
+      <span class="lbl2">Estrategia:</span>
+      <div class="seg" id="estr"><button data-e="mixed" class="${compra.estrategia !== 'single' ? 'on' : ''}">Mixto</button><button data-e="single" class="${compra.estrategia === 'single' ? 'on' : ''}">Único proveedor</button></div>
+      <span class="sep"></span><span class="lbl2">Optimizar:</span>
+      <div class="row gap8" id="opt">${compra.estrategia === 'single'
+        ? `<button class="btn sm out" data-s="barato">${L.icon('piggy-bank')}Más barato</button><button class="btn sm out" data-s="rapido">${L.icon('timer')}Más rápido</button><button class="btn sm out" data-s="cobertura">${L.icon('layers')}Mayor cobertura</button>`
+        : `<button class="btn sm ${compra.estrategia === 'barato' ? 'pri' : 'out'}" data-m="barato">${L.icon('piggy-bank')}Más barato</button><button class="btn sm ${compra.estrategia === 'rapido' ? 'pri' : 'out'}" data-m="rapido">${L.icon('timer')}Más rápido</button>`}</div>
+      <span class="sep"></span>
+      <label class="search" style="flex:1;min-width:160px">${L.icon('search')}<input class="inp" id="q" placeholder="Buscar material o especificación" aria-label="Buscar material o especificación" value="${esc(buscar)}"></label>
+      <button class="btn sm icon ghost" id="limpiar" aria-label="Quitar adjudicaciones" title="Quitar adjudicaciones">${L.icon('eraser')}</button>
+    </div>`;
+
+    const match = l => !buscar || (l.mat + ' ' + l.spec + ' ' + (l.marca || '')).toLowerCase().includes(buscar.toLowerCase());
+    const filas = ls.filter(match).filter(l => !soloSin || !adj[l.id] || !C.cotizable(l));
+    const of = l => C.ofertas(l) || {};
+    const pend = pid => parcial && pid === 'sur';
+
+    const colHead = p => {
+      const o = Object.values(C.ofertas(ls.find(l => C.cotizable(l))) || {})[0];
+      const venc = p.id === 'volta';
+      return `<th class="pv"><b>${esc(p.n)}</b><small>${pend(p.id) ? 'Leyendo la lista… 62 %' : `Lista ${L.fechaCorta(p.act)} · hace ${C.diasLista(p)} d`}</small><small title="Condición comercial y pedido mínimo">${esc(C.CONDICION[p.id])}</small><small>Mínimo ${L.ars(p.min)}</small>
+        <div class="row gap4" style="margin-top:4px">${venc || vencida ? `<span class="bdg wa" title="STALE_PRICE">${L.icon('clock-alert')}Vencida 30/09</span>${venc ? (pedidaAct.volta ? '<span class="bdg">Actualización pedida</span>' : `<button class="btn xs out" data-pedir="volta">Pedir lista</button>`) : ''}` : pend(p.id) ? '<span class="bdg pri">Leyendo</span>' : `<span class="bdg ok">Vigente hasta 15/10</span>`}</div></th>`;
+    };
+
+    const fila = l => {
+      if (C.aMano(l)) {
+        return `<tr><td class="ln"><button class="btn ghost xs" data-linea="${l.id}" style="padding:0;height:auto;display:block;text-align:left;white-space:normal"><span class="mat">${esc(l.mat)}</span><span class="spec">${esc(l.spec)}${l.marca ? ' · ' + esc(l.marca) : ''}</span></button><div class="row gap8" style="margin-top:4px"><span class="qty">${L.num(l.comprar)} ${l.u}</span><span class="st sk" style="height:20px;font-size:11px" title="MANUAL_REQUIRED">${L.icon('hand')}Cotizada a mano</span></div></td>
+          <td colspan="${ps.length}"><div class="row" style="gap:10px"><span class="org man">Manual</span><span class="grow" style="font-size:12.5px">Fuera del matching: no tiene código de ningún catálogo. Se le pide el precio aparte a cada distribuidor; en el presupuesto entra como estimado de ${L.ars(C.estimado(l))}.</span><a class="btn xs out" href="d-bom-editor.html?linea=${l.id}">${L.icon('pencil')}Ver en el BOM</a></div></td>
+          <td><span class="c-obs">Sin ofertas de distribuidores</span></td></tr>`;
+      }
+      if (!C.cotizable(l)) {
+        return `<tr class="nf"><td class="ln"><button class="btn ghost xs" data-linea="${l.id}" style="padding:0;height:auto;display:block;text-align:left;white-space:normal"><span class="mat">${esc(l.mat)}</span><span class="spec">${esc(l.spec)}${l.marca ? ' · ' + esc(l.marca) : ''}</span></button><div class="row gap8" style="margin-top:4px"><span class="qty">${L.num(l.comprar)} ${l.u}</span><span class="st er" style="height:20px;font-size:11px">${L.icon('triangle-alert')}Sin match</span></div></td>
+          <td colspan="${ps.length}"><div class="row" style="gap:10px"><span class="mono" style="font-size:11px;color:var(--rose-700)" title="BomQuoteLine.unmatchedReason">NOT_FOUND</span><span class="grow" style="font-size:12.5px">${esc(l.motivo || '')}</span><a class="btn xs out" href="d-bom-editor.html?linea=${l.id}">${L.icon(l.tipo ? 'pencil' : 'shapes')}${l.tipo ? 'Completar ' + esc((l.faltan || [])[0] || 'atributo') : 'Ver alternativas'}</a></div></td>
+          <td><span class="c-obs">Se presupuesta a estimar</span></td></tr>`;
+      }
+      const o = of(l); const vals = Object.entries(o).filter(([pid]) => !pend(pid));
+      const min = Math.min(...vals.map(([, v]) => v.precio));
+      const sel = adj[l.id];
+      const st = C.estadoLinea(l, sel);
+      const obs = C.observacion(l, sel, sel && o[sel]);
+      const cells = ps.map(p => {
+        if (pend(p.id)) return `<td><div class="skel c-pend"></div></td>`;
+        const v = o[p.id];
+        if (!v) return `<td><div class="c-none">No lo vende</div></td>`;
+        const st2 = C.vencida(v) || vencida;
+        return `<td><button class="c-cell ${sel === p.id ? 'on' : ''} ${st2 ? 'stale' : ''}" data-l="${l.id}" data-p="${p.id}" aria-pressed="${sel === p.id}" aria-label="${sel === p.id ? 'Quitar la adjudicación de' : 'Adjudicar'} ${esc(l.mat)} ${esc(l.spec)} a ${esc(p.n)}">
+          <span class="row gap4" style="width:100%"><span class="p">${L.ars(v.precio)}</span>${v.precio === min ? '<span class="min" title="Oferta más barata de la fila">Mín.</span>' : ''}</span>
+          <span class="t">Total ${L.ars(v.precio * l.comprar)}</span>
+          <span class="m">${v.stock ? `<span>Stock ${L.num(v.stock)}</span>` : '<span class="ko">Sin stock</span>'}<span>· ${v.plazo} d</span>${st2 ? '<span style="color:var(--amber-700)">· vencida</span>' : ''}</span></button></td>`;
+      }).join('');
+      return `<tr><td class="ln"><button class="btn ghost xs" data-linea="${l.id}" style="padding:0;height:auto;display:block;text-align:left;white-space:normal"><span class="mat">${esc(l.mat)}</span><span class="spec">${esc(l.spec)}${l.marca ? ' · ' + esc(l.marca) : ''}</span></button><div class="row gap8" style="margin-top:4px"><span class="qty">${L.num(l.comprar)} ${l.u}</span><span class="st ${sel ? st.c : 'gr'}" style="height:20px;font-size:11px" title="${sel ? st.k : 'Sin adjudicar'}">${sel ? st.t : 'Sin asignar'}</span></div></td>${cells}<td><div class="c-obs">${obs.length ? '<ul>' + obs.slice(0, 2).map(x => `<li>${esc(x)}</li>`).join('') + '</ul>' + (obs.length > 2 ? `<button class="btn xs ghost" data-linea="${l.id}">+${obs.length - 2} más</button>` : '') : '—'}</div></td></tr>`;
+    };
+
+    const totProv = p => ls.filter(C.cotizable).reduce((s, l) => { const v = of(l)[p.id]; return s + (v ? v.precio * l.comprar : 0); }, 0);
+    const cobProv = p => ls.filter(l => C.cotizable(l) && of(l)[p.id]).length;
+    const matriz = `<div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('table-2')}</div><div><h3>Matriz comparativa</h3><div class="sub">Clic en una celda para adjudicar o quitar · stock y plazo de entrega por celda · columnas con fecha y condición de cada lista</div></div><div class="r"><span class="tag-existe">existe</span><span class="tag-s4">stock · fecha · condición</span></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl c-mx" aria-label="Matriz comparativa de cotizaciones"><thead><tr><th class="ln">Material · a comprar</th>${ps.map(colHead).join('')}<th>Observaciones</th></tr></thead>
+      <tbody>${filas.length ? filas.map(fila).join('') : `<tr><td colspan="${ps.length + 2}"><div class="empty" style="padding:30px"><h3>No se encontraron materiales</h3><p>${soloSin ? 'No hay materiales pendientes de asignación.' : 'Probá con otros términos de búsqueda.'}</p></div></td></tr>`}</tbody>
+      <tfoot><tr><td class="ln">Total por proveedor <small class="muted" style="font-weight:400">· pedido completo</small></td>${ps.map(p => pend(p.id) ? '<td class="muted">—</td>' : `<td><div class="money" style="font-size:12.5px">${L.ars(totProv(p))}</div><small class="muted" style="display:block">${cobProv(p)} de ${ls.length} ítems</small><div style="margin-top:4px"><button class="btn xs out" data-todo="${p.id}">${ls.filter(C.cotizable).every(l => !of(l)[p.id] || adj[l.id] === p.id) ? 'Asignado' : 'Asignar todo'}</button></div></td>`).join('')}<td></td></tr></tfoot></table></div></div>`;
+
+    const lista = `<div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('list')}</div><div><h3>Lo adjudicado, línea por línea</h3><div class="sub">Las columnas que pidieron en discovery: stock, plazo, fecha de la lista, condición y observaciones</div></div><div class="r"><span class="tag-s4">Sprint 4</span></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Material</th><th class="r">Cant.</th><th>Distribuidor</th><th class="r">Unitario</th><th class="r">Subtotal</th><th class="r">Stock</th><th class="r">Plazo</th><th>Lista</th><th>Condición</th><th>Observaciones</th><th>Estado</th></tr></thead><tbody>
+      ${filas.map(l => { const sel = adj[l.id]; const v = sel && of(l)[sel]; const st = C.estadoLinea(l, sel);
+        return `<tr class="${!C.cotizable(l) && !C.aMano(l) ? 'warn' : ''}"><td><button class="btn ghost xs" data-linea="${l.id}" style="padding:0;height:auto;display:block;text-align:left"><b style="font-size:12.5px">${esc(l.mat)}</b><div class="muted mono" style="font-size:11.5px">${esc(l.spec)}</div></button></td><td class="r mono">${L.num(l.comprar)} ${l.u}</td>
+        <td>${v ? esc(C.prov(sel).n) : (C.cotizable(l) ? '<span class="muted">Sin asignar</span>' : C.aMano(l) ? '<span class="muted">A mano</span>' : '<span class="muted">—</span>')}</td><td class="r money">${v ? L.ars(v.precio) : '—'}</td><td class="r money">${v ? L.ars(v.precio * l.comprar) : '—'}</td>
+        <td class="r mono">${v ? (v.stock ? L.num(v.stock) : '<span style="color:var(--rose-600)">0</span>') : '—'}</td><td class="r mono">${v ? v.plazo + ' d' : '—'}</td><td class="mono" style="font-size:11.5px">${v ? L.fecha(v.actualizado) : '—'}</td><td style="font-size:12px">${v ? esc(C.CONDICION[sel]) : '—'}</td>
+        <td><div class="c-obs">${C.aMano(l) ? 'Fuera del matching: precio aparte' : !C.cotizable(l) ? esc(l.motivo) : (C.observacion(l, sel, v).map(esc).join(' · ') || '—')}</div></td><td><span class="st ${C.aMano(l) ? 'sk' : !C.cotizable(l) ? 'er' : sel ? st.c : 'gr'}" style="height:20px;font-size:11px">${C.aMano(l) ? 'Cotizada a mano' : !C.cotizable(l) ? 'Sin match' : sel ? st.t : 'Sin asignar'}</span></td></tr>`; }).join('')}
+      </tbody></table></div></div>`;
+
+    const resumenProv = `<div class="grid4">${ps.map(p => { const x = r.porProv[p.id]; return `<div class="card pad col" style="padding:14px 16px;gap:8px"><div class="row gap8"><span class="av sm ${C.COLOR[p.id]}">${C.INI[p.id]}</span><div class="grow"><b style="font-size:13px;display:block" class="trunc">${esc(p.n)}</b><div class="muted trunc" style="font-size:11.5px">${esc(p.zona)} · responde en ${esc(p.resp)}</div></div></div>
+      <div><span class="lbl">${x ? x.n + ' ítems adjudicados' : 'Sin adjudicar'}</span><b class="money" style="font-size:15px;display:block;margin-top:2px">${x ? L.ars(x.total) : '—'}</b></div>${x && x.total < p.min ? `<span class="bdg wa">Debajo del mínimo de ${L.ars(p.min)}</span>` : ''}</div>`; }).join('')}</div>`;
+
+    page.innerHTML = flow + hud + banner + tb + (V === 'lista' ? lista : matriz) + resumenProv;
+    page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+    if (parcial) page.querySelector('.note.warn .ico').classList.add('spin');
+    L.fixLinks(page);
+
+    const ej = document.getElementById('ejecutar');
+    ej.classList.toggle('dis', vencida || !asignadas);
+    ej.title = vencida ? 'No es posible ejecutar la orden: la cotización venció' : !asignadas ? 'Adjudicá al menos un ítem para ejecutar la orden' : '';
+  }
+
+  function guardar(adj, estrategia) { L.set('compra', { estrategia, adjudicadas: adj, cuando: C.HOY }); }
+
+  page.addEventListener('click', e => {
+    const c = e.target.closest('.c-cell');
+    if (c) {
+      const adj = Object.assign({}, C.compra().adjudicadas);
+      const { l, p } = c.dataset;
+      if (adj[l] === p) delete adj[l]; else adj[l] = p;
+      guardar(adj, 'manual');
+      const v = C.ofertas(C.linea(l))[p];
+      if (adj[l] && C.vencida(v)) L.toast('Adjudicaste con precio vencido', { type: 'warning', desc: 'La lista de Casa Volta venció el 30/09: pedile la actualización antes de emitir.', action: 'Pedir lista', onAction: pedir });
+      setTimeout(() => { const n = page.querySelector(`.c-cell[data-l="${l}"][data-p="${p}"]`); n && n.classList.add('flash'); }, 10);
+      return;
+    }
+    const m = e.target.closest('[data-m]');
+    if (m) { guardar(C.adjudicar(m.dataset.m), m.dataset.m); L.toast(m.dataset.m === 'barato' ? 'Adjudicado lo más barato por línea' : 'Adjudicado lo que llega antes', { desc: `${L.ars(C.resumen(C.compra().adjudicadas).total)} sin IVA${C.filtros().vencidas ? ' · sin la lista vencida de Casa Volta' : ''}` }); return; }
+    const es = e.target.closest('#estr [data-e]');
+    if (es) {
+      if (es.dataset.e === 'mixed') guardar(C.adjudicar('barato'), 'barato');
+      else single('barato');
+      return;
+    }
+    const s = e.target.closest('[data-s]'); if (s) return single(s.dataset.s);
+    const t = e.target.closest('[data-todo]');
+    if (t) { const pid = t.dataset.todo; const adj = Object.assign({}, C.compra().adjudicadas); C.lineas().filter(C.cotizable).forEach(l => { if ((C.ofertas(l) || {})[pid]) adj[l.id] = pid; }); guardar(adj, 'manual'); L.toast('Asignado todo a ' + C.prov(pid).n, { desc: 'Las líneas que no vende quedan como estaban.' }); return; }
+    const ln = e.target.closest('[data-linea]'); if (ln) return detalle(ln.dataset.linea);
+    if (e.target.closest('[data-pedir]')) return pedir();
+    if (e.target.closest('#fsin')) { soloSin = !soloSin; return render(); }
+    if (e.target.closest('#limpiar')) { const prev = C.compra(); guardar({}, 'manual'); L.toast('Se quitaron las adjudicaciones', { type: 'info', action: 'Deshacer', onAction: () => L.set('compra', prev) }); return; }
+    if (e.target.closest('#recot')) { L.toast('Volviendo a cotizar…', { type: 'loading', ms: 1400 }); setTimeout(() => L.param('estado', ''), 1100); }
+  });
+  page.addEventListener('input', e => { if (e.target.id === 'q') { buscar = e.target.value; const pos = e.target.selectionStart; render(); const q = document.getElementById('q'); q.focus(); q.setSelectionRange(pos, pos); } });
+
+  function single(criterio) {
+    const ls = C.lineas().filter(C.cotizable);
+    const cands = C.provs().filter(p => !(E === 'parcial' && p.id === 'sur') && !(C.filtros().vencidas && p.id === 'volta')).map(p => {
+      const cub = ls.filter(l => (C.ofertas(l) || {})[p.id]);
+      return { p, n: cub.length, tot: cub.reduce((s, l) => s + C.ofertas(l)[p.id].precio * l.comprar, 0), plazo: Math.max(...cub.map(l => C.ofertas(l)[p.id].plazo)) };
+    });
+    const max = Math.max(...cands.map(c => c.n)); const pool = cands.filter(c => c.n === max);
+    const win0 = 0; const win = criterio === 'rapido' ? pool.sort((a, b) => a.plazo - b.plazo || a.tot - b.tot)[0] : criterio === 'cobertura' ? pool.sort((a, b) => a.tot - b.tot)[0] : pool.sort((a, b) => a.tot - b.tot)[0];
+    const adj = {}; ls.forEach(l => { if (C.ofertas(l)[win.p.id]) adj[l.id] = win.p.id; });
+    guardar(adj, 'single');
+    L.toast('Único proveedor: ' + win.p.n, { desc: `${win.n} de ${ls.length} cotizables · ${L.ars(win.tot)} sin IVA. Ninguno cubre el 100 %: se eligió entre los de mayor cobertura.` });
+  }
+
+  function pedir() {
+    if ((L.get('x.compras.pedidoAct') || {}).volta) return L.toast('Ya le pediste la lista a Casa Volta hoy', { type: 'info' });
+    L.set('x.compras.pedidoAct', Object.assign({}, L.get('x.compras.pedidoAct') || {}, { volta: C.HOY }));
+    L.update(s => s.avisos.unshift({ id: 'c-act-' + Date.now(), t: 'Pediste la lista actualizada a Casa Volta', d: 'Le llegó un correo con las 7 líneas que tenés adjudicadas a precio vencido', i: 'mail', tipo: 'pr', cuando: 'recién', href: 'd-com-recotizar.html' }));
+    L.toast('Pedido de actualización enviado', { desc: 'Casa Volta recibe un correo con las líneas afectadas. Te avisamos cuando suba la lista.' });
+  }
+
+  function detalle(id) {
+    const l = C.linea(id); const o = C.ofertas(l) || {}; const adj = C.compra().adjudicadas;
+    const ORG = { det: 'Detectado', inf: 'Inferido', reg: 'Por regla', man: 'Manual' };
+    const filas = Object.entries(o).map(([pid, v]) => ({ pid, v })).sort((a, b) => a.v.precio - b.v.precio);
+    const ov = L.sheet(`<div class="dlg-h"><div class="card-ico">${L.icon('cpu')}</div><div class="grow"><h2>${esc(l.mat)}</h2><p class="mono">${esc(l.spec)}${l.marca ? ' · ' + esc(l.marca) + (l.gama ? ' ' + esc(l.gama) : '') : ''}</p></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div class="dlg-b">
+        <div class="row gap8"><span class="org ${l.org}">${ORG[l.org]}</span><span class="bdg mono">${L.num(l.dib)} dibujadas → ${L.num(l.comprar)} a comprar</span>${l.tipo ? `<span class="bdg pri mono">${esc(l.tipo)}</span>` : '<span class="bdg er">Sin componente base</span>'}</div>
+        <div><span class="lbl">De dónde sale la cantidad</span><div class="row wrap gap4" style="margin-top:6px">${(l.fuentes || []).map(f => `<a class="src" href="d-ing-plano.html?plano=${esc((L.get('planos').find(p => f.startsWith(p.cod + ' ')) || {}).id || '')}">${L.icon('file-scan')}${esc(f)}</a>`).join('')}</div></div>
+        ${Object.keys(l.attrs || {}).length ? `<div><span class="lbl">Atributos (matching por componente base + esenciales)</span><table class="tbl" style="margin-top:6px"><tbody>${Object.entries(l.attrs).map(([k, v]) => `<tr><td>${esc(k)}</td><td class="mono r">${v ? esc(v) : `<span style="color:var(--rose-600)">${(l.faltan || []).includes(k) ? 'falta · esencial' : 'sin dato'}</span>`}</td></tr>`).join('')}</tbody></table></div>` : ''}
+        ${C.aMano(l) ? `<div class="note info"><span>${L.icon('hand')}</span><div><b>Cotizada a mano</b>${esc(l.reparo || 'Fuera del matching.')}</div></div>` : !C.cotizable(l) ? `<div class="note bad"><span>${L.icon('triangle-alert')}</span><div><b>NOT_FOUND · sin match</b>${esc(l.motivo)}</div></div><a class="btn pri" href="d-bom-editor.html?linea=${l.id}">${L.icon('pencil')}Destrabar en el editor del BOM</a>` :
+        `<div><span class="lbl">Ofertas · ordenadas por precio</span><div class="col gap8" style="margin-top:6px">${filas.map(({ pid, v }) => `<div class="row" style="padding:10px 12px;border:1px solid var(--border);border-radius:12px;${adj[id] === pid ? 'border-color:var(--primary);background:color-mix(in srgb,var(--primary) 5%,var(--card))' : ''}"><span class="av sm ${C.COLOR[pid]}">${C.INI[pid]}</span><div class="grow"><b style="font-size:13px">${esc(C.prov(pid).n)}</b><div class="mono muted" style="font-size:11.5px">${esc(v.codigo)} · ${v.stock ? 'stock ' + L.num(v.stock) : 'sin stock'} · ${v.plazo} d · lista ${L.fecha(v.actualizado)}${C.vencida(v) ? ' · vencida' : ''}</div></div><div class="r" style="text-align:right"><b class="money" style="font-size:13px">${L.ars(v.precio)}</b><div class="muted mono" style="font-size:11px">${L.ars(v.precio * l.comprar)}</div></div><button class="btn xs ${adj[id] === pid ? 'pri' : 'out'}" data-adj="${pid}">${adj[id] === pid ? 'Adjudicada' : 'Adjudicar'}</button></div>`).join('')}</div></div>`}
+      </div>`, { label: 'Detalle de ' + l.mat });
+    L.fixLinks(ov);
+    ov.addEventListener('click', e => { const b = e.target.closest('[data-adj]'); if (!b) return; const a = Object.assign({}, C.compra().adjudicadas); a[id] = b.dataset.adj; guardar(a, 'manual'); ov.remove(); L.toast('Adjudicada a ' + C.prov(b.dataset.adj).n); });
+  }
+
+  document.getElementById('ejecutar').onclick = () => {
+    const adj = C.compra().adjudicadas; const r = C.resumen(adj);
+    if (!r.cubiertas) return;
+    const venc = C.sumaDias(C.HOY, 2);
+    const altas = Object.entries(r.porProv).filter(([, x]) => x.total > C.TOPE_OC);
+    const nfN = C.lineas().filter(l => !C.cotizable(l) && !C.aMano(l)).length; const manN = C.lineas().filter(C.aMano).length; const sinA = r.cotizables - r.cubiertas;
+    L.dialog({ title: 'Emitir solicitud a proveedores', icon: 'send', desc: 'Se envía un pedido independiente a cada proveedor con los materiales que le asignaste. No implica una compra ni un compromiso de pago.',
+      body: `<div class="row" style="justify-content:space-between"><span class="lbl">${r.nOC} pedidos · ${r.cubiertas} materiales</span><b class="money">${L.ars(r.total)} <small class="muted">+IVA</small></b></div>
+        <div class="col gap8">${Object.entries(r.porProv).map(([pid, x]) => `<div class="row" style="padding:10px 12px;border:1px solid var(--border);border-radius:12px"><span class="av sm ${C.COLOR[pid]}">${C.INI[pid]}</span><div class="grow"><b style="font-size:13px">${esc(C.prov(pid).n)}</b><div class="muted" style="font-size:12px">${x.n} materiales${x.total > C.TOPE_OC ? ' · <span style="color:var(--amber-700)">supera el tope por OC</span>' : ''}</div></div><b class="money" style="font-size:13px">${L.ars(x.total)}</b></div>`).join('')}</div>
+        ${nfN + sinA ? `<div class="note warn"><span>${L.icon('info')}</span><div>${nfN + sinA} ${nfN + sinA === 1 ? 'material no se pide' : 'materiales no se piden'}: ${nfN} sin match${sinA ? ` y ${sinA} sin asignar` : ''}. Quedan en el pedido como «sin asignar», con el motivo.</div></div>` : ''}
+        ${manN ? `<div class="note info"><span>${L.icon('hand')}</span><div>${manN} ${manN === 1 ? 'línea cotizada' : 'líneas cotizadas'} a mano no ${manN === 1 ? 'va' : 'van'} en ningún pedido: se le piden aparte a cada distribuidor.</div></div>` : ''}
+        ${r.viejas.length ? `<div class="note warn"><span>${L.icon('clock-alert')}</span><div>${r.viejas.length} líneas van con precio vencido: el distribuidor puede responder con otro precio.</div></div>` : ''}
+        ${altas.length ? `<div class="note info"><span>${L.icon('stamp')}</span><div><b>Pasa por aprobación de dirección</b>La OC a ${esc(C.prov(altas[0][0]).n)} supera ${L.ars(C.TOPE_OC)}: se le avisa a Hernán Rossi y sale cuando la apruebe. <span class="tag-h1">propuesta</span></div></div>` : ''}
+        <div class="field"><label for="vence">Fecha límite de respuesta</label><input class="inp" id="vence" type="date" value="${venc}"></div>`,
+      actions: [{ t: 'Cancelar' }, { t: altas.length ? 'Enviar a aprobación' : 'Enviar solicitud', icon: 'send', fn: ov => emitir(adj, r, ov.querySelector('#vence').value || venc, altas.length > 0) }] });
+  };
+
+  function emitir(adj, r, vence, aprob) {
+    const ps = L.get('pedidos'); const n = 34 + ps.filter(p => p.nuevo).length; const id = `PED-2026-0${n}`;
+    const ordenes = Object.entries(r.porProv).map(([pid, x], j) => ({ id: `${id}-${j + 1}`, prov: pid, status: 'SENT', vence, total: x.total, lineas: x.n, items: x.lineas.map(lid => [lid, C.linea(lid).comprar]), retenida: aprob || undefined }));
+    const ped = { id, proyecto: 'p1', enviado: C.HOY, lineas: C.lineas().length, sinAsignar: C.lineas().length - r.cubiertas, ordenes, nuevo: true, estrategia: C.compra().estrategia, aprobacion: aprob ? { estado: 'pendiente' } : undefined };
+    L.update(s => {
+      s.pedidos.unshift(ped);
+      s.avisos.unshift({ id: 'c-' + id, t: aprob ? `${id} espera tu aprobación` : `Enviaste ${id} a ${ordenes.length} distribuidores`, d: `${r.cubiertas} materiales · ${L.ars(r.total)} +IVA`, i: aprob ? 'stamp' : 'send', tipo: aprob ? 'wa' : 'pr', cuando: 'recién', href: aprob ? 'm-com-aprobar.html' : 'd-com-pedidos.html?ped=' + id });
+    });
+    if (aprob) { const list = C.aprobaciones().slice(); list.unshift({ id: 'apr-' + id, tipo: 'pedido', ref: id, ped: id, proyecto: 'p1', por: 'sofia', creado: C.HOY + 'T10:12', monto: r.total, tope: C.TOPE_OC, motivo: `Una OC del pedido supera el tope de ${L.ars(C.TOPE_OC)} por orden.`, ordenes: ordenes.map(o => ({ prov: o.prov, total: o.total, lineas: o.lineas })), estado: 'pendiente' }); C.guardarAprob(list); }
+    L.toast(aprob ? 'Enviado a aprobación' : 'Solicitud enviada', { desc: aprob ? 'Hernán Rossi lo aprueba desde el teléfono.' : `${ordenes.length} pedidos · responden hasta el ${L.fecha(vence)}`, action: 'Ver pedido', onAction: () => L.go('d-com-pedidos.html?ped=' + id) });
+  }
+
+  render();
+  L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Asistente · liard</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css"></head>
+<body class="m" data-role="ing" data-tabs="ing" data-active="m-asistente" data-h="h1" data-title="Asistente">
+<div id="act"><span class="ai-tag" data-icon="sparkles">IA</span></div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, A = P.asis, page = document.getElementById('page');
+  P.boot();
+  const user = 'martina', estado = L.q('estado');
+  const bloqueado = estado === 'sin-ia' || estado === 'limite' || P.consumo().enTope;
+  const c = P.consumo();
+  page.innerHTML = `<div class="row" style="font-size:12px"><span class="muted">Hospital Cañuelas · ${L.usd(c.usadoUsd)} de ${L.usd(c.topeUsd)}</span><span class="tag-h1 ml-auto">0–6 meses</span></div>
+    ${bloqueado ? `<div class="note bad">${L.icon(estado === 'sin-ia' ? 'circle-alert' : 'gauge')}<div><b>${estado === 'sin-ia' ? 'El asistente no está disponible' : 'Se alcanzó el tope de IA del mes'}</b>No se cobra nada. Esto sale sin IA:</div></div>${A.resumenManual()}`
+      : `<div class="pla-sug">${Object.values(A.PREG).map(t => `<button type="button" data-s="${L.esc(t)}">${L.esc(t)}</button>`).join('')}</div><div class="pla-chat" data-chat aria-live="polite"></div>`}
+    <div style="height:110px"></div>`;
+  const bar = document.createElement('form'); bar.className = 'pla-mic';
+  bar.innerHTML = `<input id="inp" aria-label="Escribí o dictá tu pregunta" placeholder="${bloqueado ? 'En pausa' : 'Preguntá o tocá el micrófono'}" ${bloqueado ? 'disabled' : ''}><button type="button" class="rec" id="mic" aria-label="Dictar" ${bloqueado ? 'disabled' : ''}>${L.icon('mic')}</button>`;
+  document.body.appendChild(bar);
+  L.fixLinks(page);
+  if (bloqueado) return;
+  const conv = A.montar(page, { user, modo: 'revision', compact: true });
+  page.querySelectorAll('[data-s]').forEach(b => b.onclick = () => conv.preguntar(b.dataset.s));
+  bar.onsubmit = e => { e.preventDefault(); const i = bar.querySelector('#inp'); if (!i.value.trim()) return; conv.preguntar(i.value); i.value = ''; };
+  // Dictado simulado: escucha, transcribe de a poco y pregunta
+  const mic = bar.querySelector('#mic'); let t = null;
+  const DICT = '¿A quién le compro si necesito todo antes del 15/10?';
+  const parar = (enviar) => { clearInterval(t); t = null; mic.classList.remove('on'); mic.innerHTML = L.icon('mic'); mic.setAttribute('aria-label', 'Dictar'); bar.querySelector('.pla-wave')?.remove(); const i = bar.querySelector('#inp'); i.hidden = false; if (enviar && i.value.trim()) { conv.preguntar(i.value); i.value = ''; } };
+  mic.onclick = () => {
+    if (t) return parar(true);
+    mic.classList.add('on'); mic.innerHTML = L.icon('square'); mic.setAttribute('aria-label', 'Terminar y enviar');
+    const i = bar.querySelector('#inp'); i.hidden = true; i.value = '';
+    const w = document.createElement('div'); w.className = 'pla-wave'; w.setAttribute('role', 'status'); w.setAttribute('aria-label', 'Escuchando');
+    w.innerHTML = Array.from({ length: 22 }, (_, k) => `<i style="animation-delay:${(k % 7) * 0.09}s"></i>`).join('') + `<span class="muted" style="font-size:12px;margin-left:8px;white-space:nowrap" id="tr">Escuchando…</span>`;
+    bar.insertBefore(w, mic);
+    const words = DICT.split(' '); let k = 0;
+    t = setInterval(() => { k++; i.value = words.slice(0, k).join(' '); w.querySelector('#tr').textContent = k ? words.slice(Math.max(0, k - 3), k).join(' ') : 'Escuchando…'; if (k >= words.length) parar(true); }, 260);
+  };
+  const q = L.q('q'); if (q) conv.preguntar(q, { auto: true }); else conv.preguntar(A.PREG.revision, { auto: true });
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

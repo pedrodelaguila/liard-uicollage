@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Catálogo · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css">
+</head>
+<body data-role="prov" data-user="carla" data-active="p-productos" data-h="existe" data-title="Mis productos">
+<div id="act"></div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+(function () {
+  const v = new URLSearchParams(location.search).get('vista') || 'productos', d = document.body.dataset;
+  if (v === 'importar') { d.active = 'p-gestion'; d.title = 'Cargar catálogo'; d.sub = 'Subí tu lista de precios, revisá cómo la leemos y confirmá. Nada se importa hasta el último paso.'; }
+  else if (v === 'vincular') { d.active = 'p-vinculacion'; d.title = 'Vinculación de catálogo'; d.sub = 'Cada producto de tu planilla queda estandarizado como un componente del catálogo base, con el valor de cada atributo. Completá lo que falta para que se pueda comparar con los mismos productos de otros proveedores.'; }
+  else d.sub = '18.420 productos publicados. Última carga: lista-general-septiembre.xlsx, el 29/09/2026.';
+})();
+
+window.MOCK = { init() {
+  const page = document.getElementById('page'), act = document.getElementById('act');
+  const BP = window.BP, est = L.q('estado'), vista = L.q('vista') || 'productos';
+  const ui = { q: '', pub: 'pub', filtro: L.q('filtro') || 'pend', sel: L.q('item') || null, paso: est === 'error' ? 2 : +(L.q('paso') || 1) };
+  if (est === 'leyendo') { ui.sel = ui.sel || 'ABB-XT5-630'; }
+  const EST = {
+    AUTO: ['ok', 'link-2', 'Vinculado'], MANUAL: ['ok', 'link-2', 'Vinculado a mano'], FALTA: ['wa', 'circle-alert', 'Le falta un atributo'],
+    LEYENDO: ['pr', 'loader-circle', 'Leyendo…'], SIN: ['wa', 'unlink', 'Sin identificar'], FALLO: ['er', 'triangle-alert', 'No se pudo leer'],
+  };
+  const items = () => { const ov = L.get('x.prov.cat') || {}; return BP.catalogo.map(i => Object.assign({}, i, ov[i.codigo] || {})); };
+  const setItem = (cod, campos) => L.set('x.prov.cat.' + cod, prev => Object.assign({}, prev || {}, campos));
+  const chip = i => { const [c, ic, t] = EST[i.est]; return `<span class="st ${c}">${L.icon(ic)}${t}</span>`; };
+  const lectura = () => { const r = BP.vinculacion.lectura; const extra = L.get('x.prov.leidos') || 0; return Object.assign({}, r, { leidos: Math.min(r.total, r.leidos + extra) }); };
+
+  act.innerHTML = vista === 'productos' ? `<button class="btn out" data-href="d-prov-catalogo.html?vista=importar">${L.icon('cloud-upload')}Cargar planilla</button><button class="btn pri pill" id="add">${L.icon('plus')}Agregar producto</button>`
+    : vista === 'importar' ? `<button class="btn ghost sm" data-href="d-prov-integraciones.html">${L.icon('plug')}Mejor: conectar el ERP <span class="tag-h2">Propuesta</span></button>` : `<button class="btn out sm" data-href="d-prov-catalogo.html">${L.icon('arrow-left')}Mis productos</button>`;
+
+  // ------------------------------------------------------------ banner de lectura (CatalogReadingProgress)
+  function bannerLectura(compacto) {
+    if (est === 'sin-ia') return `<div class="note warn"><span data-icon="circle-pause"></span><div><b>La lectura con IA está en pausa</b>Llegaste al tope de lectura de este mes (US$ 40,00). Los 368 productos nuevos quedan publicados pero sin componente base: no entran en el matching hasta que los vincules. Podés hacerlo a mano desde la bandeja, o subir el tope. <span class="tag-s5">Sprint 5</span></div></div>`;
+    const r = lectura(); if (r.leidos >= r.total) return '';
+    const okN = r.leidos - r.fallidos, pct = r.leidos / r.total, rest = Math.max(1, Math.round(r.restanteMin * (1 - (r.leidos - 1212) / (r.total - 1212))));
+    return `<div class="card pv-read"><div class="card-b col" style="gap:12px">
+      <div class="row"><div class="card-ico pv-scan">${L.icon('scan-text')}</div><div class="grow"><b>Leyendo tu catálogo</b><div class="muted" style="font-size:13px">${L.esc(r.archivo)} · la lista se completa sola a medida que se lee cada producto. <span class="ai-tag">${L.icon('sparkles')}IA</span> <span class="tag-existe">existe</span></div></div>
+        <div style="text-align:right"><span class="lbl">Leídos</span><div class="mono" style="font-weight:700">${L.num(r.leidos)} de ${L.num(r.total)} <span class="muted" style="font-weight:400">${L.pct(pct * 100)}</span></div></div>
+        <div style="text-align:right;min-width:150px"><span class="lbl">Tiempo restante</span><div class="mono" style="font-weight:700">≈ ${rest} min</div><span class="cost">de 6 min estimados</span></div>
+        <div style="text-align:right;min-width:130px"><span class="lbl">Costo</span><div class="mono" style="font-weight:700">${L.usd(r.costo * r.leidos / 1212)}</div><span class="cost">de ${L.usd(r.costoEst)} estimados</span></div></div>
+      <div class="bar"><i class="d" style="width:${okN / r.total * 100}%"></i><i class="f" style="width:${r.fallidos / r.total * 100}%"></i></div>
+      ${compacto ? '' : `<div class="pv-legend"><span><i class="dot pr"></i> Interpretados<b>${L.num(okN)}</b></span><span><i class="dot er"></i> No se pudieron leer<b>${r.fallidos}</b></span><span><i class="dot"></i> Por leer<b>${L.num(r.total - r.leidos)}</b></span><span class="ml-auto"><button class="btn xs out" id="avanzar">${L.icon('fast-forward')}Simular avance</button></span></div>`}
+    </div></div>`;
+  }
+
+  // ------------------------------------------------------------ PRODUCTOS
+  function productos() {
+    if (est === 'cargando') return `<div class="skel" style="height:44px"></div><div class="skel" style="height:420px"></div>`;
+    if (est === 'vacio') return `<div class="card" style="border:2px dashed var(--border)"><div class="empty"><div class="e-ico">${L.icon('file-spreadsheet')}</div><h3>Tu catálogo está vacío</h3><p>Cargá tu planilla o agregá un producto a mano. Sin productos vinculados no te llegan solicitudes: el matching compara componente base y atributos, no nombres.</p><div class="row" style="justify-content:center"><button class="btn pri" data-href="d-prov-catalogo.html?vista=importar">Cargar planilla</button><button class="btn out" data-href="d-prov-integraciones.html">Conectar el ERP</button></div><span class="tag-existe" style="margin-top:8px">existe</span></div></div>`;
+    if (est === 'error') return `<div class="card"><div class="empty"><div class="e-ico">${L.icon('circle-alert')}</div><h3>No pudimos cargar tu catálogo</h3><p>Hubo un problema al traer los productos. Tus precios siguen publicados para los compradores: esto es solo la vista.</p><button class="btn pri" id="reint">Reintentar</button><span class="tag-existe" style="margin-top:8px">existe</span></div></div>`;
+    const t = ui.q.toLowerCase();
+    const lst = items().filter(i => (!t || (i.codigo + ' ' + i.nombre + ' ' + i.marca).toLowerCase().includes(t)) && (ui.pub === 'todos' || !i.despub));
+    const sinBase = items().filter(i => ['SIN', 'FALLO'].includes(i.est)).length;
+    return `${bannerLectura(true)}
+      ${sinBase ? `<div class="note warn"><span data-icon="unlink"></span><div><b>Tenés ${BP.vinculacion.sin} productos sin componente base</b>No entran en el matching: ningún comprador los va a ver en una cotización. <a class="src" href="d-prov-catalogo.html?vista=vincular&filtro=sin">Ir a vincular</a> <span class="tag-existe">existe</span></div></div>` : ''}
+      <div class="row"><label class="search grow"><span class="sr">Buscar producto</span>${L.icon('search')}<input class="inp" id="q" placeholder="Buscar por código, nombre o marca" value="${L.esc(ui.q)}"></label><div class="seg" role="group" aria-label="Filtro de publicación"><button class="${ui.pub === 'pub' ? 'on' : ''}" data-pub="pub">Publicados</button><button class="${ui.pub === 'todos' ? 'on' : ''}" data-pub="todos">Todos</button></div></div>
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Código de producto</th><th>Producto</th><th>Componente base</th><th>Marca</th><th class="r">Precio sin IVA</th><th class="r"><span class="sr">Acciones</span></th></tr></thead><tbody>
+      ${lst.map(i => `<tr style="${i.despub ? 'opacity:.55' : ''}"><td class="mono" style="font-size:13px">${L.esc(i.codigo)}</td><td><b style="font-weight:500">${L.esc(i.nombre)}</b><div class="muted" style="font-size:12px">${L.esc(i.spec)}${i.stock0 ? ' · <span class="pv-stock no">sin stock en el ERP</span>' : ''}</div></td><td>${chip(i)}${i.comp && !['SIN', 'FALLO'].includes(i.est) ? `<div class="muted" style="font-size:12px;margin-top:3px">${L.esc(i.comp)}</div>` : ''}</td><td style="white-space:nowrap">${L.esc(i.marca)}<div class="mono muted" style="font-size:11px">${L.esc(i.bc)}${i.gama ? ' · ' + L.esc(i.gama) : ''}</div></td><td class="r" style="white-space:nowrap"><span class="money" style="font-weight:700">${L.ars(i.precio, true)}</span><div class="muted" style="font-size:11px">Actualizado ${P.hace(i.act)}</div></td><td class="r" style="white-space:nowrap"><button class="btn icon sm ghost" data-edit="${i.codigo}" aria-label="Editar ${L.esc(i.nombre)}">${L.icon('pencil')}</button><button class="btn icon sm ghost" data-pubt="${i.codigo}" aria-label="${i.despub ? 'Republicar' : 'Despublicar'} ${L.esc(i.nombre)}">${L.icon(i.despub ? 'eye' : 'eye-off')}</button></td></tr>`).join('') || `<tr><td colspan="6"><div class="empty" style="padding:30px"><h3>Sin resultados</h3><p>No hay productos con «${L.esc(ui.q)}».</p></div></td></tr>`}
+      </tbody></table></div>
+      <div class="row"><span class="muted" style="font-size:13px">Mostrando ${lst.length} de ${L.num(BP.vinculacion.total)} productos (muestra). <span class="tag-existe">existe</span> · Precio, código del producto, código de la marca y gama como en dev; la columna de precio ya no se corta. <span class="tag-nuevo">Refinado</span></span></div>`;
+  }
+
+  // ------------------------------------------------------------ IMPORTAR (3 pasos)
+  function importar() {
+    const pasos = ['Elegir planilla', 'Revisar la lectura', 'Confirmar'];
+    const stepper = `<div class="pv-steps">${pasos.map((p, i) => `${i ? '<span class="ln"></span>' : ''}<span class="s ${i + 1 === ui.paso ? 'on' : i + 1 < ui.paso ? 'done' : ''}"><i>${i + 1 < ui.paso ? L.icon('check') : i + 1}</i>${p}</span>`).join('')}<span class="tag-existe" style="margin-left:8px">existe</span></div>`;
+    let body = '';
+    if (ui.paso === 1) {
+      body = `<div class="drop" id="drop" style="padding:44px"><div class="e-ico" style="width:64px;height:64px;border-radius:16px;background:var(--muted);display:grid;place-items:center;margin:0 auto 12px">${L.icon('cloud-upload')}</div><b style="color:var(--foreground);font-size:17px">Arrastrá tu planilla o elegila del disco</b><div style="margin:4px 0 14px">Formato .xlsx · hasta 20 MB · 50.000 filas</div><button class="btn pri" id="elegir">Elegir planilla</button><p style="font-size:12px;margin-top:14px">Leemos el archivo para mostrarte cómo lo interpretamos. No se importa nada hasta que lo confirmes.</p></div>`;
+    } else if (ui.paso === 2) {
+      const bad = est === 'error';
+      body = `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('file-spreadsheet')}</div><div><h3>lista-ABB-octubre.xlsx</h3><div class="sub">Hoja «Lista» · fila de encabezados 3 · formato numérico 1.234,56 · ${bad ? '1.592' : '1.592'} filas</div></div><div class="r"><button class="btn out sm" id="otra">Elegir otra planilla</button></div></div>
+        <div class="card-b col">
+          ${bad ? `<div class="note bad"><span data-icon="circle-x"></span><div><b>No se puede importar así</b>La columna F «Precio lista» trae 1.104 filas en dólares mezcladas con pesos y la columna G «Mon.» quedó sin mapear: corregí la planilla o cambiá el mapeo para poder confirmar. <span class="tag-existe">existe</span></div></div>`
+            : `<div class="note ok"><span data-icon="circle-check"></span><div><b>Se puede importar</b>1.580 válidas · 12 descartadas (sin precio). Usamos el mapeo que guardaste el 29/09: lo reconocimos por los encabezados. <span class="tag-existe">existe</span></div></div>`}
+          <div class="tbl-wrap"><table class="tbl pv-map"><thead><tr><th>Col.</th><th>Encabezado en tu planilla</th><th>Se lee como</th><th>Ejemplo (fila 4)</th></tr></thead><tbody>
+          ${BP.mapeo.map(([c, h, a, e]) => { const unm = bad && c === 'G'; return `<tr class="${unm ? 'warn' : ''}"><td class="mono">${c}</td><td><b style="font-weight:500">${L.esc(h)}</b></td><td><select class="inp" aria-label="Mapeo de la columna ${c}" data-map="${c}">${['Código de producto', 'Descripción', 'Marca', 'Código de la marca', 'Gama', 'Precio sin IVA', 'Moneda', 'Plazo de entrega', '— no se importa —'].map(o => `<option ${(!unm && o === a) || (unm && o === '— no se importa —') ? 'selected' : ''}>${o}</option>`).join('')}</select></td><td class="mono" style="font-size:12px">${L.esc(e)}</td></tr>`; }).join('')}
+          </tbody></table></div>
+          <div><span class="lbl">Reglas de catálogo</span><div class="pv-checks" style="margin-top:8px">${[['Queda al menos una fila válida', 1], ['Se descarta una porción razonable de las filas', 1], ['Hay precios vigentes', 1], ['Los precios no son todos iguales ni cero', 1], ['Los códigos repetidos son pocos', 1], ['Todos los artículos declaran su marca', 1], ['Una sola moneda por fila', !bad]].map(([t, ok]) => `<div class="${ok ? '' : 'no'}">${L.icon(ok ? 'circle-check' : 'circle-alert')}${t}</div>`).join('')}</div></div>
+        </div></div>`;
+    } else {
+      body = `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('file-check')}</div><div><h3>Confirmá la importación</h3><div class="sub">lista-ABB-octubre.xlsx · 1.580 productos válidos</div></div></div>
+        <div class="card-b col"><div class="pv-res">${[['Creados', 214, 'ok'], ['Actualizados', 1366, 'pri'], ['Descartados', 12, 'warn'], ['Despublicados', 0, '']].map(([t, n, c]) => `<div class="pv-tile ${c}"><span class="t">${t}</span><b>${L.num(n)}</b></div>`).join('')}</div>
+        <div class="note info"><span data-icon="info"></span><div><b>Reemplaza los precios de ABB</b>Los 1.366 productos que ya tenías cambian de precio (sobre los 18.420 que tenés hoy). Las solicitudes ya enviadas conservan el precio con el que salieron. <span class="tag-existe">existe</span></div></div>
+        <div class="note ai"><span data-icon="sparkles"></span><div><b>Después leemos 1.580 productos para vincularlos a su componente base</b>Costo estimado <span class="mono">${L.usd(3.79)}</span> de tu tope mensual de lectura (<span class="mono">US$ 40,00</span>, usado <span class="mono">US$ 11,20</span>). Los que corregiste a mano no se vuelven a leer. <span class="cost">≈ 6 min</span></div></div></div></div>`;
+    }
+    const pie = ui.paso === 1 ? '' : `<div class="row"><button class="btn out" id="atras">${ui.paso === 2 ? 'Elegir otra planilla' : 'Volver al mapeo'}</button><span class="grow"></span>${ui.paso === 2 ? `<button class="btn pri" id="sig" ${est === 'error' ? 'disabled' : ''}>Continuar</button>` : `<button class="btn pri" id="conf">${L.icon('upload')}Confirmar importación</button>`}</div>`;
+    const hist = est === 'vacio' ? `<p class="muted" style="font-size:14px">Todavía no hay cargas. La primera planilla que confirmes aparece acá.</p>` : `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Archivo</th><th>Quién</th><th class="r">Leídos</th><th class="r">Creados</th><th class="r">Actualizados</th><th class="r">Descartados</th><th class="r">Despublicados</th><th>Estado</th></tr></thead><tbody>${BP.importaciones.map(h => `<tr><td class="mono" style="font-size:12px">${L.esc(h.f.slice(8, 10) + '/' + h.f.slice(5, 7) + ' ' + h.f.slice(11))}</td><td><b style="font-weight:500">${L.esc(h.archivo)}</b>${h.error ? `<div style="font-size:12px;color:var(--destructive)">${L.esc(h.error)}</div>` : ''}</td><td>${L.esc(P.usuario(h.quien).n)}</td>${[h.leidos, h.creados, h.act, h.desc, h.despub].map(n => `<td class="r mono">${L.num(n)}</td>`).join('')}<td>${{ RUNNING: '<span class="st pr">' + L.icon('loader-circle') + 'Leyendo</span>', SUCCESS: '<span class="st ok">' + L.icon('circle-check') + 'Importada</span>', PARTIAL: '<span class="st wa">' + L.icon('circle-alert') + 'Parcial</span>', FAILED: '<span class="st er">' + L.icon('circle-x') + 'Falló</span>' }[h.est]}</td></tr>`).join('')}</tbody></table></div>`;
+    return `${stepper}${body}${pie}<div class="row" style="margin-top:4px">${L.icon('rotate-ccw-clock')}<b>Cargas anteriores</b><span class="tag-existe">existe</span></div>${hist}`;
+  }
+
+  // ------------------------------------------------------------ VINCULAR
+  function vincular() {
+    if (est === 'vacio') return `<div class="card" style="border:2px dashed var(--border)"><div class="empty"><div class="e-ico">${L.icon('file-spreadsheet')}</div><h3>Todavía no hay productos publicados</h3><p>Cargá tu lista de precios y cada producto se lee para vincularlo a su componente base.</p><button class="btn pri" data-href="d-prov-catalogo.html?vista=importar">Cargar planilla</button><span class="tag-existe" style="margin-top:8px">existe</span></div></div>`;
+    const v = BP.vinculacion, its = items();
+    const pend = its.filter(i => ['SIN', 'FALLO', 'FALTA', 'LEYENDO'].includes(i.est));
+    const listas = v.listas + its.filter(i => i.est === 'MANUAL' && BP.catalogo.find(c => c.codigo === i.codigo).est !== 'MANUAL').length;
+    const resueltos = its.filter(i => i.est === 'MANUAL' && ['SIN', 'FALLO', 'FALTA'].includes(BP.catalogo.find(c => c.codigo === i.codigo).est));
+    const faltan = v.faltan - resueltos.filter(i => BP.catalogo.find(c => c.codigo === i.codigo).est === 'FALTA').length;
+    const sin = v.sin - resueltos.filter(i => BP.catalogo.find(c => c.codigo === i.codigo).est !== 'FALTA').length;
+    const tiles = [['todas', 'Todas', v.total, `${v.leyendo} se están leyendo`, ''], ['listas', 'Listas', listas, 'listas para cotizar', 'c-ok'], ['falta', 'Les falta un atributo', faltan, 'con atributos por completar', 'c-wa'], ['sin', 'Sin vincular', sin, 'sin componente base', 'c-er']];
+    const filt = { todas: its, listas: its.filter(i => ['AUTO', 'MANUAL'].includes(i.est)), falta: its.filter(i => i.est === 'FALTA'), sin: its.filter(i => ['SIN', 'FALLO'].includes(i.est)), pend }[ui.filtro] || pend;
+    if (!ui.sel && filt.length) ui.sel = (filt.find(i => i.est !== 'LEYENDO') || filt[0]).codigo;
+    const ic = i => ({ AUTO: ['link-2', 'c-ok-t'], MANUAL: ['link-2', 'c-ok-t'], FALTA: ['circle-alert', 'c-wa-t'], LEYENDO: ['loader-circle', 'c-pr-t'], SIN: ['unlink', 'c-er-t'], FALLO: ['triangle-alert', 'c-er-t'] }[i.est]);
+    const tray = filt.map(i => `<button class="pv-it ${i.codigo === ui.sel ? 'on' : ''}" data-sel="${i.codigo}"><span class="${ic(i)[1]}">${L.icon(ic(i)[0], i.est === 'LEYENDO' ? 'spin' : '')}</span><span class="grow" style="min-width:0"><span class="t">${L.esc(i.nombre)}</span><span class="d">${L.esc(i.codigo)} · ${L.esc(i.marca)}${i.gama ? ' · ' + L.esc(i.gama) : ''}</span></span><span class="s ${ic(i)[1]}">${EST[i.est][2]}</span></button>`).join('');
+    return `${bannerLectura(false)}
+      <div class="pv-ov" role="group" aria-label="Estado del catálogo">${tiles.map(([k, t, n, s, c]) => `<button class="${c} ${ui.filtro === k ? 'on' : ''}" data-f="${k}"><span class="t"><i class="dot ${c === 'c-ok' ? 'ok' : c === 'c-wa' ? 'wa' : c === 'c-er' ? 'er' : ''}"></i>${t}</span><b>${L.num(n)}</b><span>${s}</span></button>`).join('')}</div>
+      <div class="pv-two"><div class="card" style="overflow:hidden"><div class="card-h"><div><h3>${ui.filtro === 'pend' ? 'Para revisar' : 'Productos'}</h3><div class="sub">${filt.length} en esta muestra${ui.filtro === 'pend' ? ' · lo que no está listo, primero' : ''}</div></div><div class="r">${ui.filtro !== 'pend' ? `<button class="btn xs ghost" data-f="pend">Ver pendientes</button>` : '<span class="tag-nuevo">Refinado</span>'}</div></div><div class="list">${tray || '<div class="empty" style="padding:30px"><div class="e-ico">' + L.icon('circle-check') + '</div><h3>Sin pendientes aquí</h3></div>'}</div></div>
+        <div id="ficha">${ficha(its.find(i => i.codigo === ui.sel))}</div></div>`;
+  }
+  function ficha(i) {
+    if (!i) return `<div class="card" style="border:2px dashed var(--border)"><div class="empty"><div class="e-ico">${L.icon('mouse-pointer-click')}</div><h3>Elegí un producto de la lista</h3><p>Vas a ver lo que cargaste y el componente base con cada atributo, para completar lo que falte.</p></div></div>`;
+    const base = window.B.lineas.find(l => l.id === i.linea);
+    const attrs = (base && base.attrs) || (i.codigo === 'ABB-XT5-630' ? BP.equivalentes.l06[0].attrs : i.codigo === 'ABB-S202C16' ? BP.equivalentes.l01[0].attrs : {});
+    const comps = ['Interruptor termomagnético', 'Interruptor diferencial', 'Interruptor de caja moldeada', 'Guardamotor', 'Contactor', 'Bornera', 'Cable unipolar', 'Descargador de sobretensiones', 'Sensor de corriente'];
+    const leyendo = i.est === 'LEYENDO';
+    const sinBase = ['SIN', 'FALLO'].includes(i.est);
+    const att = Object.entries(attrs).map(([k, v]) => { const req = ['Polos', 'Corriente nominal', 'Sección', 'Sensibilidad', 'Corriente primaria', 'Corriente secundaria', 'Diámetro', 'Color', 'Regulación mínima', 'Regulación máxima', 'Cantidad de conductores', 'Corriente máxima de descarga', 'Tipo / clase'].includes(k); const falta = i.falta === k; return `<div class="field"><label for="a-${L.esc(k)}">${L.esc(k)} ${req ? '<span class="bdg er" style="height:16px">Esencial</span>' : ''}</label><input class="inp mono ${falta ? 'bad' : ''}" id="a-${L.esc(k)}" value="${falta ? '' : L.esc(v)}" placeholder="${falta ? 'Ej.: tornillo' : ''}" ${leyendo ? 'disabled' : ''}>${falta ? '<span class="err">Sin este valor no se compara con otros distribuidores.</span>' : ''}</div>`; }).join('');
+    return `<div class="card"><div class="card-h"><div class="grow"><span class="lbl">Ficha del producto</span><h3 style="margin-top:2px">${L.esc(i.nombre)}</h3><div class="sub mono">${L.esc(i.codigo)} · ${L.esc(i.bc)} · ${L.esc(i.gama || 'sin gama')}</div></div><div class="r">${chip(i)}</div></div>
+      <div class="card-b col">
+        <div><span class="lbl">Descripción tal como vino en tu planilla</span><div class="mono" style="font-size:13px;margin-top:4px;padding:8px 10px;background:var(--muted);border-radius:8px">${L.esc(i.nombre)} · ${L.esc(i.spec)}</div></div>
+        ${leyendo ? `<div class="note ai"><span data-icon="sparkles"></span><div><b>Leyendo esta descripción…</b>Termina en menos de un minuto. Mientras tanto no se puede editar. <span class="cost">≈ US$ 0,0024 por producto</span></div></div>` : ''}
+        ${i.est === 'FALLO' ? `<div class="note bad"><span data-icon="triangle-alert"></span><div>No pudimos leer esta descripción. Elegí qué componente es y completá sus atributos.</div></div>` : ''}
+        ${i.est === 'SIN' ? `<div class="note warn"><span data-icon="unlink"></span><div>La descripción no coincidió con ningún componente del catálogo base. Elegí cuál es y completá sus atributos.${i.codigo === 'ATV-3202' ? ' Hoy no hay componente base para variadores (Sprint 5: matching para todos los componentes).' : ''}</div></div>` : ''}
+        <div class="field"><label for="cb">Componente base</label><select class="inp" id="cb" ${leyendo ? 'disabled' : ''}><option value="">Elegí un componente…</option>${comps.map(c => `<option ${c === i.comp ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
+        ${sinBase && !i.comp ? '' : `<div class="grid2" style="gap:12px">${att || '<p class="muted" style="font-size:13px">Elegí el componente para ver sus atributos.</p>'}</div>`}
+        <p class="muted" style="font-size:12px">${i.est === 'MANUAL' ? 'Corregido a mano: una nueva carga del catálogo no lo cambia.' : i.est === 'AUTO' ? 'Leído automáticamente de la descripción.' : 'Cada cambio se guarda solo.'} <span class="tag-existe">existe</span></p>
+      </div>
+      <div class="dlg-f" style="justify-content:space-between"><button class="btn ghost sm" id="sig-p" data-key="j">Siguiente pendiente <span class="kbd">J</span></button>${!leyendo && i.est !== 'AUTO' && i.est !== 'MANUAL' ? `<button class="btn pri sm" id="guardar" data-key="enter">${L.icon('check')}Marcar como listo</button>` : !leyendo ? `<button class="btn out sm" id="releer">${L.icon('sparkles')}Volver a leer · US$ 0,0024</button>` : ''}</div></div>`;
+  }
+
+  function render() {
+    page.innerHTML = vista === 'importar' ? importar() : vista === 'vincular' ? vincular() : productos();
+    page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+    L.fixLinks(page);
+    const q = document.getElementById('q'); if (q) q.oninput = () => { ui.q = q.value; render(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length); };
+  }
+
+  function editar(cod) {
+    const i = cod ? items().find(x => x.codigo === cod) : { codigo: '', nombre: '', marca: 'Schneider Electric', bc: 'SCH', gama: '', precio: '' };
+    L.dialog({ title: cod ? 'Editar producto' : 'Agregar producto', icon: cod ? 'pencil' : 'plus', desc: 'Precio sin IVA, en pesos. Al cambiar el nombre, el producto se vuelve a leer para vincularlo.', wide: false,
+      body: `<div class="grid2" style="gap:12px"><div class="field"><label for="e-c">Código de producto</label><input class="inp mono" id="e-c" value="${L.esc(i.codigo)}" ${cod ? 'readonly' : ''}></div><div class="field"><label for="e-p">Precio sin IVA</label><input class="inp mono" id="e-p" type="number" min="1" value="${L.esc(i.precio)}"></div></div><div class="field"><label for="e-n">Nombre</label><input class="inp" id="e-n" value="${L.esc(i.nombre)}"></div><div class="grid3" style="gap:12px"><div class="field"><label for="e-m">Marca</label><input class="inp" id="e-m" value="${L.esc(i.marca)}"></div><div class="field"><label for="e-b">Código de la marca</label><input class="inp mono" id="e-b" value="${L.esc(i.bc)}"></div><div class="field"><label for="e-g">Gama</label><input class="inp" id="e-g" value="${L.esc(i.gama)}"></div></div>`,
+      actions: [{ t: 'Cancelar' }, { t: cod ? 'Guardar' : 'Agregar', fn: ov => {
+        const c = ov.querySelector('#e-c').value.trim(), n = ov.querySelector('#e-n').value.trim(), p = +ov.querySelector('#e-p').value;
+        if (!c || !n || !(p > 0)) { L.toast('Faltan datos', { type: 'error', desc: 'Código, nombre y un precio mayor a cero.' }); return false; }
+        if (!cod) { L.toast('Producto agregado', { desc: 'Lo estamos leyendo para vincularlo a su componente base.' }); return; }
+        const camb = n !== i.nombre;
+        setItem(cod, { precio: p, nombre: n, act: P.HOY, est: camb ? 'LEYENDO' : i.est });
+        L.toast('Producto actualizado', { desc: camb ? 'Cambió el nombre: lo volvemos a leer.' : 'Precio guardado. Las solicitudes ya enviadas conservan su precio.' });
+      } }] });
+  }
+
+  page.addEventListener('click', e => {
+    const t = e.target;
+    if (t.closest('#reint')) return L.param('estado', null);
+    const pb = t.closest('[data-pub]'); if (pb) { ui.pub = pb.dataset.pub; return render(); }
+    const ed = t.closest('[data-edit]'); if (ed) return editar(ed.dataset.edit);
+    const pt = t.closest('[data-pubt]'); if (pt) { const i = items().find(x => x.codigo === pt.dataset.pubt); setItem(i.codigo, { despub: !i.despub }); return L.toast(i.despub ? 'Producto republicado.' : 'Producto despublicado.', { desc: i.despub ? '' : 'Seguí viéndolo con el filtro Todos.' }); }
+    if (t.closest('#avanzar')) { L.set('x.prov.leidos', n => (n || 0) + 184); return L.toast('Se leyeron 184 productos más', { type: 'info' }); }
+    if (t.closest('#elegir') || t.closest('#drop') && !t.closest('button')) { L.toast('Leyendo lista-ABB-octubre.xlsx', { type: 'loading', desc: '1.592 filas' }); setTimeout(() => { ui.paso = 2; render(); }, 700); return; }
+    if (t.closest('#otra') || (t.closest('#atras') && ui.paso === 2)) { ui.paso = 1; return render(); }
+    if (t.closest('#atras')) { ui.paso = 2; return render(); }
+    if (t.closest('#sig')) { ui.paso = 3; return render(); }
+    if (t.closest('#conf')) { L.toast('Importación confirmada', { desc: '214 creados · 1.366 actualizados · empezamos a leer 1.580 productos' }); P.avisar({ id: 'prov-imp', t: 'Catálogo importado', d: 'lista-ABB-octubre.xlsx · leyendo 1.580 productos', i: 'file-check', tipo: 'pr', href: 'd-prov-catalogo.html?vista=vincular' }); return L.go('d-prov-catalogo.html?vista=vincular'); }
+    const f = t.closest('[data-f]'); if (f) { ui.filtro = f.dataset.f; ui.sel = null; return render(); }
+    const s = t.closest('[data-sel]'); if (s) { ui.sel = s.dataset.sel; return render(); }
+    if (t.closest('#sig-p')) { const its = items().filter(i => ['SIN', 'FALLO', 'FALTA'].includes(i.est)); const k = its.findIndex(i => i.codigo === ui.sel); const nx = its[(k + 1) % its.length]; if (nx) { ui.sel = nx.codigo; render(); } else L.toast('Sin pendientes aquí', { type: 'info' }); return; }
+    if (t.closest('#guardar')) {
+      const cb = document.getElementById('cb').value; const i = items().find(x => x.codigo === ui.sel);
+      if (!cb) return L.toast('Elegí el componente base', { type: 'error', desc: 'Sin componente base no entra en el matching.' });
+      if (i.est === 'SIN' && cb && !i.comp) { setItem(i.codigo, { comp: cb }); return L.toast('Componente elegido', { desc: 'Completá sus atributos esenciales.' }); }
+      const vacio = [...document.querySelectorAll('#ficha input.inp')].find(x => !x.value.trim() && x.closest('.field').querySelector('.bdg'));
+      if (vacio) { vacio.classList.add('bad'); vacio.focus(); return L.toast('Falta un atributo esencial', { type: 'error' }); }
+      setItem(i.codigo, { est: 'MANUAL', comp: cb, falta: null });
+      L.toast('Listo para cotizar', { desc: `${i.nombre} · corregido a mano` });
+      const nx = items().filter(x => ['SIN', 'FALLO', 'FALTA'].includes(x.est))[0]; ui.sel = nx ? nx.codigo : ui.sel; return render();
+    }
+    if (t.closest('#releer')) { const i = items().find(x => x.codigo === ui.sel); L.dialog({ title: 'Volver a leer con IA', icon: 'sparkles', desc: `Se descarta el vínculo actual de ${L.esc(i.nombre)} y se lee de nuevo la descripción. Cuesta US$ 0,0024 de tu tope de lectura.`, actions: [{ t: 'Cancelar' }, { t: 'Volver a leer', fn: () => { setItem(i.codigo, { est: 'LEYENDO' }); L.toast('Leyendo de nuevo', { type: 'loading' }); setTimeout(() => setItem(i.codigo, { est: 'AUTO' }), 1500); } }] }); }
+  });
+  page.addEventListener('change', e => { if (e.target.id === 'cb') { const i = items().find(x => x.codigo === ui.sel); setItem(i.codigo, { comp: e.target.value }); } if (e.target.dataset.map) L.toast('Mapeo actualizado', { type: 'info', desc: 'Recalculando con el mapeo nuevo… Lo recordamos para la próxima carga.' }); });
+  const addB = document.getElementById('add'); if (addB) addB.onclick = () => editar(null);
+  if (L.q('dialogo') === 'editar') editar('ACTI-1000');
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

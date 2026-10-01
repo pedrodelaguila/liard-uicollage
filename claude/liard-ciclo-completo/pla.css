@@ -1,0 +1,177 @@
+/* liard · área F (plataforma). Solo tokens de tokens.css; lo que falta en ui.css se resuelve acá. */
+
+/* Medidor con marca de aviso (consumo de IA) */
+.pla-meter { position: relative; height: var(--h, 10px); border-radius: 999px; background: var(--secondary-100); overflow: visible; }
+.pla-meter > i { display: block; height: 100%; border-radius: inherit; background: var(--primary); transition: width var(--dur-panel) var(--ease-out-expo); }
+.pla-meter.warn > i { background: var(--amber-500); }
+.pla-meter.bad > i { background: var(--rose-500); }
+.pla-mark { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--foreground); border-radius: 2px; opacity: .55; }
+.pla-scale { display: flex; justify-content: space-between; font: 500 11px var(--mono); color: var(--muted-foreground); margin-top: 6px; }
+
+/* Lo que me toca hoy */
+.pla-todo { display: grid; grid-template-columns: 34px 1fr auto; gap: 12px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); transition: background var(--dur-fast); }
+.pla-todo:last-child { border-bottom: 0; }
+.pla-todo:hover { background: color-mix(in srgb, var(--muted) 50%, transparent); }
+.pla-todo .ti { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; background: var(--muted); color: var(--muted-foreground); }
+.pla-todo .ti.er { background: #fff1f2; color: var(--rose-600); }
+.pla-todo .ti.wa { background: var(--amber-100); color: var(--amber-700); }
+.pla-todo .ti.ok { background: #ecfdf5; color: var(--emerald-600); }
+.pla-todo .ti.pr { background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+.pla-todo .ti.vi { background: #f5f3ff; color: #6d28d9; }
+.pla-todo b { display: block; font-size: var(--text-sm); font-weight: 600; }
+.pla-todo small { display: block; font-size: var(--text-xs); color: var(--muted-foreground); margin-top: 1px; }
+.pla-todo.done { opacity: .5; }
+.pla-todo.done b { text-decoration: line-through; }
+
+/* Obras por etapa */
+.pla-stages { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.pla-stage { background: color-mix(in srgb, var(--muted) 55%, var(--card)); border: 1px solid var(--border); border-radius: 14px; padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 150px; }
+.pla-stage > header { display: flex; align-items: center; gap: 6px; padding: 2px 4px; }
+.pla-stage > header .cnt { margin-left: auto; font: 600 11px var(--mono); color: var(--muted-foreground); }
+.pla-ob { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: border-color var(--dur-fast), box-shadow var(--dur-fast); text-align: left; font: inherit; }
+.pla-ob:hover { border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); box-shadow: 0 2px 8px rgba(15,23,42,.06); }
+.pla-ob b { font-size: var(--text-sm); font-weight: 600; line-height: 1.25; }
+.pla-ob small { font-size: 12px; color: var(--muted-foreground); }
+.pla-ob .row { gap: 6px; flex-wrap: wrap; }
+.pla-ob .bdg { white-space: nowrap; }
+.pla-empty-col { font-size: 12px; color: var(--muted-foreground); text-align: center; padding: 18px 6px; border: 1px dashed var(--border); border-radius: 10px; }
+.pla-cycle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted-foreground); }
+
+/* Barras horizontales simples con valor a la derecha (siempre con tabla al lado) */
+.pla-hb { display: grid; grid-template-columns: 170px 1fr 92px; gap: 10px; align-items: center; padding: 6px 0; font-size: var(--text-xs); }
+.pla-hb .tr { position: relative; height: 10px; background: var(--secondary-100); border-radius: 999px; }
+.pla-hb .tr > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: var(--primary); }
+.pla-hb .tr > i.est { background: color-mix(in srgb, var(--primary) 28%, var(--card)); border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); }
+.pla-hb .tr > i.real { top: 2px; bottom: 2px; background: var(--primary); }
+.pla-hb .tr > i.real.bajo { background: var(--amber-500); }
+.pla-hb .v { text-align: right; font: 600 12px var(--mono); }
+.pla-legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted-foreground); align-items: center; flex-wrap: wrap; }
+.pla-legend i { display: inline-block; width: 14px; height: 8px; border-radius: 999px; margin-right: 6px; vertical-align: 0; }
+.pla-legend i.est { background: color-mix(in srgb, var(--primary) 28%, var(--card)); border: 1px solid color-mix(in srgb, var(--primary) 55%, transparent); }
+.pla-legend i.real { background: var(--primary); }
+.pla-legend i.bajo { background: var(--amber-500); }
+
+/* Asistente */
+.pla-chat { display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+.pla-msg { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+.pla-msg .who { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: 16px; }
+.pla-msg.ai .who { background: linear-gradient(135deg, var(--primary), #4f46e5); color: #fff; }
+.pla-msg .bd { min-width: 0; display: flex; flex-direction: column; gap: 10px; font-size: var(--text-sm); }
+.pla-msg.me .bd > p { background: color-mix(in srgb, var(--primary) 7%, var(--card)); border: 1px solid color-mix(in srgb, var(--primary) 18%, var(--border)); padding: 10px 14px; border-radius: 14px 14px 14px 4px; align-self: flex-start; }
+.pla-msg .meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--muted-foreground); }
+.pla-ans { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.pla-ans .li { padding: 10px 14px; align-items: flex-start; }
+.pla-ans .li .ico { margin-top: 3px; }
+.pla-srcs { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.src { border: 1px solid var(--border); font: 500 11.5px var(--mono); color: var(--muted-foreground); background: var(--card); cursor: pointer; }
+.pla-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.pla-comp { border-top: 1px solid var(--border); padding: 14px 20px 18px; display: flex; flex-direction: column; gap: 10px; background: var(--card); border-radius: 0 0 18px 18px; }
+.pla-comp .inbox { display: flex; gap: 8px; align-items: center; border: 1px solid var(--input); border-radius: 14px; padding: 6px 6px 6px 14px; transition: border-color var(--dur-fast), box-shadow var(--dur-fast); }
+.pla-comp .inbox:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent); }
+.pla-comp input { flex: 1; border: 0; outline: none; background: none; font-size: var(--text-sm); min-width: 0; }
+.pla-sug { display: flex; gap: 6px; flex-wrap: wrap; }
+.pla-sug button { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 5px 12px; font-size: 12px; color: var(--foreground); transition: background var(--dur-fast), border-color var(--dur-fast); }
+.pla-sug button:hover { background: var(--muted); border-color: color-mix(in srgb, var(--primary) 30%, var(--border)); }
+.pla-think { display: inline-flex; gap: 4px; }
+.pla-think i { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); animation: pla-dot 1s infinite ease-in-out; }
+.pla-think i:nth-child(2) { animation-delay: .15s; } .pla-think i:nth-child(3) { animation-delay: .3s; }
+@keyframes pla-dot { 0%, 80%, 100% { opacity: .25; transform: none; } 40% { opacity: 1; transform: translateY(-3px); } }
+.pla-calc { font: 500 13px var(--mono); display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; padding: 12px 14px; }
+.pla-calc span { color: var(--muted-foreground); }
+.pla-calc b { text-align: right; font-weight: 600; }
+.pla-calc .tot { border-top: 1px solid var(--border); padding-top: 6px; margin-top: 2px; }
+.pla-calc .tot span, .pla-calc .tot b { color: var(--foreground); font-weight: 700; }
+
+/* Permisos */
+.pla-perm td.c { text-align: center; }
+.pla-perm .yes { color: var(--emerald-600); }
+.pla-perm .no { color: var(--secondary-400); }
+.pla-perm .ap { color: var(--amber-600); }
+.pla-perm button.cell { border: 0; background: none; width: 30px; height: 30px; border-radius: 8px; display: inline-grid; place-items: center; font-size: 16px; }
+.pla-perm button.cell:hover { background: var(--muted); }
+
+/* Comentarios */
+.pla-thread { display: flex; flex-direction: column; gap: 12px; }
+.pla-cm { display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+.pla-cm .bub { font-size: var(--text-sm); }
+.pla-cm .bub small { color: var(--muted-foreground); font-size: 12px; margin-left: 6px; }
+.pla-cm .men { color: var(--primary); font-weight: 600; }
+.pla-ment { position: relative; }
+.pla-ment .menu { bottom: calc(100% + 6px); left: 0; }
+
+/* Automatizaciones */
+.pla-rule { display: grid; grid-template-columns: 40px 1fr auto; gap: 14px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.pla-rule:last-child { border-bottom: 0; }
+.pla-rule.off { background: color-mix(in srgb, var(--muted) 45%, transparent); }
+.pla-rule.off .pla-flow { opacity: .55; }
+.pla-flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--text-sm); }
+.pla-flow .k { font: 600 10.5px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); }
+.pla-flow .p { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--muted); }
+.pla-flow .p.then { background: color-mix(in srgb, var(--primary) 8%, transparent); color: var(--primary); }
+.pla-flow .ar { color: var(--muted-foreground); font-size: 14px; }
+.pla-build { display: grid; grid-template-columns: 90px 1fr; gap: 10px 14px; align-items: center; }
+.pla-build .k { font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); }
+
+/* Plan */
+.pla-plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.pla-plan { border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 8px; background: var(--card); }
+.pla-plan.cur { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 12%, transparent); }
+.pla-plan .pr { font: 700 var(--text-lg) var(--mono); }
+.pla-plan ul { margin: 0; padding-left: 18px; font-size: var(--text-xs); color: var(--muted-foreground); display: flex; flex-direction: column; gap: 3px; }
+
+/* Estado del servicio */
+.pla-svc { display: grid; grid-template-columns: 40px minmax(0,1fr) 110px 110px 170px; gap: 14px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+.pla-svc:last-child { border-bottom: 0; }
+.pla-svc .n { font: 600 12px var(--mono); text-align: right; white-space: nowrap; }
+.pla-svc .n small { display: block; font: 500 10.5px var(--sans); color: var(--muted-foreground); letter-spacing: .04em; text-transform: uppercase; }
+.pla-days { display: grid; grid-template-columns: repeat(30, 1fr); gap: 3px; height: 28px; }
+.pla-days i { border-radius: 3px; background: var(--emerald-500); opacity: .85; }
+.pla-days i.d1 { background: var(--amber-500); }
+.pla-days i.d2 { background: var(--rose-500); }
+.pla-queue { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+.pla-queue > div { padding: 14px 16px; border-right: 1px solid var(--border); }
+.pla-queue > div:last-child { border-right: 0; }
+.pla-queue b { display: block; font: 700 var(--text-lg) var(--mono); }
+.pla-lim { display: grid; grid-template-columns: 70px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: var(--text-sm); }
+.pla-lim:last-child { border-bottom: 0; }
+.pla-lim .c { font: 700 13px var(--mono); padding: 3px 8px; border-radius: 6px; text-align: center; }
+.pla-lim .c.y { background: #ecfdf5; color: var(--emerald-700); }
+.pla-lim .c.n { background: #fff1f2; color: var(--rose-600); }
+.pla-lim .c.g { background: var(--muted); color: var(--muted-foreground); }
+
+/* Onboarding */
+.pla-steps { display: flex; flex-direction: column; }
+.pla-step { display: grid; grid-template-columns: 36px 1fr auto; gap: 14px; align-items: center; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+.pla-step:last-child { border-bottom: 0; }
+.pla-step .n { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font: 700 13px var(--mono); border: 1.5px solid var(--border); color: var(--muted-foreground); }
+.pla-step.ok .n { background: var(--emerald-600); border-color: var(--emerald-600); color: #fff; }
+.pla-step.cur .n { border-color: var(--primary); color: var(--primary); }
+
+/* Teléfono */
+body.m .pla-msg .tbl { font-size: 12px; }
+body.m .pla-msg .tbl th, body.m .pla-msg .tbl td { padding: 8px 6px; }
+body.m .pla-msg .tbl td .muted, body.m .pla-msg .tbl th:nth-child(2), body.m .pla-msg .tbl td:nth-child(2) { display: none; }
+body.m .pla-msg .tbl .bdg { display: none; }
+body.m .pla-todo { padding: 12px 14px; grid-template-columns: 32px 1fr auto; }
+body.m .pla-msg { grid-template-columns: 28px 1fr; gap: 10px; }
+body.m .pla-msg .who { width: 28px; height: 28px; font-size: 14px; }
+body.m .pla-chat { padding: 0; }
+.pla-mic { position: fixed; left: 14px; right: 14px; bottom: 104px; z-index: 35; display: flex; gap: 8px; align-items: center; background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 8px; box-shadow: 0 8px 24px rgba(15,23,42,.10); }
+.pla-mic input { flex: 1; min-width: 0; border: 0; outline: none; background: none; font-size: 15px; padding: 0 6px; }
+.pla-mic .rec { width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 20px; flex: none; }
+.pla-mic .rec.on { background: var(--rose-600); }
+.pla-wave { display: flex; gap: 3px; align-items: center; height: 28px; flex: 1; padding: 0 8px; }
+.pla-wave i { flex: 1; max-width: 4px; background: var(--rose-500); border-radius: 2px; height: 30%; animation: pla-wave .9s infinite ease-in-out; }
+@keyframes pla-wave { 0%, 100% { height: 20%; } 50% { height: 90%; } }
+.pla-filt { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.pla-filt .chip { flex: none; height: 30px; padding: 0 12px; font-size: 13px; }
+.pla-av { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--border); position: relative; }
+.pla-av:last-child { border-bottom: 0; }
+.pla-av.new::after { content: ''; position: absolute; right: 14px; top: 16px; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }
+.pla-av b { display: block; font-size: 14px; font-weight: 600; padding-right: 18px; line-height: 1.3; }
+.pla-av small { display: block; font-size: 12.5px; color: var(--muted-foreground); margin-top: 2px; }
+.pla-av .cu { font: 500 11px var(--mono); color: var(--muted-foreground); margin-top: 4px; display: block; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pla-think i, .pla-wave i { animation: none; opacity: .8; }
+}

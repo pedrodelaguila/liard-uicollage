@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Re-cotizar con precios de hoy · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="compras.css">
+</head>
+<body data-role="ing" data-active="presupuestos" data-h="h1" data-user="lucas"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Torre Alem 1450 · Oficinas>Re-cotizar"
+      data-title="Re-cotizar con precios de hoy" data-sub="COT-2026-019 del 05/09 contra las listas vigentes de los mismos distribuidores. Nada cambia hasta que lo apliques.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="lineas"><button data-vista="lineas">Por línea</button><button data-vista="distribuidor">Por distribuidor</button></div>
+  <button class="btn pri" id="aplicar" data-icon="refresh-cw">Crear cotización nueva</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="compras.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const esc = L.esc;
+  const V = L.q('vista') || 'lineas'; const E = L.q('estado');
+  const K = { nf: ['', 'Sin match', 'triangle-alert', 'er'], subio: ['up', 'Subió', 'trending-up', 'er'], bajo: ['down', 'Bajó', 'trending-down', 'ok'], igual: ['', 'Igual', 'minus', 'gr'], salio: ['up', 'Salió de catálogo', 'package-x', 'er'], stock: ['up', 'Sin stock', 'ban', 'wa'] };
+  let filtro = 'todas';
+  const ORIG = L.q('origen'); const AB = ORIG && C.asBuilt(ORIG);
+  const T = AB || C.TORRE; const proy = L.get('proyectos').find(p => p.id === T.proyecto);
+  if (AB) { document.querySelector('.ph h1').textContent = 'Re-cotizar el ' + AB.cod + ' con precios de hoy'; document.querySelector('.ph .sub').textContent = 'As-built del tablero ' + AB.tablero.n + ' (serie ' + AB.tablero.serie + ') contra las listas vigentes: repuestos y ampliaciones.'; const cr = document.querySelector('.crumbs'); cr.innerHTML = cr.innerHTML.replace('Torre Alem 1450 · Oficinas', 'Hospital Cañuelas · ' + AB.cod); }
+  if (ORIG && !AB) { page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('search')}</div><h3>No encontramos ese tablero</h3><p>El as-built «${esc(ORIG)}» no existe en este proyecto. Elegí uno de los tableros de Hospital Cañuelas.</p><div class="row" style="justify-content:center">${L.get('tableros').map(t => `<a class="btn out sm" href="d-com-recotizar.html?origen=${t.id}">${esc(t.cod)}</a>`).join('')}</div></div></div>`; L.fixLinks(page); return; }
+  const diasT = C.dias(T.fecha, C.HOY);
+
+  if (E === 'error') {
+    page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('circle-alert')}</div><h3>No pudimos leer la cotización vieja</h3><p>COT-2026-019 se armó con un BOM que después se editó: 2 líneas ya no existen. Podés re-cotizar el BOM actual de Torre Alem en lugar de la foto de septiembre.</p><div class="row" style="justify-content:center"><button class="btn out" id="re">${L.icon('refresh-cw')}Reintentar</button><a class="btn pri" href="d-com-cotizacion.html">${L.icon('table-2')}Cotizar el BOM actual</a></div></div></div>`;
+    L.fixLinks(page); page.querySelector('#re').onclick = () => L.param('estado', ''); return;
+  }
+
+  function render() {
+    const rs = C.recotizar(T); const pedidos = L.get('x.compras.pedidoAct') || {};
+    const antes = rs.reduce((s, r) => s + r.antes, 0), hoy = rs.reduce((s, r) => s + r.hoy, 0);
+    const d = antes ? (hoy - antes) / antes * 100 : 0;
+    const ipcPer = T.ipc * diasT / 30;
+    const cnt = k => rs.filter(r => r.k === k).length;
+    const venc = rs.filter(r => r.vieja).length; const igual = cnt('igual');
+
+    const kpis = `<div class="kpis">
+      <div class="kpi"><b>${L.ars(antes)}</b><span>Cotizado el ${L.fecha(T.fecha)}</span></div>
+      <div class="kpi pri"><b>${L.ars(hoy)}</b><span>Con las listas de hoy</span></div>
+      <div class="kpi ${d > 0 ? 'bad' : 'ok'}"><b>${d > 0 ? '+' : ''}${L.pct(d, 1)}</b><span>${d > 0 ? '+ ' : '− '}${L.ars(Math.abs(hoy - antes))} de impacto</span></div>
+      <div class="kpi"><b>${L.pct(ipcPer, 1)}</b><span>IPC del período (${diasT} ${diasT === 1 ? 'día' : 'días'})</span><small>INDEC: 1,7 % mensual · «Instalación eléctrica» ICC +${L.num(T.icc, 1)} %</small></div>
+      <div class="kpi warn"><b>${cnt('salio') + cnt('stock')}</b><span>Salieron o sin stock</span></div></div>`;
+
+    const lectura = `<div class="note ${d > ipcPer ? 'warn' : 'info'}"><span>${L.icon(d > ipcPer ? 'trending-up' : 'info')}</span><div class="grow"><b>${Math.abs(d) < 0.05 ? 'Los precios se mantienen' : `Los precios ${d > 0 ? 'subieron' : 'bajaron'} ${L.pct(Math.abs(d), 1)}, ${d > ipcPer ? 'más' : 'menos'} que la inflación del período (${L.pct(ipcPer, 1)})`}</b>${cnt('subio') + cnt('bajo') + cnt('salio') === 0 ? 'Lo que se pagó sigue en las listas al mismo precio: el pedido de repuestos sale igual.' : ''}${cnt('subio') + cnt('bajo') + cnt('salio') === 0 ? '' : cnt('subio') + ' líneas subieron,'} ${cnt('subio') + cnt('bajo') + cnt('salio') === 0 ? '' : `${cnt('bajo')} ${cnt('bajo') === 1 ? 'bajó' : 'bajaron'} y ${cnt('salio')} ${cnt('salio') === 1 ? 'salió' : 'salieron'} del catálogo del distribuidor original.`} ${venc ? `${venc} se comparan contra la lista de Casa Volta, que venció el 30/09: el número real puede ser más alto.` : ''}</div>${venc ? (pedidos.volta ? '<span class="bdg">Actualización pedida</span>' : `<button class="btn sm out" data-pedir="volta">${L.icon('mail')}Pedir actualización a Casa Volta</button>`) : ''}</div>`;
+
+    const chips = `<div class="chips">${[['todas', 'Todas', rs.length], ['subio', 'Subieron', cnt('subio')], ['bajo', 'Bajaron', cnt('bajo')], ...(igual ? [['igual', 'Igual', igual]] : []), ['salio', 'Salieron de catálogo', cnt('salio')], ['stock', 'Sin stock', cnt('stock')]].map(([k, t, n]) => `<button class="chip ${filtro === k ? 'on' : ''}" data-f="${k}">${t} <small>${n}</small></button>`).join('')}</div>`;
+
+    const max = Math.max(...rs.filter(r => r.d != null).map(r => Math.abs(r.d)), 10);
+    const filas = rs.filter(r => filtro === 'todas' || r.k === filtro || (filtro === 'salio' && r.k === 'nf'));
+    const tabla = `${chips.includes('Igual') ? '' : ''}<div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('git-compare-arrows')}</div><div><h3>Diff por línea</h3><div class="sub">Mismo distribuidor, mismo componente base y atributos esenciales · precios sin IVA</div></div></div><div style="padding:12px 20px;border-bottom:1px solid var(--border)">${chips}</div>
+      <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Material</th><th class="r">Cant.</th><th>Distribuidor</th><th class="r">Unitario ${L.fechaCorta(T.fecha)} → hoy</th><th>Variación</th><th class="r">Impacto en el total</th><th>Estado</th><th></th></tr></thead><tbody>
+      ${filas.map(r => { const k = K[r.k]; if (r.k === 'nf') return `<tr class="warn"><td><b style="font-size:12.5px">${esc(r.l.mat)}</b><div class="muted mono" style="font-size:11.5px">${esc(r.l.spec)}</div></td><td class="r mono">${L.num(r.x.q)}</td><td colspan="3" style="font-size:12px">${esc(r.l.motivo || 'Sin match')}</td><td></td><td><span class="st er" style="height:22px;font-size:11.5px;white-space:nowrap">${L.icon('triangle-alert')}Sin match</span></td><td><a class="btn xs out" href="d-bom-editor.html?linea=${r.l.id}">Destrabar</a></td></tr>`; const pr = C.prov(r.x.prov);
+        return `<tr class="${r.k === 'salio' ? 'warn' : ''}"><td style="min-width:230px"><b style="font-size:12.5px">${esc(r.l.mat)}</b><div class="muted mono" style="font-size:11.5px">${esc(r.l.spec)}</div></td><td class="r mono">${L.num(r.x.q)}</td>
+          <td style="font-size:12.5px;white-space:nowrap"><span class="row gap8"><span class="av xs ${C.COLOR[r.x.prov]}">${C.INI[r.x.prov]}</span>${esc(pr.n.replace(' S.A.', '').replace(' Mayorista', ''))}</span><div class="muted" style="font-size:11px">lista ${L.fechaCorta(pr.act)}${r.vieja ? ' · <span style="color:var(--amber-700)">vencida</span>' : ''}</div></td>
+          <td class="r money" style="white-space:nowrap"><span class="muted">${L.ars(r.x.antes)}</span> → ${r.k === 'salio' ? (r.alt ? `<span title="Mejor alternativa con stock">${L.ars(r.pu)}</span><div class="muted" style="font-size:11px">${esc(C.prov(r.alt.pid).n)}</div>` : '—') : L.ars(r.pu)}</td>
+          <td>${r.d != null ? `<div class="row gap8"><div class="c-db"><i class="${r.d > 0 ? 'up' : 'down'}" style="width:${Math.min(50, Math.abs(r.d) / max * 50)}%"></i></div><span class="mono ${k[0]}" style="font-size:12px;white-space:nowrap">${r.d > 0 ? '+' : ''}${L.pct(r.d, 1)}</span></div>` : '<span class="muted" style="font-size:12px">—</span>'}</td>
+          <td class="r money ${r.hoy > r.antes ? 'up' : r.hoy < r.antes ? 'down' : ''}">${r.hoy > r.antes ? '+ ' : r.hoy < r.antes ? '− ' : ''}${L.ars(Math.abs(r.hoy - r.antes))}</td>
+          <td><span class="st ${k[3]}" style="height:22px;font-size:11.5px;white-space:nowrap">${L.icon(k[2])}${k[1]}</span></td>
+          <td>${r.k === 'salio' ? `<button class="btn xs out" data-alt="${r.l.id}">Ver alternativa</button>` : r.k === 'stock' ? `<span class="muted" style="font-size:11.5px">${r.o.plazo} d a pedido</span>` : ''}</td></tr>`; }).join('')}
+      </tbody><tfoot><tr><td colspan="5"><b>Total</b> <span class="money muted">${L.ars(antes)} → ${L.ars(hoy)}</span></td><td class="r money up"><b>+ ${L.ars(hoy - antes)}</b></td><td colspan="2"></td></tr></tfoot></table></div></div>`;
+
+    const porProv = C.provs().map(p => { const xs = rs.filter(r => r.x.prov === p.id && r.k !== 'nf'); if (!xs.length) return ''; const a = xs.reduce((s, r) => s + r.antes, 0), h = xs.reduce((s, r) => s + r.hoy, 0); const dd = a ? (h - a) / a * 100 : 0; const vie = C.diasLista(p);
+      return `<div class="card pad col" style="gap:12px"><div class="row gap8"><span class="av sm ${C.COLOR[p.id]}">${C.INI[p.id]}</span><div class="grow"><b style="font-size:14px">${esc(p.n)}</b><div class="muted" style="font-size:12px">${xs.length} líneas · lista del ${L.fecha(p.act)} (hace ${vie} días)</div></div><span class="mono ${dd > 0 ? 'up' : 'down'}" style="font-weight:700">${dd > 0 ? '+' : ''}${L.pct(dd, 1)}</span></div>
+        <div class="row" style="justify-content:space-between;font-size:13px"><span class="muted">05/09 → hoy</span><span class="money">${L.ars(a)} → <b>${L.ars(h)}</b></span></div>
+        ${vie > 30 ? `<div class="note warn"><span>${L.icon('clock-alert')}</span><div class="grow"><b>Lista de ${vie} días</b>La comparación usa precios vencidos el 30/09.</div></div>${pedidos[p.id] ? '<span class="bdg">Actualización pedida hoy</span>' : `<button class="btn sm pri" data-pedir="${p.id}">${L.icon('mail')}Pedir actualización</button>`}` : `<span class="bdg ok">Lista vigente hasta 15/10</span>`}</div>`; }).join('');
+
+    const intro = AB ? `<div class="note info"><span>${L.icon('qr-code')}</span><div class="grow"><b>As-built del ${esc(AB.cod)} · ${esc(proy.n)}</b>Lo que lleva el tablero según su lista de armado, al precio que se pagó en el PED-2026-031 (${L.fecha(T.fecha)}). Sirve para cotizar repuestos o una ampliación sin rearmar el BOM. ${cnt('nf') ? `${cnt('nf')} ${cnt('nf') === 1 ? 'aparato no tiene' : 'aparatos no tienen'} match: se cotiza a mano.` : ''} <span class="tag-h2">desde el QR del tablero</span></div><a class="btn sm out" href="d-com-recotizar.html">${L.icon('arrow-left')}Volver a Torre Alem</a></div>`
+      : `<div class="note info"><span>${L.icon('archive')}</span><div class="grow"><b>${esc(proy.n)} · ${esc(proy.cliente)}</b>La cotización ${T.id} quedó congelada el ${L.fecha(T.fecha)} (${diasT} días). El comitente pidió ampliar a un piso más: antes de presupuestar, mirá cuánto cambió todo. <span class="tag-h1">pedido de HCM</span></div><div class="row gap4">${L.get('tableros').slice(0, 2).map(t => `<a class="btn xs ghost" href="d-com-recotizar.html?origen=${t.id}">As-built ${esc(t.cod)}</a>`).join('')}</div></div>`;
+    page.innerHTML = intro + kpis + lectura + (V === 'distribuidor' ? `<div class="grid4">${porProv}</div>` : tabla);
+    L.fixLinks(page);
+  }
+
+  function pedir(pid) {
+    const p = C.prov(pid);
+    L.dialog({ title: 'Pedir lista actualizada a ' + p.n, icon: 'mail', desc: `Su lista tiene ${C.diasLista(p)} días. Le llega un correo con las líneas que te interesan; cuando suba la lista nueva, esta comparación se actualiza sola.`,
+      body: `<div class="field"><label for="msg">Mensaje</label><textarea class="inp" id="msg">Hola, ¿nos pasan la lista vigente? Necesitamos reconfirmar precio y stock de 4 líneas para Torre Alem 1450 (ampliación).</textarea></div><div class="row"><span class="tag-s5">aviso por email · s5</span><span class="muted" style="font-size:12px">Se envía desde liard, con copia a vos.</span></div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Enviar pedido', icon: 'send', fn: () => {
+        L.set('x.compras.pedidoAct', Object.assign({}, L.get('x.compras.pedidoAct') || {}, { [pid]: C.HOY }));
+        L.update(s => s.avisos.unshift({ id: 'c-act-' + pid, t: 'Pediste la lista actualizada a ' + p.n, d: 'Para re-cotizar Torre Alem 1450', i: 'mail', tipo: 'pr', cuando: 'recién', href: 'd-com-recotizar.html' }));
+        L.toast('Pedido enviado a ' + p.n, { desc: 'Te avisamos cuando suba la lista.' });
+      } }] });
+  }
+
+  page.addEventListener('click', e => {
+    const f = e.target.closest('[data-f]'); if (f) { filtro = f.dataset.f; return render(); }
+    const p = e.target.closest('[data-pedir]'); if (p) return pedir(p.dataset.pedir);
+    const a = e.target.closest('[data-alt]');
+    if (a) { const r = C.recotizar(T).find(x => x.l.id === a.dataset.alt);
+      L.sheet(`<div class="dlg-h"><div class="card-ico">${L.icon('package-x')}</div><div class="grow"><h2>${esc(r.l.mat)} · salió de catálogo</h2><p class="mono">${esc(r.l.spec)} · ${esc(C.prov(r.x.prov).n)} ya no lo lista</p></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+        <div class="dlg-b"><div class="note info"><span>${L.icon('info')}</span><div>Mismo componente base y atributos esenciales en otros catálogos (match canónico 100 %). No es un código inventado: es la oferta de cada distribuidor.</div></div>
+        ${Object.entries(C.ofertas(r.l)).filter(([pid]) => pid !== r.x.prov).map(([pid, o]) => `<div class="row" style="padding:10px 12px;border:1px solid var(--border);border-radius:12px"><span class="av sm ${C.COLOR[pid]}">${C.INI[pid]}</span><div class="grow"><b style="font-size:13px">${esc(C.prov(pid).n)}</b><div class="muted mono" style="font-size:11.5px">${esc(o.codigo)} · ${o.stock ? 'stock ' + L.num(o.stock) : 'sin stock'} · ${o.plazo} d</div></div><b class="money" style="font-size:13px">${L.ars(o.precio)}</b></div>`).join('')}
+        <button class="btn pri" data-x>${L.icon('check')}Usar la más barata con stock en la cotización nueva</button></div>`, { label: 'Alternativa' });
+    }
+  });
+
+  document.getElementById('aplicar').onclick = () => {
+    const rs = C.recotizar(T); const hoy = rs.reduce((s, r) => s + r.hoy, 0);
+    L.dialog({ title: 'Crear la cotización nueva', icon: 'refresh-cw', desc: 'COT-2026-019 queda como estaba, para comparar. La nueva arranca con los precios de hoy.',
+      body: `<div class="row" style="justify-content:space-between"><span class="lbl">Total con listas de hoy</span><b class="money">${L.ars(hoy)} +IVA</b></div><div class="note warn"><span>${L.icon('clock-alert')}</span><div>Las líneas de Casa Volta van marcadas como precio vencido (STALE_PRICE) hasta que actualice.</div></div>`,
+      actions: [{ t: 'Cancelar' }, { t: AB ? 'Crear cotización de repuestos' : 'Crear COT-2026-047', icon: 'check', fn: () => { L.update(s => s.avisos.unshift({ id: 'c-cot-047', t: 'Creaste COT-2026-047 para Torre Alem 1450', d: `Con los precios de hoy · ${L.ars(hoy)} +IVA`, i: 'refresh-cw', tipo: 'ok', cuando: 'recién', href: 'd-com-recotizar.html' })); L.toast('Cotización COT-2026-047 creada', { desc: 'Re-cotizada con las listas vigentes al ' + L.fecha(C.HOY) }); } }] });
+  };
+
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

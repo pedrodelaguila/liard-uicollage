@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Línea del BOM · liard</title><link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="bom.css"></head>
+<body class="m" data-role="ing" data-tabs="ing" data-active="m-avisos" data-h="s4" data-title="Línea del BOM" data-back="m-pla-avisos.html">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="bom.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const I = (n, c) => L.icon(n, c), esc = L.esc;
+  const id = L.q('linea') || 'l09';
+  function render() {
+    const l = BOM.linea(id);
+    if (!l) { page.innerHTML = `<div class="empty"><div class="e-ico">${I('search-x')}</div><h3>No encontramos esa línea</h3><p>Puede que la hayan borrado del BOM.</p><button class="btn out" data-href="m-pla-inicio.html">Volver al inicio</button></div>`; return; }
+    const p = BOM.PREGUNTAS[id]; const t = BOM.traza(l); const s = BOM.SUGERENCIAS[id];
+    const tipo = BOM.tipoDe(l);
+    page.innerHTML = `
+      <div class="card pad col gap8"><span class="lbl">Hospital Regional Cañuelas · ${esc((l.fuentes[0] || '').split(' ')[0])}</span>
+        <b style="font:700 16px var(--mono);color:var(--bom-material)">${esc(l.mat)}</b><span class="mono muted" style="font-size:13px">${esc(l.spec)}</span>
+        <div class="orgbar">${BOM.chipSt(l)}${BOM.chipOrg(l)}</div>
+        ${l.motivo ? `<div class="note bad">${I('triangle-alert')}<div>${esc(l.motivo)}</div></div>` : ''}${l.reparo ? `<div class="note warn">${I('circle-alert')}<div>${esc(l.reparo)}</div></div>` : ''}</div>
+      ${l.estado === 'blocked' && p ? `<div class="card pad col gap8"><span class="lbl">Para destrabarla</span><b style="font-size:15px">${esc(p.q)}</b>
+        ${p.tipo ? `<button class="btn out block" data-tipo>${I('box')}Usar «Gabinete» (Sprint 5)</button><button class="btn ghost block" data-mano>${I('hand')}Cotizar a mano</button>`
+          : `<div class="chips">${p.opts.map(v => `<button class="chip" data-v="${esc(v)}">${esc(v)}</button>`).join('')}</div>`}
+        ${s && !s.tipo ? `<div class="sug"><div class="row"><span class="ai-tag">${I('sparkles')}IA</span><b>${esc(s.val)}</b><span class="cost ml-auto">${L.usd(s.costo)}</span></div><span class="muted">${esc(s.por)}</span><button class="btn sm ai" data-sug>${I('check')}Confirmar ${esc(s.val)}</button></div>` : ''}</div>` : ''}
+      ${tipo ? `<div class="card pad col gap8"><span class="lbl">${esc(tipo.n)}</span><div class="attrs">${tipo.a.map(([k, r]) => { const v = (l.attrs || {})[k]; const f = (l.faltan || []).includes(k); return `<div class="attr ${f ? 'falta' : !v ? 'vacio' : ''}"><span class="k">${esc(k)}${r ? '<i>*</i>' : ''}</span><span class="v">${esc(v || (f ? 'falta' : 'sin valor'))}</span></div>`; }).join('')}</div></div>` : ''}
+      <div class="card pad col gap8"><span class="lbl">Por qué esta cantidad</span>
+        <div class="traza"><table><thead><tr><th>De dónde</th><th class="r">Dib.</th><th class="r">×</th><th class="r">Comprar</th></tr></thead><tbody>
+        ${t.rows.map(r => `<tr><td>${esc(r.cod || r.t)}</td><td class="r">${r.dib ?? '—'}</td><td class="r x">×${r.rep}</td><td class="r">${r.comprar ?? '—'}</td></tr>`).join('')}
+        ${t.extra.map(e => `<tr><td>${BOM.chipOrg({ org: e.org }, true)} ${esc(e.t)}</td><td></td><td></td><td class="r">${e.reemplaza ? '= ' : '+'}${L.num(e.comprar)}</td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>Total</td><td class="r">${L.num(l.dib)}</td><td></td><td class="r">${L.num(l.comprar)} ${l.u}</td></tr></tfoot></table></div></div>
+      <button class="btn out block" data-href="d-bom-editor.html?linea=${l.id}">${I('monitor')}Abrir en la computadora</button>`;
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const antes = BOM.linea(id).estado; const p = BOM.PREGUNTAS[id], s = BOM.SUGERENCIAS[id];
+    if (b.dataset.v) BOM.fijarAtributo(id, p.attr, b.dataset.v, 'manual');
+    else if (b.hasAttribute('data-sug')) BOM.fijarAtributo(id, s.attr, s.val, 'ia');
+    else if (b.hasAttribute('data-tipo')) BOM.fijarTipo(id, 'ENCLOSURE', s.attrs, 'manual');
+    else if (b.hasAttribute('data-mano')) BOM.cotizarAMano(id);
+    else return;
+    if (antes === 'blocked' && BOM.linea(id).estado !== 'blocked') L.toast('Ya se puede cotizar', { desc: 'Entra en la próxima cotización' });
+  });
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

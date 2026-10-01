@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Protocolo de ensayos · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css">
+</head>
+<body data-role="ing" data-active="taller" data-h="h2" data-user="ramiro"
+  data-crumbs="Taller|d-tal-taller.html>Protocolo de ensayos"
+  data-title="Protocolo de ensayos de rutina"
+  data-sub="Verificaciones de rutina del tablero terminado, con mediciones, fotos y firmas. Al firmarlo se emite el PDF y la placa con QR.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="checklist"><button data-vista="checklist">Checklist</button><button data-vista="hoja">Hoja del protocolo</button></div>
+  <button class="btn out" id="placa" data-icon="qr-code">Placa y QR</button>
+  <button class="btn pri" id="emitir" data-icon="file-down">Emitir protocolo</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const tid = L.q('tablero') || 'tsgpb', fallido = L.q('estado') === 'fallido', vista = L.q('vista') || 'checklist';
+  const t = CP.tab(tid);
+  if (!t) { CP.error(page, 'No encontramos ese tablero', 'Puede que lo hayan borrado del proyecto o que el enlace esté incompleto.', 'd-tal-taller.html'); return; }
+  document.querySelector('.ph h1').textContent = 'Protocolo de ensayos · ' + t.cod;
+  const SEED = () => ({ res: { ip: 'ok', dist: 'ok', pe: null, comp: 'ok', cab: 'ok', mec: 'ok', ais: null, func: null },
+    ais: K.medicionesAis.map((m, i) => (fallido && m.falla ? m.falla : i < 4 ? m.v : null)), pe: K.medicionesPE.map(m => m.v),
+    firmas: {}, fotos: ['Frente cerrado', 'Interior cableado'], obs: fallido ? 'Q7: aislación baja entre L1 y PE. Se sospecha un borne de la bornera X1 pellizcando el cable.' : '' });
+  const P = () => { let p = CP.x('protocolos.' + tid); if (!p) { p = SEED(); } return p; };
+  const save = p => CP.x('protocolos.' + tid, p);
+  const MIN_AIS = 1, MAX_PE = 0.1;
+  const aisOk = v => v != null && v !== '' && +v >= MIN_AIS;
+
+  function estadoDe(p, e) {
+    if (e.tipo === 'ais') { if (p.ais.some(v => v != null && v !== '' && +v < MIN_AIS)) return 'er'; return p.ais.every(aisOk) ? 'ok' : null; }
+    if (e.tipo === 'pe') { if (p.pe.some(v => v != null && v !== '' && +v > MAX_PE)) return 'er'; return p.pe.every(v => v != null && v !== '') ? 'ok' : null; }
+    return p.res[e.id] || null;
+  }
+  const resumen = p => { const r = { ok: 0, er: 0, na: 0, pend: 0 }; K.ensayos.forEach(e => { const s = estadoDe(p, e); r[s || 'pend']++; }); return r; };
+  const puedeFirmar = p => { const r = resumen(p); return r.er === 0 && r.pend === 0; };
+
+  function render() {
+    const p = P(), r = resumen(p), habil = t.estado === 'ensayo' || p.firmado, ok = puedeFirmar(p);
+    const btnE = document.getElementById('emitir');
+    btnE.classList.toggle('dis', !(ok && p.firmas.realizo && p.firmas.controlo) || !!p.firmado);
+    btnE.innerHTML = L.icon(p.firmado ? 'circle-check' : 'file-down') + (p.firmado ? 'Protocolo emitido' : 'Emitir protocolo');
+    if (vista === 'hoja') { page.innerHTML = hoja(p); return; }
+    const fallo = K.ensayos.filter(e => estadoDe(p, e) === 'er');
+    page.innerHTML = `
+    <div class="note info">${L.icon('book-open')}<div><b>Es una guía: la norma manda</b>Basada en IEC 61439-1/-2 (verificaciones de rutina, cap. 11) y AEA 90364-7-771. La verificación del diseño la hace el fabricante original del sistema; el tablerista hace las de rutina sobre cada tablero terminado. Los criterios numéricos son los del taller: confirmalos con la edición vigente de la norma y la especificación del comitente.</div></div>
+    ${p.firmado ? `<div class="note ok">${L.icon('circle-check')}<div><b>Protocolo firmado el ${L.fecha(p.fecha)} · ${L.esc(t.cod)} quedó listo para entregar</b>Se emitió PR-${L.esc(t.serie)}.pdf y la placa con QR. <a class="src" href="d-tal-entregas.html">${L.icon('truck')}Armar el remito de entrega</a> <a class="src" href="m-cli-tablero.html?tablero=${tid}">${L.icon('qr-code')}Ver lo que abre el QR</a></div></div>` : ''}
+    ${!habil ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>${L.esc(t.cod)} todavía está «${CP.EST[t.estado].toLowerCase()}» (${t.avance} %)</b>Podés preparar el protocolo, pero se firma cuando el tablero pase a ensayo. <a class="src" href="d-tal-taller.html?tablero=${tid}">${L.icon('factory')}Ver en el taller</a></div></div>` : ''}
+    ${fallo.length ? `<div class="note bad">${L.icon('octagon-x')}<div><b>Hay ${fallo.length === 1 ? 'un ensayo fallido' : fallo.length + ' ensayos fallidos'}: no se puede firmar</b>${fallo.map(e => L.esc(e.t)).join(' · ')}. Corregí, repetí la medición y volvé a cargar el valor; queda registrada la no conformidad.</div></div>` : ''}
+    <div class="split">
+      <div class="col gap16">
+        <div class="card">
+          <div class="card-h"><div class="card-ico">${L.icon('clipboard-check')}</div><div class="grow"><h3>Verificaciones de rutina</h3><div class="sub">${r.ok} de ${K.ensayos.length} aprobadas${r.er ? ' · ' + r.er + ' con falla' : ''}${r.pend ? ' · ' + r.pend + ' pendientes' : ''}</div></div><span class="tag-nuevo">Nuevo</span></div>
+          <div class="tri" style="margin:0 20px;margin-top:-1px;border-radius:0">${r.ok ? `<i class="ok" style="flex:${r.ok}"></i>` : ''}${r.er ? `<i class="er" style="flex:${r.er}"></i>` : ''}${r.pend ? `<i class="gr" style="flex:${r.pend}"></i>` : ''}</div>
+          ${K.ensayos.map(e => ensayo(p, e)).join('')}
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="card-ico">${L.icon('camera')}</div><div class="grow"><h3>Fotos y observaciones</h3><div class="sub">Van anexas al protocolo</div></div></div>
+          <div class="card-b col gap16">
+            <div class="grid4">${p.fotos.map((f, i) => `<div class="cp-foto ok" role="img" aria-label="Foto: ${L.esc(f)}"><span>${L.esc(f)}</span></div>`).join('')}<button class="cp-foto" id="foto">${L.icon('camera')} Agregar foto</button></div>
+            <div class="field"><label for="obs">Observaciones</label><textarea class="inp" id="obs" placeholder="Lo que encontraste y cómo se corrigió">${L.esc(p.obs)}</textarea></div>
+          </div>
+        </div>
+      </div>
+      <div class="col gap16">
+        <div class="card pad col gap8">
+          <span class="lbl">Tablero</span>
+          <div class="row"><b class="mono" style="font-size:18px;color:var(--bom-material)">${L.esc(t.cod)}</b><span class="st ${CP.EST_ST[t.estado]} ml-auto">${L.icon(CP.EST_IC[t.estado])}${CP.EST[t.estado]}</span></div>
+          <span class="muted" style="font-size:13px">${L.esc(t.n)} · ${L.esc(t.gabinete)}</span>
+          <dl class="cp-kv" style="margin-top:6px"><dt>N.º de serie</dt><dd class="mono">${L.esc(t.serie)}</dd><dt>Obra</dt><dd>Hospital Regional Cañuelas</dd><dt>Armó</dt><dd>${CP.avs(CP.x('arm.' + tid) || t.armadores)}</dd><dt>Ensaya</dt><dd>Ramiro Ojeda</dd></dl>
+        </div>
+        <div class="card">
+          <div class="card-h"><div class="card-ico">${L.icon('signature')}</div><div class="grow"><h3>Firmas</h3><div class="sub">${ok ? 'Todas las verificaciones aprobadas: ya se puede firmar' : 'Se habilitan con todas las verificaciones aprobadas'}</div></div></div>
+          <div class="card-b col gap16">${[['realizo', 'Realizó', 'ramiro'], ['controlo', 'Controló', 'martina']].map(([k, rol, u]) => `
+            <div class="col gap8"><div class="row"><span class="av sm ${B.usuarios[u].c}">${B.usuarios[u].ini}</span><div class="grow"><b style="font-size:13px">${rol}: ${L.esc(B.usuarios[u].n)}</b><div class="muted" style="font-size:12px">${L.esc(B.usuarios[u].r)}</div></div>${p.firmas[k] ? `<span class="st ok">${L.icon('check')}Firmado</span>` : ''}</div>
+            <div class="cp-firma" data-pad="${k}" style="${ok && !p.firmado ? '' : 'opacity:.55;pointer-events:none'}">${p.firmas[k] ? `<svg viewBox="0 0 300 120" width="100%" height="100%" aria-hidden="true"><path d="${k === 'realizo' ? 'M30 80 C50 30 70 30 80 70 S110 100 120 60 S150 20 165 65 C175 90 190 50 210 58 S250 70 270 50' : 'M35 70 C45 40 60 95 85 60 C100 40 105 80 125 72 C145 64 150 30 170 55 C185 75 205 45 225 60 L265 62'}" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round"/></svg>` : `<canvas aria-label="Firmá acá"></canvas><span class="ph">Firmá con el dedo o el mouse</span>`}</div>
+            ${!p.firmas[k] ? `<button class="btn sm ${ok ? 'pri' : 'out dis'}" data-firmar="${k}">${L.icon('pen-line')}Firmar como ${L.esc(B.usuarios[u].n.split(' ')[0])}</button>` : ''}</div>`).join('')}
+          </div>
+        </div>
+        <div class="card pad col gap8">
+          <div class="row"><span class="lbl">Placa de características</span><span class="tag-nuevo">Nuevo</span></div>
+          ${placa(true)}
+          <button class="btn out sm" id="placa2">${L.icon('printer')}Vista previa de la etiqueta</button>
+        </div>
+      </div>
+    </div>`;
+    wire();
+  }
+
+  function ensayo(p, e) {
+    const s = estadoDe(p, e);
+    let extra = '';
+    if (e.tipo === 'ais') extra = `<table class="cp-med"><thead><tr><th>Circuito</th><th style="text-align:right">Medido (MΩ)</th><th style="text-align:right">Resultado</th></tr></thead><tbody>${K.medicionesAis.map((m, i) => { const v = p.ais[i]; const bad = v != null && v !== '' && +v < MIN_AIS;
+      return `<tr class="${bad ? 'bad' : ''}"><td>${L.esc(m.c)}</td><td class="v"><input aria-label="Aislación de ${L.esc(m.c)} en MΩ" data-ais="${i}" value="${v == null ? '' : String(v).replace('.', ',')}" placeholder="—" inputmode="decimal"></td><td class="v">${v == null || v === '' ? '<span class="muted">pendiente</span>' : bad ? `<span class="cp-mst er">${L.icon('octagon-x')}Baja</span>` : `<span class="cp-mst ok">${L.icon('check')}OK</span>`}</td></tr>`; }).join('')}</tbody></table>
+      <div class="row gap8" style="margin-top:10px"><button class="btn xs out" id="csv">${L.icon('upload')}Importar CSV del megóhmetro</button>${s === 'er' ? `<button class="btn xs dan" id="nc">${L.icon('flag')}Registrar no conformidad</button>` : ''}<span class="muted" style="font-size:11.5px">500 V CC · 60 s por circuito · criterio ≥ ${MIN_AIS} MΩ</span></div>`;
+    if (e.tipo === 'pe') extra = `<table class="cp-med"><thead><tr><th>Masa</th><th style="text-align:right">Medido (Ω)</th><th style="text-align:right">Resultado</th></tr></thead><tbody>${K.medicionesPE.map((m, i) => { const v = p.pe[i]; const bad = v != null && v !== '' && +v > MAX_PE; return `<tr class="${bad ? 'bad' : ''}"><td>${L.esc(m.c)}</td><td class="v"><input aria-label="Continuidad de ${L.esc(m.c)} en ohm" data-pe="${i}" value="${v == null ? '' : String(v).replace('.', ',')}" inputmode="decimal"></td><td class="v">${bad ? `<span class="cp-mst er">${L.icon('octagon-x')}Alta</span>` : `<span class="cp-mst ok">${L.icon('check')}OK</span>`}</td></tr>`; }).join('')}</tbody></table>`;
+    if (e.tipo === 'func') extra = `<table class="cp-med"><thead><tr><th>Aparatos</th><th>Ajuste / medición</th></tr></thead><tbody>${K.ajustes.map(a => `<tr><td><span class="mono">${L.esc(a.ref)}</span> · ${L.esc(a.t)}</td><td>${L.esc(a.v)}</td></tr>`).join('')}</tbody></table>`;
+    const auto = e.tipo === 'ais' || e.tipo === 'pe';
+    return `<div class="cp-ens ${s === 'er' ? 'fail' : ''}" id="e-${e.id}"><span class="sec">${L.esc(e.sec)}</span><div><b>${L.esc(e.t)}</b><p>${L.esc(e.d)}</p>${extra}</div>
+      <div>${auto ? `<span class="st ${s === 'ok' ? 'ok' : s === 'er' ? 'er' : 'gr'}">${L.icon(s === 'ok' ? 'circle-check' : s === 'er' ? 'octagon-x' : 'clock')}${s === 'ok' ? 'Aprobado' : s === 'er' ? 'Falla' : 'Pendiente'}</span>`
+        : `<div class="cp-res" role="group" aria-label="Resultado de ${L.esc(e.t)}"><button class="ok ${s === 'ok' ? 'on' : ''}" data-res="${e.id}" data-v="ok">${L.icon('check')}Aprobado</button><button class="er ${s === 'er' ? 'on' : ''}" data-res="${e.id}" data-v="er">${L.icon('x')}Falla</button><button class="na ${s === 'na' ? 'on' : ''}" data-res="${e.id}" data-v="na">No aplica</button></div>`}</div></div>`;
+  }
+  function placa(chica) {
+    return `<div class="cp-placa"><div class="ph"><span>Tableros Delta S.R.L.</span><span>IEC 61439-2</span></div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center"><dl>
+        <dt>Designación</dt><dd>${L.esc(t.cod)}</dd><dt>N.º de serie</dt><dd>${L.esc(t.serie)}</dd><dt>Fabricación</dt><dd>10/2026</dd>
+        <dt>Tensión</dt><dd>3×400/230 V · 50 Hz</dd><dt>In del conjunto</dt><dd>160 A</dd><dt>Icc condicional</dt><dd>6 kA</dd><dt>Grado de protección</dt><dd>${L.esc((t.gabinete.match(/IP\d+/) || ['IP43'])[0])}</dd>
+      </dl><div style="padding:8px">${CP.qr(t.serie, chica ? 84 : 110)}</div></div></div>`;
+  }
+  function hoja(p) {
+    const r = resumen(p);
+    return `<div class="row" style="justify-content:center"><span class="muted" style="font-size:12.5px">${L.icon('eye')} Así sale el PDF${p.firmado ? '' : ' (borrador: falta firmar)'}</span></div>
+    <div class="cp-hoja">
+      <div class="enc"><div><span class="lbl">Protocolo de ensayos de rutina</span><h2>${L.esc(t.cod)} · ${L.esc(t.n)}</h2><div class="muted">Hospital Regional Cañuelas · Pabellón B · Constructora Ribera S.A.</div></div><div style="text-align:right"><b class="mono">PR-${L.esc(t.serie)}</b><div class="muted">${p.firmado ? 'Emitido ' + L.fecha(p.fecha) : 'Borrador'}</div>${CP.qr(t.serie, 64)}</div></div>
+      <table><tr><th>Fabricante del conjunto</th><td>Tableros Delta S.R.L. · Ezeiza, Buenos Aires</td><th>N.º de serie</th><td class="mono">${L.esc(t.serie)}</td></tr><tr><th>Envolvente</th><td>${L.esc(t.gabinete)}</td><th>Norma</th><td>IEC 61439-1/-2 · AEA 90364-7-771</td></tr></table>
+      <table><thead><tr><th style="width:60px">Cap.</th><th>Verificación</th><th style="width:90px">Resultado</th></tr></thead><tbody>${K.ensayos.map(e => { const s = estadoDe(p, e); return `<tr><td class="mono">${L.esc(e.sec)}</td><td>${L.esc(e.t)}</td><td>${s === 'ok' ? 'Aprobado' : s === 'er' ? '<b style="color:var(--rose-600)">Falla</b>' : s === 'na' ? 'No aplica' : '—'}</td></tr>`; }).join('')}</tbody></table>
+      <table><thead><tr><th>Aislación (500 V CC)</th><th style="width:110px">MΩ</th></tr></thead><tbody>${K.medicionesAis.map((m, i) => `<tr><td>${L.esc(m.c)}</td><td class="mono">${p.ais[i] == null || p.ais[i] === '' ? '—' : L.num(+p.ais[i], 2)}</td></tr>`).join('')}</tbody></table>
+      <div><b>Observaciones:</b> ${L.esc(p.obs || 'Sin observaciones.')}</div>
+      <div class="grid2" style="margin-top:20px">${[['realizo', 'Realizó', 'ramiro'], ['controlo', 'Controló', 'martina']].map(([k, rol, u]) => `<div style="border-top:1px solid var(--foreground);padding-top:6px">${rol}: ${L.esc(B.usuarios[u].n)} ${p.firmas[k] ? '· firmado' : '· pendiente'}</div>`).join('')}</div>
+      <div class="muted" style="font-size:11px">${r.ok} verificaciones aprobadas de ${K.ensayos.length}. Fotos anexas: ${p.fotos.length}. Documento generado por liard para Tableros Delta S.R.L.</div>
+    </div>`;
+  }
+
+  function wire() {
+    const p = P();
+    page.querySelectorAll('[data-res]').forEach(b => b.onclick = () => { const q = P(); q.res[b.dataset.res] = q.res[b.dataset.res] === b.dataset.v ? null : b.dataset.v; save(q); render(); document.getElementById('e-' + b.dataset.res)?.classList.add('flash'); });
+    page.querySelectorAll('[data-ais],[data-pe]').forEach(inp => inp.onchange = () => {
+      const q = P(); const v = inp.value.trim().replace(',', '.'); const k = inp.dataset.ais != null ? 'ais' : 'pe'; const i = +(inp.dataset.ais ?? inp.dataset.pe);
+      q[k][i] = v === '' ? null : +v; save(q); render();
+      if (k === 'ais' && v !== '' && +v < MIN_AIS) L.toast('Aislación baja: ' + K.medicionesAis[i].c, { type: 'error', desc: L.num(+v, 2) + ' MΩ < ' + MIN_AIS + ' MΩ. Bloquea la firma.' });
+      else if (k === 'ais' && v !== '' && K.medicionesAis[i].falla) L.toast('Medición repetida: aprobada', { desc: L.num(+v, 2) + ' MΩ. Queda la no conformidad en el historial.' });
+    });
+    const csv = document.getElementById('csv'); if (csv) csv.onclick = () => L.dialog({ title: 'Importar del megóhmetro', icon: 'upload', desc: 'Subí el CSV que exporta el instrumento. Se asocia cada fila a un circuito por su nombre; lo que no coincide queda para cargar a mano.',
+      body: `<div class="drop">${L.icon('file-spreadsheet')}<div style="margin-top:6px"><b>MEG-TSGPB-0110.csv</b> · 6 filas</div><div style="font-size:12px">Megóhmetro 500 V · 01/10/2026 10:42</div></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Importar 6 mediciones', icon: 'check', fn: () => { const q = P(); q.ais = K.medicionesAis.map(m => (fallido && m.falla && !(CP.x('protocolos.' + tid + '.nc')) ? m.falla : m.v)); save(q); render(); L.toast('6 mediciones importadas', { desc: q.ais.some(v => v < MIN_AIS) ? '1 circuito con aislación baja' : 'Todas ≥ ' + MIN_AIS + ' MΩ' , type: q.ais.some(v => v < MIN_AIS) ? 'warning' : 'success' }); } }] });
+    const nc = document.getElementById('nc'); if (nc) nc.onclick = () => L.dialog({ title: 'Registrar no conformidad', icon: 'flag', desc: 'Queda en el historial del tablero aunque después se corrija.',
+      body: `<div class="field"><label for="ncd">Qué se encontró</label><textarea class="inp" id="ncd">Q7 · aislación 0,18 MΩ entre L1 y PE. Borne X1:14 pellizcando el conductor.</textarea></div><div class="field"><label for="nca">Acción</label><select class="inp" id="nca"><option>Reemplazar el tramo y repetir la medición</option><option>Reemplazar el aparato</option><option>Escalar a ingeniería</option></select></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Registrar', cls: 'dan', icon: 'flag', fn: dl => { const q = P(); q.nc = dl.querySelector('#ncd').value; q.obs = (q.obs ? q.obs + '\n' : '') + 'No conformidad: ' + q.nc + ' Acción: ' + dl.querySelector('#nca').value + '.'; save(q); render(); CP.aviso({ t: 'No conformidad en el protocolo del ' + t.cod, d: 'Aislación baja en Q7: se repite la medición', i: 'flag', tipo: 'er', href: 'd-tal-protocolo.html?tablero=' + tid }); L.toast('No conformidad registrada', { desc: 'Repetí la medición y cargá el valor nuevo en Q7' }); } }] });
+    const foto = document.getElementById('foto'); if (foto) foto.onclick = () => { const q = P(); const nombres = ['Placa colocada', 'Megóhmetro en Q7', 'Bornera X1', 'Interior final']; q.fotos.push(nombres[(q.fotos.length - 2) % 4]); save(q); render(); L.toast('Foto agregada', { desc: 'Se anexa al protocolo' }); };
+    const obs = document.getElementById('obs'); if (obs) obs.onchange = () => { const q = P(); q.obs = obs.value; save(q); };
+    page.querySelectorAll('[data-firmar]').forEach(b => b.onclick = () => { if (!puedeFirmar(P())) { L.toast('Todavía no se puede firmar', { type: 'warning', desc: 'Faltan verificaciones o hay una falla' }); return; } const q = P(); q.firmas[b.dataset.firmar] = true; save(q); render(); L.toast('Firmado', { desc: b.dataset.firmar === 'realizo' ? 'Ramiro Ojeda · Jefe de taller' : 'Martina Giménez · Ingeniera de proyecto' }); });
+    page.querySelectorAll('.cp-firma canvas').forEach(cv => {
+      const box = cv.parentElement; cv.width = box.clientWidth; cv.height = box.clientHeight; const ctx = cv.getContext('2d'); let dn = false, drew = false;
+      ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--primary') || 'blue';
+      const pt = e => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+      cv.onpointerdown = e => { dn = true; ctx.beginPath(); ctx.moveTo(...pt(e)); box.querySelector('.ph')?.remove(); };
+      cv.onpointermove = e => { if (!dn) return; ctx.lineTo(...pt(e)); ctx.stroke(); drew = true; };
+      cv.onpointerup = () => { dn = false; if (drew) { const q = P(); q.firmas[box.dataset.pad] = true; save(q); setTimeout(render, 500); L.toast('Firma registrada'); } };
+    });
+    const p2 = document.getElementById('placa2'); if (p2) p2.onclick = etiqueta;
+  }
+  function etiqueta() {
+    L.dialog({ title: 'Placa de características y QR', icon: 'qr-code', wide: true, desc: 'Se imprime en etiqueta de poliéster y se pega en la cara interna de la puerta. El QR abre la ficha pública del tablero, sin datos comerciales.',
+      body: `<div class="grid2" style="align-items:start">${placa(false)}<div class="col gap16"><div class="cp-etq">${CP.qr(t.serie, 92)}<div><b>${L.esc(t.cod)}</b><small>Serie ${L.esc(t.serie)}<br>Escaneá para ver planos, protocolo y pedir servicio</small><small class="mono" style="margin-top:4px">liard.app/t/${L.esc(t.serie)}</small></div></div>
+        <div class="note info">${L.icon('info')}<div><b>Qué abre el QR</b>Placa, unifilar, protocolo y as-built, historial de mantenimiento y un botón para pedir servicio o repuesto al tablerista. No muestra precios, distribuidores ni OC. <a class="src" href="m-cli-tablero.html?tablero=${tid}">${L.icon('external-link')}Abrir la vista pública</a></div></div></div></div>`,
+      actions: [{ t: 'Cerrar', cls: 'out' }, { t: 'Imprimir etiqueta', icon: 'printer', fn: () => L.toast('Etiqueta enviada a la impresora', { desc: 'Formato 100 × 70 mm · 1 copia' }) }] });
+  }
+  document.getElementById('placa').onclick = etiqueta;
+  document.getElementById('emitir').onclick = () => {
+    const p = P();
+    if (p.firmado) return;
+    if (!puedeFirmar(p)) { L.toast('No se puede emitir todavía', { type: 'warning', desc: resumen(p).er ? 'Hay ensayos con falla' : 'Faltan verificaciones pendientes' }); return; }
+    if (!(p.firmas.realizo && p.firmas.controlo)) { L.toast('Faltan las firmas', { type: 'warning', desc: 'Firman quien realizó y quien controló' }); return; }
+    L.dialog({ title: 'Emitir el protocolo de ' + t.cod, icon: 'file-down', desc: 'Se genera el PDF firmado, la placa con QR y el tablero pasa a «listo para entregar». Después no se puede modificar: un cambio abre una revisión nueva.',
+      body: `<div class="cp-sum"><span>Verificaciones aprobadas</span><b>${resumen(p).ok} de ${K.ensayos.length}</b></div><div class="cp-sum"><span>Fotos anexas</span><b>${p.fotos.length}</b></div><div class="cp-sum"><span>Archivo</span><b class="mono">PR-${L.esc(t.serie)}.pdf</b></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Emitir y firmar', icon: 'stamp', fn: () => {
+        const q = P(); q.firmado = true; q.fecha = B.HOY; save(q);
+        CP.setTab(tid, { estado: 'listo', avance: 100, ensayo: 'aprobado', frena: null });
+        CP.aviso({ t: t.cod + ' aprobó los ensayos de rutina', d: 'Protocolo PR-' + t.serie + ' firmado · listo para entregar', i: 'stamp', tipo: 'ok', href: 'd-tal-entregas.html' });
+        render(); L.toast('Protocolo emitido', { desc: 'PR-' + t.serie + '.pdf · ' + t.cod + ' listo para entregar', action: 'Ver la placa', onAction: etiqueta });
+      } }] });
+  };
+  L.on(render);
+  render();
+} };
+</script>
+</body></html>

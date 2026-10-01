@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Revisión de plano · liard</title>
+<link rel="stylesheet" href="ingenieria.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="h1" data-user="martina"
+  data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Cañuelas|d-ing-proyecto.html>TS-BOMBAS|d-ing-plano.html?plano=tsbombas>Revisión 2"
+  data-title="TS-BOMBAS · revisión 2 contra revisión 1" data-sub="Constructora Ribera mandó el plano corregido el 01/10/2026. Mirá qué cambió en el dibujo y en el BOM antes de aplicarlo.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="superpuesta" aria-label="Cómo comparar">
+    <button data-vista="superpuesta" data-icon="layers">Superpuesta</button>
+    <button data-vista="lado" data-icon="columns-2">Lado a lado</button>
+    <button data-vista="tabla" data-icon="table-2">Solo tabla</button>
+  </div>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const R = BI.revision; const vista = L.q('vista') || 'superpuesta'; const estado = L.q('estado');
+  const ui = { sel: null, op: 60, on: new Set(R.cambios.map(c => c.id)), tipos: new Set(['agregado', 'quitado', 'cambiado']) };
+  const T = { agregado: ['dif-add', 'Agregado', 'square-plus'], quitado: ['dif-rem', 'Quitado', 'square-minus'], cambiado: ['dif-chg', 'Cambiado', 'pencil'] };
+  const V1 = { titulo: 'TS-BOMBAS rev. 1', girados: [2, 3] }, V2 = { titulo: 'TS-BOMBAS rev. 2', bombas: 4, nh: 'NH1', sinId1: true, rev: 'Rev. 2', fecha: '01/10/2026', girados: [2, 3] };
+
+  const aplicada = () => I.priv('rev.aplicada', false);
+  const precio = id => I.mejorPrecio(id);
+  function impacto(c) {
+    const l = I.linea(c.linea); const pl = I.plano(R.plano); const m = pl.mult || 1;
+    const dq = c.delta * m; const p = precio(c.linea);
+    return { l, dq, p, monto: p == null ? null : dq * p };
+  }
+  function ocAfectada() {
+    const ped = L.get('pedidos').find(p => p.proyecto === 'p1');
+    const oc = ped.ordenes.find(o => o.id === R.ocAfectada.oc);
+    const toca = R.cambios.some(c => ui.on.has(c.id) && R.ocAfectada.lineas.includes(c.linea));
+    return toca && ['SENT', 'CONFIRMED'].includes(oc.status) ? oc : null;
+  }
+
+  function cajas(cs) { return cs.filter(c => ui.tipos.has(c.tipo)).map(c => `<div class="dbox ${T[c.tipo][0]} ${ui.sel === c.id ? 'on' : ''}" style="${I.pos(c)}" data-c="${c.id}" role="button" tabindex="0" aria-label="${T[c.tipo][1]}: ${L.esc(c.motivo)}"><span class="tg">${c.tipo === 'agregado' ? '+' : c.tipo === 'quitado' ? '−' : '~'} ${c.ref}</span></div>`).join(''); }
+  function visor() {
+    if (vista === 'lado') return `<div class="grid2" style="gap:16px">
+      <div class="col gap8"><span class="lbl">${R.v1.n} · ${L.fecha(R.v1.f)} · ${R.v1.archivo}</span><div class="cad"><div class="ing-cad">${I.planoSvg(V1)}${cajas(R.cambios.filter(c => c.tipo !== 'agregado'))}</div></div></div>
+      <div class="col gap8"><span class="lbl">${R.v2.n} · ${L.fecha(R.v2.f)} · ${R.v2.archivo}</span><div class="cad"><div class="ing-cad">${I.planoSvg(V2)}${cajas(R.cambios.filter(c => c.tipo !== 'quitado'))}</div></div></div></div>`;
+    return `<div class="cad"><div class="cad-tb" role="toolbar" aria-label="Capas"><button class="on" aria-label="Ver las dos revisiones" title="Las dos">${L.icon('layers')}</button><button data-solo="1" aria-label="Ver solo la revisión 1" title="Solo rev. 1">1</button><button data-solo="2" aria-label="Ver solo la revisión 2" title="Solo rev. 2">2</button></div>
+      <div class="ing-cad"><div class="layer ov1" id="l1" style="opacity:${(100 - ui.op) / 100 + .25}">${I.planoSvg(V1)}</div><div class="layer ov2" id="l2" style="opacity:${ui.op / 100}">${I.planoSvg(V2)}</div>${cajas(R.cambios)}</div>
+      <div class="cad-legend"><span class="slider"><label for="op">Rev. 1</label><input type="range" id="op" min="0" max="100" value="${ui.op}" aria-label="Mezcla entre revisión 1 y revisión 2"><span>Rev. 2</span></span></div></div>`;
+  }
+  function tabla() {
+    let tot = 0, sinP = 0;
+    const rows = R.cambios.map(c => {
+      const { l, dq, p, monto } = impacto(c); const on = ui.on.has(c.id);
+      if (on && monto != null) tot += monto; if (on && monto == null && c.tipo !== 'cambiado') sinP++;
+      return `<tr class="${ui.sel === c.id ? 'sel' : ''}" data-c="${c.id}" style="cursor:pointer;${on ? '' : 'opacity:.5'}">
+        <td><input type="checkbox" data-on="${c.id}" ${on ? 'checked' : ''} ${aplicada() ? 'disabled' : ''} aria-label="Incluir el cambio ${c.ref}" style="accent-color:var(--primary)"></td>
+        <td><span class="dtag ${T[c.tipo][0]}">${L.icon(T[c.tipo][2])}${T[c.tipo][1]}</span><div class="mono muted" style="font-size:11px;margin-top:4px">${c.ref}</div></td>
+        <td><span class="mat">${L.esc(l.mat)}</span><span class="spec">${c.tipo === 'cambiado' ? `<s>${L.esc(c.antes)}</s> → <b style="color:var(--foreground)">${L.esc(c.despues)}</b>` : L.esc(l.spec)}</span><span class="spec" style="font-family:var(--sans)">${L.esc(c.motivo)}</span></td>
+        <td class="c qty" style="white-space:nowrap">${c.delta ? `${L.num(l.comprar)} → ${L.num(l.comprar + dq)}` : L.num(l.comprar)}<div class="delta ${c.delta > 0 ? 'pos' : c.delta < 0 ? 'neg' : ''}">${c.delta ? (c.delta > 0 ? '+' : '−') + Math.abs(dq) : 'mismo'}</div></td>
+        <td class="r money">${monto != null ? `<span class="${monto > 0 ? 'up' : 'down'}">${monto > 0 ? '+' : '−'} ${L.ars(Math.abs(monto))}</span><div class="muted" style="font-size:11px">${L.ars(p)} c/u +IVA</div>` : `<span class="muted" style="font-family:var(--sans);font-size:12px">${l.estado === 'blocked' ? 'Sin oferta: hoy bloquea' : 'Sin oferta'}</span>`}</td></tr>`;
+    }).join('');
+    return { html: `<div class="tbl-wrap"><table class="tbl bom"><thead><tr><th style="width:34px"><span class="sr">Incluir</span></th><th>Cambio</th><th>Línea del BOM</th><th class="c">A comprar</th><th class="r">Impacto sin IVA</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="4" style="padding:12px 14px;font-family:var(--sans);font-size:var(--text-xs)"><b>Impacto en el monto de materiales</b> <span class="muted">· mejor precio vigente por línea, sin IVA${sinP ? ` · ${sinP} sin precio` : ''}</span></td><td class="r money" style="padding:12px 14px;font-weight:700"><span class="${tot > 0 ? 'up' : 'down'}">${tot >= 0 ? '+' : '−'} ${L.ars(Math.abs(tot))}</span><div class="muted" style="font-size:11px;font-weight:400">+IVA 21 %: ${L.ars(Math.abs(tot) * 1.21)}</div></td></tr></tfoot></table></div>`, tot };
+  }
+
+  function render() {
+    if (estado === 'vacio') {
+      page.innerHTML = `<div class="card"><div class="empty"><div class="e-ico">${L.icon('git-compare-arrows')}</div><h3>Este plano tiene una sola revisión</h3><p>Cuando el cliente te mande el plano corregido, subilo como revisión nueva: liard lo compara con el anterior y te muestra qué cambia en el BOM y en la plata, antes de tocar nada.</p><button class="btn pri" id="subirrev">${L.icon('upload')}Subir revisión nueva</button></div></div>`;
+      page.querySelector('#subirrev').onclick = () => L.go('d-ing-revisiones.html'); return;
+    }
+    const cs = R.cambios; const n = t => cs.filter(c => c.tipo === t).length;
+    const tb = tabla(); const oc = ocAfectada(); const ap = aplicada();
+    const prov = L.get('proveedores').find(p => p.id === R.ocAfectada.prov);
+    page.innerHTML = `
+      <div class="card pad row" style="gap:20px">
+        <div class="row gap8"><span class="card-ico">${L.icon('file-code')}</span><div><span class="lbl">${R.v1.n}</span><div class="mono" style="font-size:12px">${R.v1.archivo}</div><div class="muted" style="font-size:11.5px">${L.fecha(R.v1.f)} · procesada</div></div></div>
+        ${L.icon('arrow-right', 'muted')}
+        <div class="row gap8"><span class="card-ico" style="color:#6d28d9">${L.icon('file-diff')}</span><div><span class="lbl">${R.v2.n}</span><div class="mono" style="font-size:12px">${R.v2.archivo}</div><div class="muted" style="font-size:11.5px">${L.fecha(R.v2.f)} · de ${L.esc(R.v2.de)}</div></div></div>
+        <div class="grow"></div>
+        <div class="kpis" style="flex:none"><div class="kpi ok"><b>${n('agregado')}</b><span>Agregados</span></div><div class="kpi bad"><b>${n('quitado')}</b><span>Quitados</span></div><div class="kpi warn"><b>${n('cambiado')}</b><span>Cambiados</span></div></div>
+      </div>
+      <div class="note info">${L.icon('message-square-text')}<div><b>Nota del cliente</b>${L.esc(R.v2.nota)}</div></div>
+      ${ap ? `<div class="note ok">${L.icon('circle-check')}<div class="grow"><b>Revisión 2 aplicada al BOM</b>Las líneas quedaron corregidas y el TS-BOMBAS figura como rev. 2. ${I.priv('rev.cambioAlcance', false) ? 'El cambio en la OC ya registrado como cambio de alcance.' : ''}</div><a class="btn sm out" href="d-bom-editor.html?linea=l07">Ver el BOM</a><button class="btn sm ghost" id="revert">${L.icon('undo-2')}Deshacer</button></div>` : ''}
+      <div class="split" style="grid-template-columns:minmax(0,1fr) 380px">
+        <div class="col gap16" style="min-width:0">
+          ${vista !== 'tabla' ? `<div class="row gap16"><span class="lbl">Mostrar</span>${Object.entries(T).map(([k, [cl, t]]) => `<label class="check ${cl}" style="font-size:12px"><input type="checkbox" data-t="${k}" ${ui.tipos.has(k) ? 'checked' : ''}><span class="dleg ${cl}"><i></i>${t} <span class="mono muted">${n(k)}</span></span></label>`).join('')}<span class="muted ml-auto" style="font-size:12px">Comparado por bloques y textos del DXF, no por píxeles</span></div>${visor()}` : ''}
+          ${tb.html}
+        </div>
+        <div class="col gap16">
+          ${ui.sel ? (() => { const c = cs.find(x => x.id === ui.sel); const { l, dq, monto } = impacto(c); return `<div class="card"><div class="card-h"><span class="dtag ${T[c.tipo][0]}">${L.icon(T[c.tipo][2])}${T[c.tipo][1]}</span><b class="mono grow">${c.ref}</b><button class="btn icon sm ghost" id="desel" aria-label="Cerrar">${L.icon('x')}</button></div>
+            <div class="card-b col gap8"><div class="grid2" style="gap:8px"><div class="col gap4"><span class="lbl">Rev. 1</span><div class="crop" style="height:110px">${c.tipo === 'agregado' ? '<div class="muted" style="display:grid;place-items:center;height:100%;font-size:12px">No estaba</div>' : I.cropSvg(c, V1, 4)}</div></div><div class="col gap4"><span class="lbl">Rev. 2</span><div class="crop" style="height:110px">${c.tipo === 'quitado' ? '<div class="muted" style="display:grid;place-items:center;height:100%;font-size:12px">Ya no está</div>' : I.cropSvg(c, V2, 4)}</div></div></div>
+            <b style="font-size:var(--text-sm)">${L.esc(c.motivo)}</b><a class="src" href="d-bom-editor.html?linea=${l.id}">${L.icon('table-2')}${L.esc(l.mat)} · ${dq ? (dq > 0 ? '+' : '') + dq + ' a comprar' : 'cambia la especificación'}</a>
+            ${c.tipo === 'cambiado' && l.estado === 'blocked' ? `<div class="note ok" style="padding:10px 12px">${L.icon('lock-open')}<div>La rev. 2 trae la corriente (250 A): <b style="display:inline">la línea deja de bloquear la cotización.</b></div></div>` : ''}
+            ${monto != null ? `<span class="muted" style="font-size:12px">Impacto: <span class="money">${monto > 0 ? '+' : '−'} ${L.ars(Math.abs(monto))}</span> +IVA</span>` : ''}</div></div>`; })() : `<div class="card pad" style="border-style:dashed;text-align:center"><b style="font-size:var(--text-sm)">Elegí un cambio</b><p class="muted" style="font-size:12px">en el plano o en la tabla para ver el antes y el después.</p></div>`}
+          ${oc && !ap ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>${oc.id} ya está ${oc.status === 'CONFIRMED' ? 'confirmada' : 'enviada'}</b>${L.esc(prov.n)} ${oc.status === 'CONFIRMED' ? 'confirmó' : 'tiene'} el contactor y los guardamotores. Al aplicar, el +1 de cada uno queda como <b style="display:inline">cambio de alcance</b> para pedir aparte: la OC enviada no se toca.</div></div>` : ''}
+          <div class="card pad col gap8"><span class="lbl">Aplicar al BOM</span>
+            <div class="row" style="align-items:baseline;gap:8px"><b class="mono" style="font-size:var(--text-lg)">${ui.on.size}</b><span class="muted" style="font-size:12px">de ${cs.length} cambios elegidos</span></div>
+            <div class="muted" style="font-size:12px">Monto de materiales: <span class="money ${tb.tot > 0 ? 'up' : 'down'}">${tb.tot >= 0 ? '+' : '−'} ${L.ars(Math.abs(tb.tot))}</span> +IVA</div>
+            <button class="btn pri" id="apl" ${ap || !ui.on.size ? 'disabled' : ''}>${L.icon('check')}${ap ? 'Ya aplicada' : 'Aplicar cambios al BOM'}</button>
+            <button class="btn out" id="resp">${L.icon('mail')}Pedir aclaración al cliente</button>
+            <span class="muted" style="font-size:11.5px">Lo que no elijas queda como estaba en la rev. 1. Las líneas tocadas quedan «Manual» con la referencia a la revisión.</span></div>
+          <div class="note info">${L.icon('list-clock')}<div><b>Historial del plano</b>Rev. 1 · 29/09 · procesada (19 componentes)<br>Rev. 2 · 01/10 · comparada sin gastar detección nueva: se procesan solo las zonas que cambiaron (≈ US$ 0,60).</div></div>
+        </div></div>`;
+    bind();
+  }
+  function aplicar() {
+    const oc = ocAfectada(); const elegidos = R.cambios.filter(c => ui.on.has(c.id));
+    const hacer = alcance => {
+      L.update(st => {
+        const pl = st.planos.find(p => p.id === R.plano); const m = pl.mult || 1;
+        elegidos.forEach(c => {
+          const l = st.lineas.find(x => x.id === c.linea); l.org = 'man';
+          if (c.delta) { l.dib += c.delta; l.comprar += c.delta * m; l.fuentes = l.fuentes.map(f => f.startsWith(pl.cod + ' ') ? f.replace(/\d+/, n => String(+n + c.delta)) : f); }
+          if (c.attrs) { Object.assign(l.attrs, c.attrs); l.spec = c.spec; l.faltan = l.faltan.filter(a => !c.attrs[a]); if (!l.faltan.length && l.estado === 'blocked') { l.estado = 'ready'; delete l.motivo; } }
+        });
+        pl.act = st.HOY; pl.comp += elegidos.reduce((a, c) => a + c.delta, 0);
+        st.x ??= {}; st.x.ing ??= {}; st.x.ing.rev = { aplicada: true, cambioAlcance: !!alcance, cambios: elegidos.map(c => c.id) };
+        st.avisos.unshift({ id: 'ai' + Date.now(), t: 'TS-BOMBAS pasó a la revisión 2', d: `${elegidos.length} cambios aplicados al BOM${alcance ? ' · 2 líneas como cambio de alcance' : ''}`, i: 'git-compare-arrows', tipo: 'vi', cuando: 'recién', href: alcance ? 'd-tal-entregas.html' : 'd-ing-revisiones.html' });
+      });
+      L.toast('Revisión 2 aplicada al BOM', { desc: alcance ? 'Las diferencias con la OC quedaron en cambios de alcance.' : 'El BOM consolidado se recalculó.', action: alcance ? 'Ver cambio de alcance' : null, onAction: () => L.go('d-tal-entregas.html') });
+    };
+    if (oc) return L.dialog({ title: `${oc.id} ya está ${oc.status === 'CONFIRMED' ? 'confirmada' : 'enviada'}`, icon: 'triangle-alert', desc: 'La revisión suma un contactor y un guardamotor que ya se compraron a Distribuidora Ohm. La OC no se modifica: la diferencia se registra como cambio de alcance de la obra y se pide aparte.',
+      body: `<div class="list" style="border:1px solid var(--border);border-radius:12px">${elegidos.filter(c => R.ocAfectada.lineas.includes(c.linea)).map(c => { const { l, dq, monto } = impacto(c); return `<div class="li" style="padding:8px 12px"><span class="grow" style="font-size:var(--text-xs)"><b>${L.esc(l.mat)}</b> ${L.esc(l.spec)}</span><span class="delta pos">+${dq}</span><span class="money" style="font-size:12px">${monto != null ? L.ars(monto) : '—'}</span></div>`; }).join('')}</div>`,
+      actions: [{ t: 'Cancelar' }, { t: 'Aplicar sin cambio de alcance', cls: 'out', fn: () => hacer(false) }, { t: 'Aplicar y registrar el cambio', icon: 'check', fn: () => hacer(true) }] });
+    L.dialog({ title: `Aplicar ${elegidos.length} cambios al BOM`, icon: 'check', desc: 'El BOM consolidado se recalcula. Se puede deshacer.', actions: [{ t: 'Cancelar' }, { t: 'Aplicar', fn: () => hacer(false) }] });
+  }
+  function revertir() {
+    L.update(st => {
+      const pl = st.planos.find(p => p.id === R.plano); const m = pl.mult || 1; const ids = st.x.ing.rev.cambios;
+      R.cambios.filter(c => ids.includes(c.id)).forEach(c => {
+        const l = st.lineas.find(x => x.id === c.linea); const orig = window.B.lineas.find(x => x.id === c.linea);
+        if (c.delta) { l.dib -= c.delta; l.comprar -= c.delta * m; l.fuentes = l.fuentes.map(f => f.startsWith(pl.cod + ' ') ? f.replace(/\d+/, n => String(+n - c.delta)) : f); }
+        if (c.attrs) { l.attrs = { ...orig.attrs, 'Corriente nominal': st.x.ing.sim?.tsbombas?.s1 === 'resuelto' ? '160 A' : '' }; l.spec = orig.spec; if (!l.attrs['Corriente nominal']) { l.faltan = ['Corriente nominal']; l.estado = 'blocked'; l.motivo = orig.motivo; } }
+      });
+      pl.comp -= R.cambios.filter(c => ids.includes(c.id)).reduce((a, c) => a + c.delta, 0);
+      st.x.ing.rev = { aplicada: false };
+    });
+    L.toast('Se volvió a la revisión 1', { type: 'info' });
+  }
+  function bind() {
+    page.querySelectorAll('[data-c]').forEach(el => el.addEventListener('click', e => { if (e.target.closest('input')) return; ui.sel = el.dataset.c; render(); }));
+    page.querySelectorAll('[data-on]').forEach(c => c.onchange = () => { c.checked ? ui.on.add(c.dataset.on) : ui.on.delete(c.dataset.on); render(); });
+    page.querySelectorAll('[data-t]').forEach(c => c.onchange = () => { c.checked ? ui.tipos.add(c.dataset.t) : ui.tipos.delete(c.dataset.t); render(); });
+    const op = page.querySelector('#op'); if (op) op.oninput = () => { ui.op = +op.value; page.querySelector('#l1').style.opacity = (100 - ui.op) / 100 + .25; page.querySelector('#l2').style.opacity = ui.op / 100; };
+    page.querySelectorAll('[data-solo]').forEach(b => b.onclick = () => { ui.op = b.dataset.solo === '1' ? 0 : 100; render(); });
+    page.querySelector('#desel')?.addEventListener('click', () => { ui.sel = null; render(); });
+    page.querySelector('#apl').onclick = aplicar;
+    page.querySelector('#revert')?.addEventListener('click', revertir);
+    page.querySelector('#resp').onclick = () => L.dialog({ title: 'Pedir aclaración a Constructora Ribera', icon: 'mail', body: `<div class="field"><label for="msg">Mensaje</label><textarea class="inp" id="msg">Hola, recibimos la rev. 2 del TS-BOMBAS. ¿Confirman que el seccionador general pasa a NH1 250 A y que se quita el tomacorriente de servicio? Gracias. Martina</textarea></div>`, actions: [{ t: 'Cancelar' }, { t: 'Enviar', icon: 'send', fn: () => L.toast('Mensaje enviado', { desc: 'Queda en el hilo del proyecto' }) }] });
+  }
+  L.on(render);
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

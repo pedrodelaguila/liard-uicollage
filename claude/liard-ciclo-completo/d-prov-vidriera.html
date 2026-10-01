@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Vidriera y demanda · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css">
+</head>
+<body data-role="prov" data-user="julian" data-active="p-vidriera" data-h="h2"
+      data-crumbs="Comercial|d-prov-vidriera.html>Vidriera y demanda" data-title="Vidriera y demanda"
+      data-sub="Cómo te ven los tableristas cuando eligen a quién pedirle cotización, y lo que te pidieron que no tenías.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="ficha" aria-label="Sección"><button data-vista="ficha">Tu vidriera</button><button data-vista="demanda">Demanda perdida</button></div>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'), BP = window.BP, est = L.q('estado'), vista = L.q('vista') || 'ficha';
+  const pv = window.B.proveedores.find(p => p.id === 'en');
+  const st = () => Object.assign({ marcas: pv.marcas.slice(), zonas: BP.vidriera.zonas.slice(), esp: BP.vidriera.especialidades.slice(), hechas: [] }, L.get('x.prov.vid') || {});
+  const save = c => L.set('x.prov.vid', Object.assign(st(), c));
+
+  function ficha() {
+    const s = st(), ss = P.solicitudes().filter(x => x.enviado.startsWith('2026-09'));
+    const cerr = ss.filter(x => !['SENT', 'COUNTER'].includes(x.estado)), resp = cerr.filter(x => ['CONFIRMED', 'REJECTED'].includes(x.estado));
+    const tags = (k, arr, cls) => `<div class="pv-taglist">${arr.map(v => `<span class="pv-tagx">${L.esc(v)}<button data-del="${k}" data-v="${L.esc(v)}" aria-label="Quitar ${L.esc(v)}">${L.icon('x')}</button></span>`).join('')}<button class="btn xs out" data-add="${k}">${L.icon('plus')}Agregar</button></div>`;
+    const pub = `<div class="card" style="overflow:hidden"><div class="card-h" style="background:var(--muted)"><span class="lbl">Así te ve un tablerista de Tigre al pedir cotización</span><div class="r"><span class="bdg">${L.icon('eye')}vista pública</span></div></div>
+      <div class="card-b col" style="gap:16px"><div class="pv-prof"><div class="pv-logo">EN</div><div class="col" style="gap:6px"><div class="row"><h2 style="font-size:22px">Eléctrica Norte S.A.</h2><span class="bdg ok">${L.icon('badge-check')}CUIT verificado</span></div><div class="muted" style="font-size:14px">${L.icon('map-pin')} Pilar · entrega en ${s.zonas.slice(0, 4).join(', ')}${s.zonas.length > 4 ? ' y ' + (s.zonas.length - 4) + ' más' : ''}</div><div class="pv-taglist">${s.marcas.map(m => `<span class="bdg pri">${L.esc(m)}</span>`).join('')}</div><div class="pv-taglist">${s.esp.map(m => `<span class="bdg">${L.esc(m)}</span>`).join('')}</div></div></div>
+        <div class="pv-measured"><div><b>3 h</b><span>tiempo de respuesta medido</span></div><div><b>${L.pct(resp.length / cerr.length * 100)}</b><span>de solicitudes respondidas</span></div><div><b>${L.pct(pv.conf * 100)}</b><span>confirma lo que responde</span></div><div><b>${L.num(pv.items)}</b><span>productos · lista del ${L.fechaCorta(pv.act)}</span></div></div>
+        <div class="muted" style="font-size:13px">${L.icon('truck')} ${L.esc(BP.vidriera.entrega)} · pedido mínimo ${L.ars(pv.min)} · ${L.esc(BP.vidriera.horario)}</div>
+        <div class="row"><button class="btn pri" id="demo-pedir">${L.icon('send')}Pedir cotización a Eléctrica Norte</button><span class="muted" style="font-size:12px">Las métricas las mide liard con tus solicitudes: no se escriben a mano.</span></div></div></div>`;
+    const edit = `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('pencil')}</div><div><h3>Editar tu vidriera</h3><div class="sub">Zona, marcas y especialidades: lo que usan los tableristas para filtrar.</div></div></div>
+      <div class="card-b col"><div class="field"><span class="lbl">Zonas de entrega</span>${tags('zonas', s.zonas)}</div><div class="field"><span class="lbl">Marcas que trabajás</span>${tags('marcas', s.marcas)}</div><div class="field"><span class="lbl">Especialidades</span>${tags('esp', s.esp)}</div>
+      <div class="note info"><span data-icon="lightbulb"></span><div><b>4 tableristas de tu zona pidieron Siemens en septiembre</b>Si la sumás, entrás en sus solicitudes. <button class="btn xs out" data-sumar="Siemens">Sumar Siemens</button></div></div></div></div>`;
+    return `<div class="grid2" style="grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:start">${pub}${edit}</div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('chart-column')}</div><div><h3>Cómo te comparan</h3><div class="sub">Contra los otros 3 distribuidores que cotizaron las mismas solicitudes en septiembre (sin nombres).</div></div></div>
+      <div class="card-b pv-why">${[['Tiempo de respuesta', 'Sos el más rápido', 92, 'ok', '3 h vs 6 h'], ['Cobertura del BOM', 'Cubrís 9 de cada 10 líneas', 88, 'ok', '88 % vs 74 %'], ['Precio', 'Quedás 2 % arriba de la media', 52, 'warn', '+2,1 %'], ['Antigüedad de la lista', 'Prysmian te baja el promedio', 40, 'bad', '41 días']].map(([t, d, w, c, n]) => `<div class="r"><span><b style="font-weight:500;font-family:var(--sans)">${t}</b><div class="muted" style="font-size:11px">${d}</div></span><div class="bar ${c}"><i style="width:${w}%"></i></div><b>${n}</b></div>`).join('')}</div></div>`;
+  }
+
+  function demanda() {
+    if (est === 'vacio') return `<div class="card"><div class="empty"><div class="e-ico">${L.icon('circle-check')}</div><h3>No perdiste demanda este mes</h3><p>Todo lo que te pidieron lo cotizaste. Acá aparece lo que te piden y no tenés: por stock, por plazo o porque no trabajás la marca.</p></div></div>`;
+    const s = st(), ds = BP.demanda, tot = ds.reduce((a, d) => a + d.monto, 0);
+    return `<div class="kpis"><div class="kpi bad"><b>${L.ars(tot)}</b><span>perdidos en septiembre · sin IVA</span></div>${Object.entries(BP.MOTIVOS).map(([k, t]) => { const m = ds.filter(d => d.k === k); return `<div class="kpi"><b>${L.ars(m.reduce((a, d) => a + d.monto, 0))}</b><span>${t} · ${m.length}</span></div>`; }).join('')}</div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('package-x')}</div><div><h3>Lo que te pidieron y no cotizaste</h3><div class="sub">Sale de tus solicitudes: líneas sin stock, con plazo más largo que el pedido, de marcas que no trabajás o sin componente base.</div></div><div class="r"><span class="tag-h2">Propuesta</span></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl"><thead><tr><th>Material</th><th>Motivo</th><th class="r">Veces</th><th class="r">Cantidad</th><th class="r">Monto perdido</th><th>Qué hacer</th><th class="r"><span class="sr">Acción</span></th></tr></thead><tbody>
+      ${ds.map((d, i) => { const hecho = s.hechas.includes(i); return `<tr><td><b style="font-weight:500">${L.esc(d.mat)}</b><div class="muted mono" style="font-size:11px">${L.esc(d.spec)}</div></td><td><span class="pv-mot ${d.k}">${BP.MOTIVOS[d.k]}</span></td><td class="r mono">${d.veces}</td><td class="r mono" style="white-space:nowrap">${L.num(d.cant)} ${d.u}</td><td class="r money" style="font-weight:700;white-space:nowrap">${L.ars(d.monto)}</td><td style="font-size:12px;max-width:340px">${L.esc(d.sug)}</td><td class="r">${d.accion ? (hecho ? `<span class="st ok">${L.icon('check')}Hecho</span>` : `<button class="btn xs out" data-acc="${i}" style="white-space:nowrap">${L.esc(d.accion)}</button>`) : ''}</td></tr>`; }).join('')}
+      </tbody></table></div></div>
+      <p class="muted" style="font-size:12px">Solo cuenta lo que llegó por liard. No ves qué distribuidor ganó ni a qué precio: el comprador no comparte eso.</p>`;
+  }
+
+  function render() {
+    if (est === 'cargando') { page.innerHTML = '<div class="grid2"><div class="skel" style="height:380px"></div><div class="skel" style="height:380px"></div></div>'; return; }
+    page.innerHTML = vista === 'demanda' ? demanda() : ficha();
+    page.querySelectorAll('[data-icon]').forEach(el => { el.insertAdjacentHTML('afterbegin', L.icon(el.dataset.icon)); el.removeAttribute('data-icon'); });
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => {
+    const t = e.target;
+    const d = t.closest('[data-del]'); if (d) { const s = st(); s[d.dataset.del] = s[d.dataset.del].filter(v => v !== d.dataset.v); save(s); return L.toast('Quitado de tu vidriera', { type: 'info', desc: d.dataset.v, action: 'Deshacer', onAction: () => { const s2 = st(); s2[d.dataset.del].push(d.dataset.v); save(s2); } }); }
+    const a = t.closest('[data-add]'); if (a) { const k = a.dataset.add, op = { zonas: ['San Fernando', 'Vicente López', 'Moreno', 'Luján'], marcas: ['Siemens', 'Chint', 'WEG', 'Legrand', 'Sica'], esp: ['Automatización', 'Iluminación', 'Puesta a tierra'] }[k].filter(v => !st()[k].includes(v)); return L.dialog({ title: 'Agregar', icon: 'plus', body: `<div class="field"><label for="nv">Elegí</label><select class="inp" id="nv">${op.map(o => `<option>${o}</option>`).join('')}</select></div>`, actions: [{ t: 'Cancelar' }, { t: 'Agregar', fn: ov => { const s = st(); s[k].push(ov.querySelector('#nv').value); save(s); L.toast('Agregado a tu vidriera'); } }] }); }
+    const sm = t.closest('[data-sumar]'); if (sm) { const s = st(); if (!s.marcas.includes('Siemens')) s.marcas.push('Siemens'); save(s); return L.toast('Siemens agregada', { desc: 'Cargá su lista de precios para que entre en el matching.', action: 'Cargar lista', onAction: () => L.go('d-prov-catalogo.html?vista=importar') }); }
+    if (t.closest('#demo-pedir')) return L.toast('Así lo ve el tablerista', { type: 'info', desc: 'El botón agrega a Eléctrica Norte a su pedido de cotización.' });
+    const ac = t.closest('[data-acc]'); if (ac) { const i = +ac.dataset.acc, dm = BP.demanda[i]; if (dm.k === 'catalogo') return L.go('d-prov-catalogo.html?vista=vincular&filtro=sin'); const s = st(); s.hechas.push(i); if (dm.k === 'marca' && dm.spec.includes('Siemens') && !s.marcas.includes('Siemens')) s.marcas.push('Siemens'); save(s); L.toast(dm.accion, { desc: dm.mat }); }
+  });
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

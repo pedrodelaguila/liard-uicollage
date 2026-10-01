@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Revisar símbolo · liard</title><link rel="stylesheet" href="ingenieria.css"></head>
+<body class="m" data-role="ing" data-tabs="ing" data-active="m-avisos" data-h="h1" data-title="TS-BOMBAS · revisar" data-back="m-pla-avisos.html">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const PID = 'tsbombas'; const DIB = { girados: [2, 3] };
+  const estado = L.q('estado'); let el = 0;
+  function render() {
+    const ss = I.simbolos(PID); const p = ss.filter(s => s.estado === 'pendiente');
+    if (estado === 'vacio' || !p.length) {
+      page.innerHTML = `<div class="card"><div class="empty" style="padding:36px 16px"><div class="e-ico" style="background:#ecfdf5;color:var(--emerald-600)">${L.icon('circle-check')}</div><h3>No te queda nada por revisar</h3><p>Los ${ss.length} símbolos del TS-BOMBAS están resueltos. El taller ya ve el seccionador con su corriente.</p><a class="btn out" href="m-pla-avisos.html">Volver a avisos</a></div></div>`; return;
+    }
+    const s = p[0]; const l = I.linea(s.linea); const ig = p.filter(x => x.grupo && x.grupo === s.grupo);
+    const op = s.accion === 'attr' ? [`Corriente nominal ${s.valor}`, 'Es otro aparato', 'No es un aparato'] : [`${l.mat} ${l.spec}`, 'Contactor 3P 25 A', 'No es un aparato'];
+    page.innerHTML = `<div class="row" style="justify-content:space-between"><span class="lbl">Símbolo ${ss.findIndex(x => x.id === s.id) + 1} de ${ss.length} · ${s.ref}</span><div class="dots">${ss.map(x => `<i class="${x.estado === 'resuelto' ? 'ok' : x.estado === 'descartado' ? 'ds' : x.id === s.id ? 'on' : ''}"></i>`).join('')}</div></div>
+      <div class="crop big">${I.cropSvg(s, DIB, 8)}</div>
+      <div class="muted" style="font-size:13px">${L.icon('map-pin')} ${L.esc(s.ubic)}</div>
+      <div class="note ai" style="padding:10px 12px">${L.icon('sparkles')}<div><b>Posible: ${L.esc(s.posible)}</b><span class="cost">${L.pct(s.ia.conf * 100)} · ${L.esc(s.ia.fuente)}</span></div></div>
+      <div class="sugg" role="radiogroup" aria-label="Qué es">${op.map((o, i) => `<button role="radio" aria-checked="${el === i}" class="${el === i ? 'on' : ''}" data-op="${i}"><span><b>${L.esc(o)}</b></span>${i === 0 ? '<span class="k ai-tag">IA</span>' : ''}</button>`).join('')}</div>
+      ${ig.length > 1 && el === 0 ? `<label class="check" style="font-size:13px"><input type="checkbox" id="todos" checked>Aplicar a los ${ig.length} iguales (${ig.map(x => x.ref).join(', ')})</label>` : ''}
+      <button class="btn pri lg block" id="ok">${L.icon('check')}Confirmar</button>
+      <div class="row gap8"><a class="btn out block" href="d-ing-plano.html?plano=tsbombas" style="flex:1">${L.icon('monitor')}Abrir en la compu</a><button class="btn ghost" id="skip" style="flex:1">Más tarde</button></div>`;
+    page.querySelectorAll('[data-op]').forEach(b => b.onclick = () => { el = +b.dataset.op; render(); });
+    page.querySelector('#ok').onclick = () => {
+      if (el === 2) { I.descartar(PID, s.id); L.toast('Descartado', { type: 'info', action: 'Deshacer', onAction: () => I.deshacer(PID, s.id) }); el = 0; return; }
+      if (el === 1) { L.toast('Elegilo desde la compu', { type: 'info', desc: 'Para asignar otro material abrí el plano en el visor.' }); return; }
+      const ids = page.querySelector('#todos')?.checked ? ig.map(x => x.id) : [s.id];
+      ids.forEach(id => I.resolver(PID, id, { via: 'movil' }));
+      L.toast(ids.length > 1 ? `${ids.length} símbolos resueltos` : 'Símbolo resuelto', { desc: s.accion === 'attr' ? 'El seccionador ya se puede cotizar' : 'El BOM ya los cuenta', action: 'Deshacer', onAction: () => ids.forEach(id => I.deshacer(PID, id)) });
+    };
+    page.querySelector('#skip').onclick = () => L.toast('Te lo recordamos mañana a las 9', { type: 'info' });
+  }
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body></html>

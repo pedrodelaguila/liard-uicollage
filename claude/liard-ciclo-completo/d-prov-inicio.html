@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Inicio · Eléctrica Norte · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="prov.css">
+</head>
+<body data-role="prov" data-user="julian" data-active="p-inicio" data-h="h1"
+      data-title="Buen día, Julián" data-sub="Eléctrica Norte S.A. · Pilar · GBA Norte · miércoles 1 de octubre de 2026">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="vendedor" aria-label="Vista"><button data-vista="vendedor">Vendedor</button><button data-vista="gerencia">Gerencia</button></div>
+  <button class="btn pri" data-href="d-prov-solicitudes.html?vista=bandeja" data-icon="inbox">Responder solicitudes</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="prov.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'), BP = window.BP, est = L.q('estado'), ger = L.q('vista') === 'gerencia';
+  function render() {
+    if (est === 'cargando') { page.innerHTML = `<div class="pv-hi">${[1, 2, 3, 4, 5].map(() => '<div class="skel" style="height:96px"></div>').join('')}</div><div class="grid2"><div class="skel" style="height:320px"></div><div class="skel" style="height:320px"></div></div>`; return; }
+    if (est === 'vacio') {
+      page.innerHTML = `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('store')}</div><div><h3>Bienvenido a liard, Julián</h3><div class="sub">Tres pasos para empezar a recibir solicitudes de tableristas de tu zona.</div></div><div class="r"><span class="tag-h1">Propuesta</span></div></div>
+        <div class="card-b"><div class="timeline">${[['file-spreadsheet', 'Cargá tu lista de precios', 'Una planilla .xlsx con código, descripción, marca y precio sin IVA. Recordamos el mapeo de columnas para la próxima.', 'd-prov-catalogo.html?vista=importar', 'Cargar planilla'], ['link-2', 'Revisá la vinculación', 'Leemos cada producto con IA y lo vinculamos a su componente base. Lo que no se puede leer queda en una bandeja para completar a mano.', 'd-prov-catalogo.html?vista=vincular', 'Ir a vincular'], ['store', 'Completá tu vidriera', 'Zona de entrega, marcas y especialidades. Así te encuentran los tableristas que compran cerca.', 'd-prov-vidriera.html', 'Editar vidriera']].map(([i, t, d, h, b], k) => `<div class="tl"><div class="tl-i ${k === 0 ? 'pri' : ''}">${L.icon(i)}</div><div><b>${t}</b><small>${d}</small><div style="margin-top:8px"><button class="btn ${k === 0 ? 'pri' : 'out'} sm" data-href="${h}">${b}</button></div></div></div>`).join('')}</div></div></div>`;
+      return;
+    }
+    const ss = P.solicitudes();
+    const abiertas = ss.filter(s => s.estado === 'SENT');
+    const porVencer = abiertas.filter(s => P.dias(s.vence) <= 1);
+    const sep = ss.filter(s => s.enviado.startsWith('2026-09'));
+    const cerr = sep.filter(s => s.estado !== 'SENT' && s.estado !== 'COUNTER');
+    const resp = cerr.filter(s => ['CONFIRMED', 'REJECTED'].includes(s.estado));
+    const conf = resp.filter(s => s.estado === 'CONFIRMED');
+    const tasaR = resp.length / cerr.length, tasaC = conf.length / resp.length;
+    const perdida = BP.demanda.reduce((a, d) => a + d.monto, 0);
+    const r = BP.vinculacion.lectura, leidos = Math.min(r.total, r.leidos + (L.get('x.prov.leidos') || 0));
+    const listas = [['Prysmian · cables', '2026-08-21', 'prysmian-cables-agosto.xlsx', 846], ['Schneider Electric', '2026-09-29', 'Electrobase', 11240], ['Zoloda · borneras y canales', '2026-09-29', 'Electrobase', 1310], ['ABB', '2026-10-01', 'lista-ABB-octubre.xlsx', 1580]];
+    const tile = (c, n, t, s, h) => `<a class="pv-tile ${c}" href="${h}"><span class="t">${t}</span><b>${n}</b><small>${s}</small></a>`;
+    page.innerHTML = `
+      <div class="pv-hi">
+        ${tile(porVencer.length ? 'bad' : 'ok', porVencer.length, 'Vencen hoy o mañana', `${abiertas.length} sin responder en total`, 'd-prov-solicitudes.html?vista=bandeja')}
+        ${tile('pri', L.pct(tasaR * 100), 'Tasa de respuesta', `${resp.length} de ${cerr.length} en septiembre · en 3 h`, 'd-prov-vidriera.html')}
+        ${tile('ok', L.pct(tasaC * 100), 'Confirmación propia', `${conf.length} confirmadas, ${resp.length - conf.length} rechazada`, 'd-prov-vidriera.html')}
+        ${tile('warn', '41 días', 'Tu lista más vieja', 'Prysmian · cables (21/08)', 'd-prov-integraciones.html')}
+        ${tile('bad', L.ars(perdida), 'Demanda perdida', `septiembre · ${BP.demanda.length} materiales`, 'd-prov-vidriera.html?vista=demanda')}
+      </div>
+      <div class="grid2" style="grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)">
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('clock-alert')}</div><div><h3>Solicitudes sin responder</h3><div class="sub">Ordenadas por vencimiento. Si vencen sin respuesta, bajan tu tasa de respuesta en la vidriera.</div></div><div class="r"><span class="tag-h1">Propuesta</span></div></div>
+          <div class="list">${abiertas.sort((a, b) => a.vence.localeCompare(b.vence)).map(s => { const d = P.dias(s.vence); return `<a class="li" href="d-prov-solicitudes.html?oc=${s.id}"><span class="pv-vence ${d <= 1 ? 'hot' : d <= 2 ? 'warm' : 'ok'}" style="width:110px">${L.esc(P.venceTxt(s.vence))}</span><div class="grow"><div class="t trunc">${L.esc(s.proyecto)}</div><div class="d mono trunc">${L.esc(s.id)} · ${s.lineasN} líneas · ${L.esc(P.quien(s))}</div></div><span class="money" style="font-weight:700;font-size:14px">${L.ars(s.total)}</span>${s.alternativas ? `<span class="bdg pri">${L.icon('git-compare-arrows')}alternativo</span>` : ''}${L.icon('chevron-right', 'muted')}</a>`; }).join('') || `<div class="empty" style="padding:28px"><div class="e-ico">${L.icon('circle-check')}</div><h3>Respondiste todo</h3><p>Cuando llegue una solicitud nueva te avisamos por mail y en el teléfono.</p></div>`}</div>
+          ${ss.filter(s => s.estado === 'COUNTER').map(s => `<div class="card-b" style="border-top:1px solid var(--border)"><div class="row"><span class="pv-badge vi">Contraoferta enviada</span><span style="font-size:13px">${L.esc(s.id)} · esperando al comprador · <span class="mono">${L.ars(s.contra.total)}</span></span><a class="src ml-auto" href="d-prov-solicitudes.html?oc=${s.id}">ver</a></div></div>`).join('')}
+        </div>
+        <div class="col" style="gap:20px">
+          ${leidos < r.total ? `<div class="card pv-read"><div class="card-b col" style="gap:10px"><div class="row"><div class="card-ico pv-scan">${L.icon('scan-text')}</div><div class="grow"><b>Lectura del catálogo en curso</b><div class="muted" style="font-size:12px">${L.esc(r.archivo)} · subida por Carla Méndez a las ${r.inicio}</div></div><span class="ai-tag">${L.icon('sparkles')}IA</span></div><div class="bar"><i style="width:${leidos / r.total * 100}%"></i></div><div class="row" style="font-size:12px"><span class="mono">${L.num(leidos)} de ${L.num(r.total)}</span><span class="muted">≈ ${r.restanteMin} min</span><span class="cost">${L.usd(r.costo)} de ${L.usd(r.costoEst)} estimados</span><a class="src ml-auto" href="d-prov-catalogo.html?vista=vincular&estado=leyendo">ver</a></div></div></div>` : ''}
+          <div class="card"><div class="card-h"><div class="card-ico">${L.icon('rotate-ccw-clock')}</div><div><h3>Antigüedad de tus listas</h3><div class="sub">Días desde la última actualización de precio. Los tableristas ven la fecha.</div></div></div>
+            <div class="card-b" style="padding-top:4px;padding-bottom:4px">${listas.map(([n, f, o, k]) => { const d = -P.dias(f); return `<div class="pv-age"><div><b style="font-weight:500">${n}</b><div class="muted mono" style="font-size:11px">${L.num(k)} productos</div></div><span class="muted" style="font-size:12px">${L.esc(o)}</span><span class="d ${d > 30 ? 'bad' : d > 14 ? 'warn' : 'ok'}">${d === 0 ? 'hoy' : d + ' días'}</span></div>`; }).join('')}</div>
+            <div class="card-b" style="border-top:1px solid var(--border)"><div class="note warn" style="padding:10px 12px"><span>${L.icon('triangle-alert')}</span><div>Prysmian · cables tiene <b style="display:inline">41 días</b> y el cobre subió desde entonces: se perdió una línea de Afumex por precio viejo. <a class="src" href="d-prov-integraciones.html">sincronizar con Electrobase</a></div></div></div></div>
+        </div>
+      </div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('chart-column')}</div><div><h3>Demanda perdida de septiembre</h3><div class="sub">Lo que te pidieron en solicitudes de liard y no cotizaste. Montos sin IVA.</div></div><div class="r"><button class="btn out sm" data-href="d-prov-vidriera.html?vista=demanda">Ver detalle y sugerencias</button></div></div>
+        <div class="card-b pv-why">${Object.entries(BP.MOTIVOS).map(([k, t]) => { const m = BP.demanda.filter(d => d.k === k).reduce((a, d) => a + d.monto, 0); return `<div class="r"><span class="pv-mot ${k}">${t}</span><div class="bar ${{ stock: 'bad', plazo: 'warn', marca: 'vi', catalogo: 'sk' }[k]}"><i style="width:${m / perdida * 100}%"></i></div><b>${L.ars(m)}</b></div>`; }).join('')}</div></div>
+      ${ger ? `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('users')}</div><div><h3>Equipo · septiembre</h3><div class="sub">Quién respondió qué. Vista de gerencia.</div></div><div class="r"><span class="tag-h1">Propuesta</span></div></div><div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl"><thead><tr><th>Persona</th><th class="r">Respondidas</th><th class="r">Tiempo medio</th><th class="r">Confirmadas</th><th class="r">Monto confirmado</th></tr></thead><tbody><tr><td>Julián Roldán · vendedor</td><td class="r mono">12</td><td class="r mono">2 h 40 min</td><td class="r mono">11</td><td class="r money">${L.ars(78230000)}</td></tr><tr><td>Mostrador Pilar</td><td class="r mono">4</td><td class="r mono">4 h 10 min</td><td class="r mono">4</td><td class="r money">${L.ars(9780000)}</td></tr></tbody></table></div></div>` : ''}
+      <p class="muted" style="font-size:12px">Tasas calculadas sobre las solicitudes de septiembre ya cerradas (respondidas o vencidas). Son las mismas que ven los tableristas en tu vidriera: no se pueden editar.</p>`;
+    L.fixLinks(page);
+  }
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

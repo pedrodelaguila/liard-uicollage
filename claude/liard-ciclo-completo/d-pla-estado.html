@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Estado del servicio · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css">
+</head>
+<body data-role="ing" data-active="" data-h="s5"
+  data-title="Estado del servicio" data-sub="Qué está funcionando, cuánto está tardando la cola de planos y por qué un plano puede demorarse.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="usuario" aria-label="Vista"><button data-vista="usuario">Para usuarios</button><button data-vista="operador">Operación interna</button></div>
+  <button class="btn out" id="sus" data-icon="bell">Avisarme si algo falla</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, page = document.getElementById('page');
+  P.boot();
+  const vista = L.q('vista') || 'usuario', estado = L.q('estado');
+  const caido = estado === 'error';
+  const ST = { ok: ['ok', 'circle-check', 'Funciona'], wa: ['wa', 'circle-alert', 'Lento'], er: ['er', 'triangle-alert', 'Con problemas'], sk: ['gr', 'clock', 'Llega en el Sprint 5'] };
+  const svc = BP.servicios.map(s => caido && s.id === 'lec' ? { ...s, st: 'er' } : caido && s.id === 'det' ? { ...s, st: 'wa', p95: '6 min 40 s' } : s);
+
+  function cola() {
+    const pl = L.get('planos') || [];
+    const proc = pl.filter(p => p.status === 'PROCESSING'), pend = pl.filter(p => p.status === 'PENDING');
+    const espera = caido ? 5 : 1;
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('list-ordered')}</div><div><h3>Cola de procesamiento de planos</h3><div class="sub">De toda la plataforma · se reparte por empresa: nadie acapara la cola</div></div><div class="r"><span class="tag-existe">cola: existe</span><span class="tag-s5">medición: Sprint 5</span></div></div>
+      <div class="card-b col">
+        <div class="pla-queue"><div><span class="lbl">En espera</span><b>${espera + pend.length}</b><small class="muted" style="font-size:12px">${pend.length} ${pend.length === 1 ? 'tuyo' : 'tuyos'} · ${espera} de otras empresas</small></div><div><span class="lbl">Procesando</span><b>${2}</b><small class="muted" style="font-size:12px">${proc.length} tuyo (${proc.map(p => p.cod).join(', ')}) · 2 a la vez como máximo</small></div><div><span class="lbl">Espera hasta empezar</span><b>${caido ? '9 min' : '1 min 40 s'}</b><small class="muted" style="font-size:12px">p50 de la última hora</small></div></div>
+        <div class="lbl" style="margin-top:6px">Tus planos en la cola · Hospital Cañuelas</div>
+        <div class="list" style="border:1px solid var(--border);border-radius:12px">${[...proc, ...pend].map((p, i) => `<div class="li"><span class="st ${P.planoSt[p.status][0]}">${L.icon(P.planoSt[p.status][1])}${P.planoSt[p.status][2]}</span><div class="grow"><div class="t mono">${p.cod}</div><div class="d">${L.esc(p.n)} · ${p.fmt}${p.fmt === 'PDF' ? ' (primero se convierte a DXF)' : ''}</div></div><span class="muted" style="font-size:12px;white-space:nowrap">${p.status === 'PROCESSING' ? 'termina en ~2 min' : 'arranca en ~' + (i + 2) + ' min'}</span><a class="btn xs ghost" href="d-ing-plano.html?plano=${p.id}">${L.icon('arrow-up-right')}Ver</a></div>`).join('')}</div>
+        <p class="muted" style="font-size:12px">No hace falta quedarse mirando: cuando un plano termina, te llega un aviso y sus líneas se suman solas al BOM.</p></div></div>`;
+  }
+  function servicios() {
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('activity')}</div><div><h3>Servicios</h3><div class="sub">Tiempos medidos en los últimos 30 días · p50 = la mitad tarda menos · p95 = 19 de cada 20 tardan menos</div></div></div>
+      <div>${svc.map(s => { const t = ST[s.st]; return `<div class="pla-svc"><span class="card-ico">${L.icon(s.i)}</span><div><b style="font-size:14px">${L.esc(s.t)}</b><div class="muted" style="font-size:12px">${L.esc(s.d)}</div></div><div class="n">${s.p50}<small>p50</small></div><div class="n">${s.p95}<small>p95</small></div><span class="st ${t[0]}" style="justify-self:end">${L.icon(t[1])}${t[2]}</span></div>`; }).join('')}</div>
+      <div class="card-b" style="border-top:1px solid var(--border)"><div class="row"><span class="lbl">Detección · 30 días</span><span class="muted ml-auto" style="font-size:12px">${L.num(svc[0].disp, 1)} % disponible</span></div>
+        <div class="pla-days" style="margin-top:8px" role="img" aria-label="Disponibilidad diaria: 28 días sin problemas, 2 con demoras">${BP.dias.map((d, i) => `<i class="${d ? 'd' + d : ''}" title="${L.fecha(new Date(Date.UTC(2026, 8, 2 + i)).toISOString().slice(0, 10))} · ${d === 1 ? 'demoras' : d === 2 ? 'caída parcial' : 'sin problemas'}"></i>`).join('')}</div>
+        <div class="pla-scale"><span>02/09</span><span class="pla-legend" style="font-family:var(--sans)"><span><i style="background:var(--emerald-500)"></i>Sin problemas</span><span><i style="background:var(--amber-500)"></i>Demoras</span><span><i style="background:var(--rose-500)"></i>Caída</span></span><span>hoy</span></div></div></div>`;
+  }
+  function porQue() {
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('timer')}</div><div><h3>Por qué un plano puede tardar</h3><div class="sub">Los límites reales de la detección</div></div><div class="r"><span class="tag-existe">existe</span></div></div>
+      <div class="card-b col" style="gap:12px">
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Tamaño</th><th>Ejemplo</th><th class="r">p50</th><th class="r">p95</th></tr></thead><tbody>${BP.tamanos.map(t => `<tr><td><b>${t.t}</b></td><td class="muted">${L.esc(t.ej)}</td><td class="r mono" style="white-space:nowrap">${t.p50}</td><td class="r mono" style="white-space:nowrap">${t.p95}</td></tr>`).join('')}</tbody></table></div>
+        <div><div class="pla-lim"><span class="c n">504</span><div><b>El plano tardó más de 5 minutos</b><div class="muted" style="font-size:12.5px">No se reintenta: es el plano, no el momento, y cada intento es una detección paga. Pasó con TS-ASC. Recortalo con la tijera en tableros más chicos.</div><div class="pla-srcs" style="margin-top:6px"><a class="src" href="d-ing-plano.html?plano=tsasc">${L.icon('layers')}TS-ASC</a></div></div></div>
+          <div class="pla-lim"><span class="c y">503</span><div><b>El detector estaba ocupado</b><div class="muted" style="font-size:12.5px">Se reintenta solo, hasta 3 veces: es el momento, no el plano. No tenés que hacer nada.</div></div></div>
+          <div class="pla-lim"><span class="c g">422</span><div><b>El DXF no tiene nada dibujado o es demasiado grande</b><div class="muted" style="font-size:12.5px">No se reintenta. Revisá que el archivo sea el correcto.</div></div></div>
+          <div class="pla-lim"><span class="c g">PDF</span><div><b>Un PDF primero se convierte</b><div class="muted" style="font-size:12.5px">Hasta 2 minutos por PDF antes de entrar a la cola. Tiene que ser vectorial: un escaneo no se puede leer.</div></div></div></div></div></div>`;
+  }
+  function incidentes() {
+    const inc = caido ? [{ f: 'hoy 11:20', dur: 'en curso', t: 'La lectura IA no responde', d: 'El proveedor del modelo no contesta. Las líneas nuevas quedan «Leyendo…» y el asistente está en pausa; la detección sigue pero más lenta. No se cobra nada de lo que falla.', st: 'en curso' }, ...BP.incidentes] : BP.incidentes;
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('clock')}</div><div><h3>Incidentes</h3><div class="sub">Últimos 30 días</div></div></div>
+      <div class="card-b"><div class="timeline">${inc.map(i => `<div class="tl"><span class="tl-i ${i.st === 'en curso' ? 'er' : 'ok'}">${L.icon(i.st === 'en curso' ? 'triangle-alert' : 'circle-check')}</span><div><b>${L.esc(i.t)} ${i.st === 'en curso' ? '<span class="st er" style="height:20px">En curso</span>' : '<span class="st ok" style="height:20px">Resuelto</span>'}</b><small>${L.esc(i.f)} · ${L.esc(i.dur)}</small><p style="font-size:12.5px;margin-top:4px">${L.esc(i.d)}</p></div></div>`).join('')}</div></div></div>`;
+  }
+  function operador() {
+    const filas = [['Backend', 'PROCESS_CONCURRENCY', '2', 'Planos a la vez. Nunca más que BOM_RENDER_CONCURRENCY'], ['Detector', 'BOM_RENDER_CONCURRENCY', '2', 'Comparte cupo con el recorte y la conversión de PDF'], ['Detector', 'BOM_RENDER_TIMEOUT_S', '300 s', 'Después de esto: 504, no se reintenta'], ['Backend', 'SYMBOL_DETECTION_TIMEOUT_MS', '360 s', 'Tiene que ser mayor que el anterior'], ['Backend', 'PLAN_JOB_LEASE_MS', '600 s', 'Mayor que la detección + guardado, o se detecta dos veces'], ['Backend', 'maxAttempts', '3', 'Reintentos de un 503 o un 500']];
+    return `<div class="note warn">${L.icon('lock')}<div><b>Vista interna del equipo de liard</b>Los usuarios no ven esto. Muestra la configuración real del procesamiento y la salud de los trabajadores.</div></div>
+      <div class="kpis"><div class="kpi"><b>2/2</b><span>Lugares de render ocupados</span><small>detección + recorte + PDF</small></div><div class="kpi ${caido ? 'warn' : ''}"><b>${caido ? 6 : 3}</b><span>Trabajos en espera</span><small>QUEUED</small></div><div class="kpi"><b>0</b><span>Leases vencidos</span><small>barrido cada 60 s</small></div><div class="kpi ${caido ? 'bad' : ''}"><b>${caido ? '14' : '2'}</b><span>FAILED últimas 24 h</span><small>${caido ? '12 por la lectura IA' : '1 por 504 (TS-ASC)'}</small></div></div>
+      <div class="grid2"><div class="card"><div class="card-h"><div class="card-ico">${L.icon('settings-2')}</div><div><h3>Límites configurados</h3><div class="sub">El lado que trabaja se rinde antes que el que espera</div></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Dónde</th><th>Variable</th><th class="r">Valor</th><th>Por qué</th></tr></thead><tbody>${filas.map(f => `<tr><td>${f[0]}</td><td class="mono" style="font-size:12px">${f[1]}</td><td class="r mono" style="white-space:nowrap">${f[2]}</td><td class="muted" style="font-size:12px">${f[3]}</td></tr>`).join('')}</tbody></table></div></div>
+        <div class="card"><div class="card-h"><div class="card-ico">${L.icon('server')}</div><div><h3>Trabajos en curso</h3><div class="sub">ProcessingJob RUNNING</div></div></div>
+          <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Plano</th><th>Empresa</th><th class="r">Intento</th><th class="r">Lease vence</th><th></th></tr></thead><tbody>
+          <tr><td class="mono" style="white-space:nowrap">TS-UPS</td><td>Tableros Delta</td><td class="r mono">1/3</td><td class="r mono">en 8 min</td><td class="r"><button class="btn xs ghost" data-cancel>Cancelar</button></td></tr>
+          <tr><td class="mono" style="white-space:nowrap">TG-SALA2</td><td>Otra empresa</td><td class="r mono">2/3</td><td class="r mono">en 6 min</td><td class="r"><button class="btn xs ghost" data-cancel>Cancelar</button></td></tr></tbody></table></div></div></div>`;
+  }
+
+  function render() {
+    const banner = caido
+      ? `<div class="note bad">${L.icon('triangle-alert')}<div><b>Hay problemas con la lectura IA desde las 11:20</b>Las líneas nuevas quedan «Leyendo…» y el asistente está en pausa. Lo que no es IA (BOM, matching, cotización, pedidos) funciona. Te avisamos cuando se resuelva.<div class="row" style="margin-top:8px"><a class="btn sm out" href="d-pla-asistente.html?estado=sin-ia">${L.icon('hand')}Atajos manuales</a></div></div></div>`
+      : `<div class="note ok">${L.icon('circle-check')}<div><b>Todo funciona</b>Último problema: 27/09, 14 minutos de demora en la detección. Actualizado hace 30 s.</div></div>`;
+    page.innerHTML = vista === 'operador' ? operador() : `${banner}
+      ${servicios()}<div class="split" style="grid-template-columns:minmax(0,1fr) 480px"><div class="col gap24">${cola()}${incidentes()}</div><div class="col gap24">${porQue()}</div></div>`;
+    L.fixLinks(page);
+    page.querySelectorAll('[data-cancel]').forEach(b => b.onclick = () => L.dialog({ title: 'Cancelar el trabajo', icon: 'circle-x', desc: 'El plano vuelve a Pendiente y se puede reintentar.', actions: [{ t: 'No' }, { t: 'Cancelar el trabajo', cls: 'dan', fn: () => L.toast('Trabajo cancelado', { type: 'warning', desc: 'El plano volvió a Pendiente.' }) }] }));
+  }
+  document.getElementById('sus').onclick = e => { const on = !L.get('x.pla.susEstado'); L.set('x.pla.susEstado', on); e.currentTarget.innerHTML = L.icon(on ? 'bell-ring' : 'bell') + (on ? 'Te avisamos' : 'Avisarme si algo falla'); L.toast(on ? 'Te avisamos si algo falla' : 'Ya no te avisamos', { desc: on ? 'Por aviso en liard; por email desde el Sprint 5.' : '' }); };
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

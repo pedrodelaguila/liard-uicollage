@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=390"><title>Hoy · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css"></head>
+<body class="m" data-role="obra" data-tabs="obra" data-active="m-hoy" data-h="h1" data-title="Hoy · miércoles 1 de octubre">
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const quien = L.q('vista') === 'taller' ? 'ramiro' : 'diego'; const u = B.usuarios[quien];
+  if (L.q('estado') === 'vacio') {
+    page.innerHTML = `<div class="cp-hero"><span class="muted" style="font-size:13px">Hola, ${L.esc(u.n.split(' ')[0])}</span><b>Hoy no hay nada programado</b></div>
+      <div class="cp-mcard"><div class="empty" style="padding:36px 18px"><div class="e-ico">${L.icon('calendar-check')}</div><h3>Día tranquilo</h3><p>Acá vas a ver lo que llega de los distribuidores, los tableros que salen a obra y lo que está frenado. Si llega un remito que no esperabas, lo podés recibir igual.</p><a class="btn pri" href="m-tal-recibir.html">${L.icon('scan-line')}Recibir un remito</a></div></div>`;
+    return;
+  }
+  function render() {
+    const rh = K.remitoHoy; const yaRec = CP.recs().some(r => r.remito === rh.remito);
+    const o = CP.ped().ordenes.find(x => x.id === rh.oc);
+    const frenados = CP.tableros().filter(t => t.estado === 'frenado');
+    const listos = CP.tableros().filter(t => t.estado === 'listo');
+    const ensayo = CP.tableros().filter(t => t.estado === 'ensayo');
+    const sent = CP.ped().ordenes.filter(x => x.status === 'SENT');
+    const avisos = (L.get('avisos') || []).filter(a => /taller|tablero|remito|frenado|TS-|TGBT|TSG|alcance/i.test(a.t)).slice(0, 2);
+    page.innerHTML = `
+    <div class="cp-hero"><span class="muted" style="font-size:13px">Hola, ${L.esc(u.n.split(' ')[0])} · ${L.esc(u.r)}</span><b>Hospital Regional Cañuelas</b><span class="muted" style="font-size:13px">Pabellón B · entrega de la obra 20/11</span></div>
+    <div class="cp-chips" role="tablist" aria-label="Para quién"><a class="chip ${quien === 'diego' ? 'on' : ''}" href="m-tal-hoy.html">Obra</a><a class="chip ${quien === 'ramiro' ? 'on' : ''}" href="m-tal-hoy.html?vista=taller">Taller</a></div>
+    <div class="cp-mcard"><div class="h">${L.icon('truck')}<span class="lbl">Llega hoy</span><span class="ml-auto bdg">${yaRec ? 0 : 1}</span></div>
+      ${yaRec ? `<div class="cp-mrow"><span class="ico-b ok">${L.icon('package-check')}</span><span class="grow"><span class="t">Remito de Ohm recibido</span><span class="d">${L.esc(rh.remito)} · registrado</span></span></div>`
+      : `<a class="cp-mrow" href="m-tal-recibir.html?oc=${rh.oc}"><span class="ico-b pr">${L.icon('package')}</span><span class="grow"><span class="t">${L.esc(CP.prov(o.prov).n)} · ${rh.lineas.length} líneas</span><span class="d">${L.esc(rh.oc)} · ${L.esc(rh.chofer)} · ${rh.hora}</span></span>${L.icon('chevron-right')}</a>`}
+    </div>
+    ${sent.length ? `<div class="cp-mcard"><div class="h">${L.icon('clock')}<span class="lbl">Sin fecha: OC sin confirmar</span><span class="ml-auto bdg wa">${sent.length}</span></div>${sent.map(x => `<div class="cp-mrow"><span class="ico-b wa">${L.icon('clock')}</span><span class="grow"><span class="t">${L.esc(CP.prov(x.prov).n)}</span><span class="d">${L.esc(x.id)} · ${x.lineas} líneas · vence ${L.fecha(x.vence)}</span></span></div>`).join('')}</div>` : ''}
+    <div class="cp-mcard"><div class="h">${L.icon('octagon-pause')}<span class="lbl">Frenado</span><span class="ml-auto bdg ${frenados.length ? 'er' : ''}">${frenados.length}</span></div>
+      ${frenados.map(t => { const l = CP.lin(t.frena); return `<a class="cp-mrow" href="m-tal-tablero.html?tablero=${t.id}"><span class="ico-b er">${L.icon('octagon-pause')}</span><span class="grow"><span class="t">${L.esc(t.cod)} · ${t.avance} %</span><span class="d">Falta ${L.esc(l.mat.toLowerCase())} ${L.esc(l.spec)}. ${l.estado === 'blocked' ? 'No se pudo cotizar: lo resuelve ingeniería.' : ''}</span></span>${L.icon('chevron-right')}</a>`; }).join('') || `<div class="cp-mrow"><span class="ico-b ok">${L.icon('circle-check')}</span><span class="grow"><span class="t">Nada frenado</span></span></div>`}
+    </div>
+    <div class="cp-mcard"><div class="h">${L.icon('send')}<span class="lbl">Sale a obra</span><span class="ml-auto bdg">${listos.length}</span></div>
+      ${listos.map(t => `<a class="cp-mrow" href="d-tal-entregas.html?vista=entregas"><span class="ico-b ok">${L.icon('truck')}</span><span class="grow"><span class="t">${L.esc(t.cod)} listo para entregar</span><span class="d">Protocolo firmado · armá el remito</span></span>${L.icon('chevron-right')}</a>`).join('')}
+      ${ensayo.map(t => `<a class="cp-mrow" href="d-tal-protocolo.html?tablero=${t.id}"><span class="ico-b pr">${L.icon('gauge')}</span><span class="grow"><span class="t">${L.esc(t.cod)} en ensayos · ${t.avance} %</span><span class="d">Sale el ${L.fecha(K.taller[t.id].entrega)} si aprueba el protocolo</span></span>${L.icon('chevron-right')}</a>`).join('')}
+      ${listos.length + ensayo.length ? '' : `<div class="cp-mrow"><span class="ico-b">${L.icon('calendar')}</span><span class="grow"><span class="t">Nada sale hoy</span><span class="d">El próximo es el ${L.esc(CP.tableros().filter(t => t.estado !== 'entregado').sort((a, b) => a.entrega.localeCompare(b.entrega))[0]?.cod || '—')}</span></span></div>`}
+    </div>
+    ${quien === 'diego' ? `<div class="cp-mcard"><div class="h">${L.icon('git-branch-plus')}<span class="lbl">Cambios pedidos en obra</span></div><a class="cp-mrow" href="d-tal-entregas.html?vista=alcance"><span class="ico-b wa">${L.icon('git-branch-plus')}</span><span class="grow"><span class="t">CA-01 · 2 circuitos en sala de máquinas</span><span class="d">${(CP.x('alcance') || {}).emitido ? 'Adicional enviado al comitente' : 'Minuta N.º 14 · en curso'}</span></span>${L.icon('chevron-right')}</a></div>`
+      : `<div class="cp-mcard"><div class="h">${L.icon('users')}<span class="lbl">En el taller</span></div>${CP.tableros().filter(t => t.estado !== 'frenado').map(t => `<a class="cp-mrow" href="m-tal-tablero.html?tablero=${t.id}"><span class="ico-b pr">${L.icon('cuboid')}</span><span class="grow"><span class="t">${L.esc(t.cod)} · ${t.avance} %</span><span class="d">${L.esc(t.etapa)}</span></span>${CP.avs(CP.x('arm.' + t.id) || t.armadores)}</a>`).join('')}</div>`}
+    ${avisos.length ? `<div class="cp-mcard"><div class="h">${L.icon('bell')}<span class="lbl">Últimos avisos</span><a class="ml-auto muted" style="font-size:12px" href="m-pla-avisos.html?rol=obra">Ver todos</a></div>${avisos.map(a => `<div class="cp-mrow"><span class="ico-b ${a.tipo === 'ok' ? 'ok' : a.tipo === 'er' ? 'er' : a.tipo === 'wa' ? 'wa' : 'pr'}">${L.icon(a.i || 'bell')}</span><span class="grow"><span class="t">${L.esc(a.t)}</span><span class="d">${L.esc(a.d)} · ${L.esc(a.cuando)}</span></span></div>`).join('')}</div>` : ''}
+    <div class="cp-sticky"><a class="btn pri lg block" href="m-tal-recibir.html">${L.icon('scan-line')}Escanear un remito</a></div>`;
+  }
+  L.on(render); render();
+} };
+</script>
+</body></html>

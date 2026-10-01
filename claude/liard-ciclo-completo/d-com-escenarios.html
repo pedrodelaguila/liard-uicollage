@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Escenarios de compra · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="compras.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="h1" data-user="sofia"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Cañuelas|d-ing-proyecto.html>Cotización|d-com-cotizacion.html>Escenarios"
+      data-title="Escenarios de compra" data-sub="La misma BOM resuelta de cuatro maneras. Elegí una y queda pre-adjudicada en la cotización: después podés tocar línea por línea.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="comparar"><button data-vista="comparar">Comparar</button><button data-vista="tabla">Tabla</button><button data-vista="ia">Recomendación IA</button></div>
+  <button class="btn out" data-href="d-com-cotizacion.html" data-icon="table-2">Ir a la matriz</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="compras.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const esc = L.esc;
+  const V = L.q('vista') || 'comparar', E = L.q('estado');
+  const f = Object.assign({}, C.FILTROS0, L.get('x.compras.filtros') || {});
+  let prevTot = {};
+  const PROV = ['en', 'ohm', 'volta', 'sur'];
+
+  function riesgosHTML(s) {
+    if (!s.riesgos.length) return `<span class="ok">${L.icon('shield-check')}Sin riesgos con estos filtros</span>`;
+    return s.riesgos.slice(0, 3).map(r => `<span class="${r.t}">${L.icon(r.t === 'er' ? 'circle-alert' : 'triangle-alert')}${esc(r.txt)}</span>`).join('');
+  }
+  function stack(s) {
+    return `<div class="c-stack" aria-hidden="true">${PROV.map(p => s.porProv[p] ? `<i class="${p}" style="flex-grow:${s.porProv[p].total}"></i>` : '').join('')}</div>
+      <div class="row wrap" style="font-size:11px;gap:4px 10px">${PROV.filter(p => s.porProv[p]).map(p => `<span class="row gap4"><span class="c-key ${p}"></span>${esc(C.prov(p).n.split(' ')[0] === 'Distribuidora' ? 'Ohm' : C.prov(p).n.split(' ').slice(0, 2).join(' ').replace(' S.A.', ''))} · ${s.porProv[p].n}</span>`).join('')}</div>`;
+  }
+
+  function filtrosHTML() {
+    const ps = C.provs();
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('flask-conical')}</div><div><h3>¿Qué pasa si…?</h3><div class="sub">Los cuatro escenarios se recalculan en vivo con las mismas ofertas</div></div><div class="r"><span class="tag-h1">propuesta</span>${JSON.stringify(f) !== JSON.stringify(C.FILTROS0) ? '<button class="btn xs ghost" id="reset">Volver a como estaba</button>' : ''}</div></div>
+      <div class="card-b" style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:20px;align-items:start">
+        <div><span class="lbl">Sacar un distribuidor</span><div class="chips" style="margin-top:8px">${ps.map(p => { const fuera = f.sin.includes(p.id) || (f.vencidas && p.id === 'volta'); return `<button class="chip ${fuera ? '' : 'on'}" data-sin="${p.id}" aria-pressed="${!fuera}" ${f.vencidas && p.id === 'volta' ? 'title="Afuera por lista vencida"' : ''}>${fuera ? L.icon('x') : L.icon('check')}${esc(p.n.replace(' S.A.', '').replace(' Mayorista', ''))}${f.vencidas && p.id === 'volta' ? ' <small>lista vencida</small>' : ''}</button>`; }).join('')}</div></div>
+        <div><span class="lbl">Exigir stock</span><div class="row" style="margin-top:10px"><button class="switch" data-manual id="sw-stock" role="switch" aria-checked="${f.stock}" aria-label="Exigir stock"></button><span style="font-size:13px">Solo ofertas con stock para toda la cantidad</span></div></div>
+        <div><span class="lbl">Sacar listas vencidas</span><div class="row" style="margin-top:10px"><button class="switch" data-manual id="sw-venc" role="switch" aria-checked="${f.vencidas}" aria-label="Sacar listas vencidas"></button><span style="font-size:13px">Ignorar Casa Volta hasta que actualice</span></div></div>
+        <div><label class="lbl" for="tope">Tope de plazo</label><div class="row" style="margin-top:6px"><input class="c-range" type="range" id="tope" min="3" max="35" step="1" value="${f.tope || 35}" aria-label="Tope de plazo en días"><b class="mono" style="font-size:13px;min-width:70px;text-align:right;white-space:nowrap">${f.tope ? f.tope + ' días' : 'sin tope'}</b></div><div class="muted" style="font-size:11.5px">El TS-BOMBAS se arma el 08/10</div></div>
+      </div></div>`;
+  }
+
+  function render() {
+    const compra = L.get('compra');
+    const esc4 = C.ESCENARIOS.map(e => Object.assign({}, e, C.escenario(e.k, f)));
+    const minTot = Math.min(...esc4.map(s => s.total)), minPl = Math.min(...esc4.map(s => s.plazoMax)), minOC = Math.min(...esc4.map(s => s.nOC));
+    const elegido = compra && compra.desde === 'escenarios' ? compra.estrategia : null;
+    const nf = C.lineas().filter(l => !C.cotizable(l) && !C.aMano(l)); const man = C.lineas().filter(C.aMano);
+
+    const head = `<div class="note info"><span>${L.icon('info')}</span><div class="grow"><b>Mismo BOM, mismas ofertas: cambia el criterio</b>${C.lineas().length} líneas · ${esc4[0].cotizables} con match${nf.length ? ` y ${nf.length} sin match (no entran en ningún escenario: ${nf.map(l => esc(l.mat.split(' ')[0].toLowerCase() + ' ' + l.spec.split(' ')[0])).join(', ')})` : ''}${man.length ? `; ${man.length} cotizada${man.length === 1 ? '' : 's'} a mano, fuera del matching` : ''}. Totales sin IVA.</div></div>`;
+
+    const cards = `<div class="c-esc">${esc4.map(s => {
+      const best = [s.total === minTot && 'Más barato', s.plazoMax === minPl && 'Llega antes', s.nOC === minOC && 'Menos OC'].filter(Boolean);
+      const dif = s.total - minTot;
+      return `<article class="c-ec ${elegido === s.k ? 'on' : ''}" aria-label="Escenario ${esc(s.t)}">
+        ${elegido === s.k ? `<span class="flag st ok">${L.icon('circle-check')}Elegido</span>` : ''}
+        <div><h3>${L.icon(s.i)}${esc(s.t)}</h3><p class="muted" style="font-size:12px;margin-top:4px;min-height:66px">${esc(s.d)}</p></div>
+        <div><span class="lbl">Total materiales +IVA</span><div class="tot c-num ${prevTot[s.k] && prevTot[s.k] !== s.total ? 'chg' : ''}">${L.ars(s.total)}</div><div class="dl ${dif ? 'up' : 'down'}">${dif ? '+ ' + L.ars(dif) + ' (' + L.pct(dif / minTot * 100, 1) + ')' : 'el más bajo'}</div></div>
+        <dl><dt>Cobertura</dt><dd>${s.cubiertas}/${s.totalLineas}</dd><dt>Plazo máximo</dt><dd class="${s.plazoMax > 14 ? 'up' : ''}">${s.plazoMax} días</dd><dt>Órdenes de compra</dt><dd>${s.nOC}</dd><dt>Llega todo el</dt><dd>${L.fechaCorta(C.sumaDias(C.HOY, s.plazoMax))}</dd></dl>
+        ${stack(s)}
+        <div class="rk">${riesgosHTML(s)}</div>
+        <div class="row wrap gap4">${best.map(b => `<span class="bdg ok">${esc(b)}</span>`).join('')}</div>
+        <div class="col gap8"><button class="btn ${elegido === s.k ? 'out' : 'pri'} block" data-elegir="${s.k}">${elegido === s.k ? L.icon('table-2') + 'Abrir en la cotización' : L.icon('check') + 'Elegir este escenario'}</button><button class="btn ghost sm block" data-ver="${s.k}">${L.icon('list')}Ver línea por línea</button></div>
+      </article>`; }).join('')}</div>`;
+
+    const tabla = `<div class="card" style="overflow:hidden"><div class="card-h"><div class="card-ico">${L.icon('table-2')}</div><div><h3>Escenarios en tabla</h3><div class="sub">Quién se lleva cada línea en cada escenario</div></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl"><thead><tr><th>Material</th><th class="r">A comprar</th>${esc4.map(s => `<th>${esc(s.t)}</th>`).join('')}</tr></thead><tbody>
+      ${C.lineas().map(l => `<tr class="${C.cotizable(l) || C.aMano(l) ? '' : 'warn'}"><td><b style="font-size:12.5px">${esc(l.mat)}</b><div class="muted mono" style="font-size:11.5px">${esc(l.spec)}</div></td><td class="r mono">${L.num(l.comprar)} ${l.u}</td>${esc4.map(s => { const p = s.adj[l.id]; const o = p && C.ofertas(l)[p]; return `<td>${C.aMano(l) ? '<span class="muted" style="font-size:12px">A mano</span>' : !C.cotizable(l) ? '<span class="muted" style="font-size:12px">Sin match</span>' : o ? `<div class="row gap8"><span class="av xs ${C.COLOR[p]}">${C.INI[p]}</span><div><div class="money" style="font-size:12px">${L.ars(o.precio * l.comprar)}</div><div class="muted mono" style="font-size:11px">${o.plazo} d${o.stock ? '' : ' · sin stock'}${C.vencida(o) ? ' · vencida' : ''}</div></div></div>` : '<span style="color:var(--rose-600);font-size:12px">Sin oferta</span>'}</td>`; }).join('')}</tr>`).join('')}
+      <tr><td><b>Total</b></td><td></td>${esc4.map(s => `<td class="money"><b>${L.ars(s.total)}</b></td>`).join('')}</tr></tbody></table></div></div>`;
+
+    const bar = esc4.find(s => s.k === 'barato'); const rec = C.escenario('barato', Object.assign({}, f, { stock: true }));
+    const extra = rec.total - bar.total; const yaStock = f.stock;
+    const lento = C.lineas().filter(l => bar.adj[l.id] && C.ofertas(l)[bar.adj[l.id]].plazo === bar.plazoMax)[0];
+    const ia = E === 'sin-ia'
+      ? `<div class="note warn"><span>${L.icon('cloud-off')}</span><div class="grow"><b>La recomendación con IA no está disponible</b>Se llegó al tope de consumo de IA del mes (US$ 120). Los escenarios de arriba no usan IA: se calculan con las ofertas, así que podés elegir igual. <a class="src" href="d-pla-plan.html">${L.icon('gauge')}Plan y consumo</a></div></div>`
+      : `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('sparkles')}</div><div><h3>Recomendación <span class="ai-tag">${L.icon('sparkles')}IA</span></h3><div class="sub">Lee los cuatro escenarios, la fecha de armado de cada tablero y el historial de respuesta de cada distribuidor</div></div><div class="r"><span class="cost">US$ 0,04 esta consulta · quedan US$ 33,60 del tope</span></div></div>
+        <div class="card-b col" style="gap:14px">
+          <div class="note ai"><span>${L.icon('sparkles')}</span><div class="grow">${yaStock ? `<b>Ya estás exigiendo stock: «Más barato» es la mejor opción</b>Cuesta ${L.ars(bar.total)} y todo llega en ${bar.plazoMax} días, antes de que arranque el armado.` : `<b>Te conviene «Más barato», pero exigiendo stock</b>Cuesta ${L.ars(extra)} más (${L.pct(extra / bar.total * 100, 1)}) y todo llega en ${rec.plazoMax} días en lugar de ${bar.plazoMax}. Sin stock, ${lento ? esc(lento.mat.toLowerCase()) + ' ' + esc(lento.spec) : 'una línea'} llega a pedido y frena el armado del TGBT, que arranca el 06/10.`}</div></div>
+          <div class="grid2">
+            <div><span class="lbl">Por qué</span><ul style="margin:8px 0 0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:6px">
+              <li>${bar.aPedido.length} ${bar.aPedido.length === 1 ? 'línea del más barato no tiene' : 'líneas del más barato no tienen'} stock: llegan a pedido. <a class="src" href="d-com-cotizacion.html">Matriz · stock por celda</a></li>
+              <li>Casa Volta queda afuera: su lista venció el 30/09. <a class="src" href="d-com-recotizar.html">Casa Volta · lista 30/08</a></li>
+              <li>El TS-BOMBAS se arma el 08/10: el guardamotor y el contactor tienen que estar el 07/10. <a class="src" href="d-tal-taller.html">Taller · plan de armado</a></li>
+              <li>Eléctrica Norte respondió el 96 % de los pedidos en menos de 3 h. <span class="org inf">inferido</span> <a class="src" href="d-com-pedidos.html">12 pedidos anteriores</a></li>
+              <li>Las marcas preferidas (Schneider y Prysmian) se respetan en las dos opciones. <a class="src" href="d-ing-proyecto.html">Marcas del proyecto</a></li>
+            </ul></div>
+            <div><span class="lbl">Lo que no sé</span><ul style="margin:8px 0 0;padding-left:18px;font-size:13px;display:flex;flex-direction:column;gap:6px">
+              <li>Si Casa Volta saldría más barato con lista nueva: no la publicó. <span class="org inf">inferido</span></li>
+              <li>La bonificación real de cada uno: las listas no la traen.</li>
+              ${nf.length ? `<li>Las ${nf.length} líneas sin match quedan afuera de cualquier escenario.</li>` : ''}
+            </ul></div>
+          </div>
+          <div class="row"><button class="btn ai" id="apl-ia">${L.icon('check')}${yaStock ? 'Elegir «Más barato»' : 'Exigir stock y elegir «Más barato»'}</button><button class="btn out" data-ver="barato">${L.icon('list')}Ver qué cambia</button><span class="grow"></span><span class="muted" style="font-size:12px">No adjudica nada hasta que lo confirmás. ¿No te convence? Elegí cualquiera de los cuatro a mano.</span></div>
+        </div></div>`;
+
+    page.innerHTML = head + filtrosHTML() + (V === 'tabla' ? tabla : V === 'ia' ? ia + cards : cards) + (V === 'comparar' ? `<div class="note"><span>${L.icon('keyboard')}</span><div>Atajos: <span class="kbd">1</span>–<span class="kbd">4</span> elige un escenario · <span class="kbd">S</span> exige stock · <span class="kbd">V</span> saca las listas vencidas</div></div>` : '');
+    L.fixLinks(page);
+    esc4.forEach(s => prevTot[s.k] = s.total);
+  }
+
+  function setF(patch) { Object.assign(f, patch); L.set('x.compras.filtros', Object.assign({}, f)); }
+  function elegir(k) {
+    const adj = C.adjudicar(k, f); const r = C.resumen(adj);
+    if (L.get('compra') && L.get('compra').desde === 'escenarios' && L.get('compra').estrategia === k) return L.go('d-com-cotizacion.html');
+    L.set('compra', { estrategia: k, adjudicadas: adj, filtros: Object.assign({}, f), desde: 'escenarios', cuando: C.HOY });
+    L.toast('Escenario elegido: ' + C.ESCENARIOS.find(e => e.k === k).t, { desc: `${r.cubiertas} líneas pre-adjudicadas en la cotización · ${L.ars(r.total)} +IVA`, action: 'Ver la cotización', onAction: () => L.go('d-com-cotizacion.html') });
+  }
+  function ver(k) {
+    const adj = C.adjudicar(k, f); const bar = C.adjudicar('barato', f);
+    const s = C.escenario(k, f);
+    L.sheet(`<div class="dlg-h"><div class="card-ico">${L.icon(C.ESCENARIOS.find(e => e.k === k).i)}</div><div class="grow"><h2>${esc(C.ESCENARIOS.find(e => e.k === k).t)}</h2><p>${s.cubiertas} líneas · ${s.nOC} OC · ${L.ars(s.total)} +IVA</p></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div class="dlg-b"><table class="tbl"><thead><tr><th>Línea</th><th>Distribuidor</th><th class="r">Subtotal</th></tr></thead><tbody>${C.lineas().filter(C.cotizable).map(l => { const p = adj[l.id]; const o = p && C.ofertas(l)[p]; const cambia = k !== 'barato' && p !== bar[l.id]; return `<tr class="${cambia ? 'sel' : ''}"><td><b style="font-size:12.5px">${esc(l.mat)}</b><div class="muted mono" style="font-size:11px">${esc(l.spec)}</div></td><td style="font-size:12.5px">${o ? esc(C.prov(p).n) + `<div class="muted mono" style="font-size:11px">${o.plazo} d${o.stock ? '' : ' · sin stock'}${C.vencida(o) ? ' · vencida' : ''}</div>` : '<span style="color:var(--rose-600)">Sin oferta</span>'}</td><td class="r money" style="font-size:12.5px">${o ? L.ars(o.precio * l.comprar) : '—'}</td></tr>`; }).join('')}</tbody></table>
+      ${k !== 'barato' ? '<p class="muted" style="font-size:12px">Resaltadas: las líneas que van a otro distribuidor que en «Más barato».</p>' : ''}
+      <button class="btn pri" data-x id="sh-el">${L.icon('check')}Elegir este escenario</button></div>`, { label: 'Detalle del escenario' }).querySelector('#sh-el').addEventListener('click', () => elegir(k));
+  }
+
+  page.addEventListener('click', e => {
+    const s = e.target.closest('[data-sin]');
+    if (s) { const id = s.dataset.sin; const sin = f.sin.includes(id) ? f.sin.filter(x => x !== id) : f.sin.concat(id); if (sin.length >= C.provs().length) return L.toast('Tiene que quedar al menos un distribuidor', { type: 'warning' }); setF({ sin }); return render(); }
+    if (e.target.closest('#sw-stock')) { setF({ stock: !f.stock }); return render(); }
+    if (e.target.closest('#sw-venc')) { setF({ vencidas: !f.vencidas }); return render(); }
+    if (e.target.closest('#reset')) { setF(Object.assign({}, C.FILTROS0, { sin: [] })); return render(); }
+    const el = e.target.closest('[data-elegir]'); if (el) return elegir(el.dataset.elegir);
+    const v = e.target.closest('[data-ver]'); if (v) return ver(v.dataset.ver);
+    if (e.target.closest('#apl-ia')) L.dialog({ title: 'Exigir stock y elegir «Más barato»', icon: 'sparkles', desc: 'La IA lo recomienda; la decisión es tuya.', body: '<p style="font-size:13px">Se prende «Exigir stock» y se pre-adjudican las líneas en la cotización. No se envía nada a ningún distribuidor hasta que ejecutes la orden.</p>', actions: [{ t: 'Cancelar' }, { t: 'Aplicar', icon: 'check', fn: () => { setF({ stock: true }); elegir('barato'); } }] });
+  });
+  page.addEventListener('input', e => { if (e.target.id === 'tope') { const v = +e.target.value; setF({ tope: v >= 35 ? null : v }); render(); const t = document.getElementById('tope'); t.focus(); } });
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('input, textarea') || document.querySelector('.ov')) return;
+    if (/^[1-4]$/.test(e.key)) elegir(C.ESCENARIOS[+e.key - 1].k);
+    if (e.key.toLowerCase() === 's') { setF({ stock: !f.stock }); render(); }
+    if (e.key.toLowerCase() === 'v') { setF({ vencidas: !f.vencidas }); render(); }
+  });
+  render(); L.on(render);
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

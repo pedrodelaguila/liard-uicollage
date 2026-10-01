@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Asistente IA · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="pla.css">
+</head>
+<body data-role="ing" data-active="" data-user="lucas" data-h="h1"
+  data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Regional Cañuelas · Pabellón B|d-ing-proyecto.html>Asistente"
+  data-title="Asistente IA" data-sub="Preguntá sobre la obra: contesta con sus datos, te muestra de dónde sale cada número y no cambia nada sin que lo confirmes.">
+<div id="act">
+  <div class="seg" data-param="modo" data-default="revision" aria-label="Modo"><button data-vista="revision">Revisión</button><button data-vista="presupuesto">Presupuesto</button><button data-vista="compras">Compras</button></div>
+  <button class="btn out" id="nueva" data-icon="plus">Nueva conversación</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-pla.js"></script><script src="pla.js"></script>
+<script>
+window.MOCK = { init() {
+  const P = PLA, A = P.asis, page = document.getElementById('page');
+  P.boot();
+  const estado = L.q('estado'); const q = L.q('q');
+  const modo = L.q('modo') || (q && A.ruta(q)) || 'revision';
+  const user = document.body.dataset.user;
+  let bloqueo = estado === 'sin-ia' ? 'sin-ia' : (estado === 'limite' || P.consumo().enTope) ? 'limite' : null;
+  if (!L.q('modo') && q && A.ruta(q)) document.querySelectorAll('[data-param=modo] [data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === modo));
+
+  function consumoCard() {
+    const c = P.consumo(); const lim = bloqueo === 'limite';
+    const usado = lim ? c.topeUsd : c.usadoUsd; const cc = lim ? { ...c, pct: 1, enTope: true, enAviso: true } : c;
+    const mio = (c.porUsuario.find(x => x.u === user) || { usd: 0 }).usd;
+    return `<div class="card pad col" style="gap:10px" id="cons"><div class="row"><span class="lbl">Consumo de IA · ${L.esc(c.mes)}</span><span class="tag-s5 ml-auto">Sprint 5</span></div>
+      <div class="row" style="align-items:baseline"><b class="mono" style="font-size:20px">${L.usd(usado)}</b><span class="muted" style="font-size:13px">de ${L.usd(c.topeUsd)} de la empresa</span></div>
+      ${P.medidor(cc)}<div class="pla-scale"><span>0</span><span>aviso ${L.pct(c.aviso * 100)}</span><span>tope</span></div>
+      <div class="row" style="font-size:12.5px"><span class="muted">Vos este mes</span><b class="mono ml-auto">${L.usd(mio)} de ${L.usd(BP.topeUsuario[user] || 0)}</b></div>
+      <div class="row" style="font-size:12.5px"><span class="muted">Una consulta cuesta</span><b class="mono ml-auto">US$ 0,03 a 0,25</b></div>
+      <a class="btn sm out" href="d-pla-plan.html">${L.icon('gauge')}Ver el consumo de la empresa</a></div>`;
+  }
+  function contexto() {
+    const f = P.faltantes(); const of = L.get('ofertas') || {};
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('database')}</div><div><h3>Qué mira para contestar</h3><div class="sub">Solo esta obra. No sale de la empresa.</div></div></div>
+      <div class="list">
+        <a class="li" href="d-bom-editor.html">${L.icon('table-2', 'muted')}<div class="grow"><div class="t">BOM consolidado</div><div class="d">${f.total} líneas · ${f.bloquean.length} bloquean · ${f.reparos.length} con reparos</div></div><span class="tag-existe">existe</span></a>
+        <a class="li" href="d-ing-proyecto.html">${L.icon('layers', 'muted')}<div class="grow"><div class="t">Planos</div><div class="d">${f.planos.length} · ${f.planos.filter(p => p.status === 'COMPLETED').length} listos</div></div><span class="tag-existe">existe</span></a>
+        <a class="li" href="d-com-cotizacion.html">${L.icon('git-compare-arrows', 'muted')}<div class="grow"><div class="t">Ofertas de ${(L.get('proveedores') || []).length} distribuidores</div><div class="d">${Object.keys(of).length} líneas con precio, stock y plazo</div></div><span class="tag-existe">existe</span></a>
+        <a class="li" href="d-com-presupuesto.html">${L.icon('file-spreadsheet', 'muted')}<div class="grow"><div class="t">Presupuesto al comitente</div><div class="d">${L.ars(P.proy('p1').monto)} +IVA · margen ${L.pct(P.presupuesto().margen * 100, 1)}</div></div><span class="tag-nuevo">Nuevo</span></a>
+      </div></div>`;
+  }
+  const reglas = `<div class="card pad col" style="gap:8px"><span class="lbl">Cómo contesta</span>
+    <div class="row" style="font-size:12.5px;align-items:flex-start">${L.icon('arrow-up-right', 'muted')}<span>Cada número trae su fuente: tocala y vas a la línea, al plano o a la oferta.</span></div>
+    <div class="row" style="font-size:12.5px;align-items:flex-start"><span class="org inf">inferido</span><span>lo que no sale de un dato. Nunca completa un atributo solo.</span></div>
+    <div class="row" style="font-size:12.5px;align-items:flex-start">${L.icon('shield-check', 'muted')}<span>Las acciones se confirman antes. Si cancelás, no pasa nada.</span></div>
+    <div class="row" style="font-size:12.5px;align-items:flex-start">${L.icon('ban', 'muted')}<span>No inventa códigos: lo que no matchea queda sin match, con su motivo.</span></div></div>`;
+
+  function render() {
+    const lim = bloqueo === 'limite', sin = bloqueo === 'sin-ia';
+    page.innerHTML = `<div class="split" style="grid-template-columns:minmax(0,1fr) 380px">
+      <div class="card" style="display:flex;flex-direction:column;min-height:760px">
+        <div class="card-h"><div class="card-ico">${L.icon('sparkles')}</div><div><h3>${A.MODOS[modo][0]}</h3><div class="sub">${{ revision: 'Qué falta, qué bloquea y por qué', presupuesto: 'Mover el total sin tocar la ingeniería', compras: 'A quién comprarle según precio, stock y fecha' }[modo]}</div></div><div class="r"><span class="tag-h1">0–6 meses</span><span class="ai-tag">${L.icon('sparkles')}IA</span></div></div>
+        ${bloqueo ? manual() : `<div class="pla-chat grow" data-chat aria-live="polite"></div>`}
+        <div class="pla-comp">
+          ${bloqueo ? '' : `<div class="pla-sug">${A.SUG[modo].map(t => `<button type="button" data-s="${L.esc(t)}">${L.esc(t)}</button>`).join('')}</div>`}
+          <form class="inbox" id="f"><input id="inp" aria-label="Escribí tu pregunta" placeholder="${lim ? 'Tope de IA alcanzado: el asistente vuelve el 1/11 o si Dirección sube el tope' : sin ? 'El asistente no está disponible ahora' : 'Preguntá sobre el Hospital Cañuelas…'}" ${bloqueo ? 'disabled' : ''}>
+            <span class="kbd">↵</span><button class="btn pri sm" id="env" type="submit" ${bloqueo ? 'disabled' : ''}>${L.icon('send')}Preguntar</button></form>
+          <div class="row" style="font-size:12px"><span class="muted">${lim ? 'Sin IA no se cobra nada; todo lo demás funciona igual.' : sin ? 'Lo que no necesita IA (filtros, totales, comparaciones) sigue andando.' : 'Cada consulta se cobra del tope de la empresa. Ya respondidas no se vuelven a cobrar.'}</span><button type="button" class="btn xs ghost ml-auto" id="det" hidden>${L.icon('square')}Mostrar todo</button></div>
+        </div>
+      </div>
+      <div class="col gap16">${consumoCard()}${contexto()}${reglas}</div></div>`;
+    L.fixLinks(page);
+    if (bloqueo) return wireManual();
+    const conv = A.montar(page, { user, modo, onStream: (on, fin) => { const d = page.querySelector('#det'); d.hidden = !on; if (on) d.onclick = fin; }, onRespuesta: () => { page.querySelector('#cons').outerHTML = consumoCard(); L.fixLinks(page); }, onTope: () => { bloqueo = 'limite'; setTimeout(render, 1600); } });
+    page.querySelector('#f').onsubmit = e => { e.preventDefault(); const i = page.querySelector('#inp'); conv.preguntar(i.value); i.value = ''; };
+    page.querySelectorAll('[data-s]').forEach(b => b.onclick = () => conv.preguntar(b.dataset.s));
+    conv.preguntar(q || A.PREG[modo], { auto: true });
+  }
+
+  function manual() {
+    const lim = bloqueo === 'limite'; const c = P.consumo();
+    return `<div class="card-b col grow" style="gap:16px">
+      ${lim ? `<div class="note bad">${L.icon('gauge')}<div><b>Se alcanzó el tope de IA de ${L.esc(c.mes)} (${L.usd(c.topeUsd)})</b>El asistente queda en pausa. Lo que estaba en curso terminó; nada se cortó a la mitad. Vuelve el 1/11, o antes si Dirección sube el tope.<div class="row" style="margin-top:8px"><button class="btn sm out" id="pedir">${L.icon('hand')}Pedirle más tope a Hernán</button><a class="btn sm ghost" href="d-pla-plan.html?estado=limite">Ver consumo</a></div></div></div>`
+        : `<div class="note bad">${L.icon('circle-alert')}<div><b>No pudimos conectar con el servicio de IA</b>Desde las 11:20 el modelo no responde. Lo estamos siguiendo en Estado del servicio. No se cobra nada mientras tanto.<div class="row" style="margin-top:8px"><button class="btn sm out" id="reint">${L.icon('refresh-cw')}Reintentar</button><a class="btn sm ghost" href="d-pla-estado.html?estado=error">Estado del servicio</a></div></div></div>`}
+      <div><div class="row" style="margin-bottom:8px"><span class="lbl">Qué falta para cotizar · calculado sin IA</span><span class="tag-existe ml-auto">existe</span></div>
+        <p class="muted" style="font-size:12.5px;margin-bottom:8px">Esto es una consulta a los datos: sale igual, sin modelo y sin costo. Lo que el asistente agrega (inferencias, cálculo de margen, escenarios) lo hacés con los atajos.</p>${A.resumenManual()}</div>
+      <div><span class="lbl">Atajos manuales</span><div class="grid3" style="margin-top:8px;gap:10px">${A.manual.map(([i, t, d, h]) => `<a class="card pad col" style="gap:4px;padding:14px" href="${h}"><span class="row" style="gap:8px">${L.icon(i)}<b style="font-size:13.5px">${t}</b></span><span class="muted" style="font-size:12px">${d}</span></a>`).join('')}</div></div></div>`;
+  }
+  function wireManual() {
+    const p = page.querySelector('#pedir'); if (p) p.onclick = () => L.dialog({ title: 'Pedir más tope de IA', icon: 'gauge', desc: 'Le llega a Hernán Rossi (Dirección), que es quien puede cambiar el tope.',
+      body: `<div class="field"><label for="mt">Cuánto más para este mes</label><select id="mt" class="inp"><option>US$ 30,00 (queda en US$ 150,00)</option><option>US$ 60,00 (queda en US$ 180,00)</option></select></div><div class="field"><label for="mm">Para qué</label><textarea id="mm" class="inp">Cerrar el presupuesto del Hospital Cañuelas antes del viernes.</textarea></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Enviar pedido', icon: 'send', fn: () => { P.aviso({ t: `${P.u(user).n} pide más tope de IA`, d: 'Asistente en pausa por el tope del mes · ' + document.getElementById('mt').value, i: 'gauge', tipo: 'wa', href: 'd-pla-plan.html' }); L.toast('Pedido enviado a Hernán', { type: 'success', desc: 'Te avisamos cuando lo resuelva.' }); } }] });
+    const r = page.querySelector('#reint'); if (r) r.onclick = () => { r.innerHTML = L.icon('loader-circle', 'spin') + 'Probando…'; setTimeout(() => { r.innerHTML = L.icon('refresh-cw') + 'Reintentar'; L.toast('Sigue sin responder', { type: 'error', desc: 'Probamos de nuevo en 5 minutos. Mientras tanto, usá los atajos.' }); }, 900); };
+    L.fixLinks(page);
+  }
+
+  document.getElementById('nueva').onclick = () => { if (bloqueo) return L.toast('El asistente está en pausa', { type: 'warning' }); const c = page.querySelector('[data-chat]'); c.innerHTML = `<div class="empty"><div class="e-ico">${L.icon('sparkles')}</div><h3>Conversación nueva</h3><p>Elegí una de las sugerencias de abajo o escribí tu pregunta. Contesta sobre el Hospital Cañuelas.</p></div>`; };
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

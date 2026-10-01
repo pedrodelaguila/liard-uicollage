@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>TGBT en 3D · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="bom.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="h2" data-user="martina"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Regional Cañuelas · Pabellón B|d-ing-proyecto.html>TGBT"
+      data-title="TGBT · tablero vinculado al BOM" data-sub="Gabinete 1800×800×400 IP55 · 5 filas de riel DIN · cada aparato es una línea del BOM: tocalo y la ves.">
+<div id="act">
+  <button class="btn out" id="csv" data-icon="file-down">Lista de armado CSV</button>
+  <button class="btn out" id="png" data-icon="image-down">Exportar PNG</button>
+  <button class="btn pri" data-href="d-tal-taller.html" data-icon="factory">Mandar al taller</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="bom.js"></script>
+<script src="vendor/three.global.js"></script><script src="tablero3d.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const I = (n, c) => L.icon(n, c), esc = L.esc;
+  const estado = L.q('estado');
+  const pedida = L.q('vista') || '3d';
+  const sin3d = estado === 'sin-3d' || (pedida === '3d' && !Tablero3D.hayWebGL());
+  const vista = pedida === '3d' && sin3d ? 'frente' : pedida;
+  const ui = { sel: L.q('linea') || null, fam: null, color: L.q('color') || 'estado', exp: false, abierta: true, cotas: vista === 'frente' };
+  const T = L.get('tgbt');
+  const GAB = 'l18';
+  let ctl = null;
+
+  const compra = () => Object.fromEntries(BOM.lineas().map(l => [l.id, BOM.compraDe(l.id).k]));
+  const filas = () => Tablero3D.armado(T, BOM.lineas());
+  const grupos = () => { const g = {}; filas().forEach(f => { (g[f.linea] ||= { l: f.l, refs: [], cant: 0, filas: new Set() }); g[f.linea].refs.push(f.ref); g[f.linea].cant += f.cant; g[f.linea].filas.add(f.fila); }); return g; };
+  const famDe = l => Tablero3D.FAMILIAS[l.tipo] || 'Otros';
+  const famlias = () => [...new Set(filas().map(f => famDe(f.l)))];
+
+  const seg = `<div class="seg" data-param="vista" data-default="3d" role="group" aria-label="Vista del tablero"><button data-vista="3d">${I('box')}3D</button><button data-vista="frente">${I('square-dashed')}Frente 2D</button><button data-vista="tabla">${I('list')}Lista de armado</button></div>`;
+
+  if (estado === 'vacio') {
+    page.innerHTML = `<div class="row">${seg}</div><div class="card"><div class="empty"><div class="e-ico">${I('box')}</div><h3>Este tablero todavía no tiene disposición</h3>
+      <p>Para armar el 3D hace falta saber qué aparato va en qué fila. Se arma solo desde el BOM del plano (por tamaño en módulos de 18 mm) o la cargás a mano; después la reacomodás arrastrando.</p>
+      <div class="row" style="justify-content:center"><button class="btn pri" id="auto">${I('wand-sparkles')}Armar desde el BOM del TS-UPS</button><button class="btn out" data-href="d-bom-editor.html?vista=por-plano&plano=tsups">${I('table-2')}Ver el BOM del plano</button></div></div></div>`;
+    document.getElementById('auto').onclick = () => L.toast('El TS-UPS se está procesando', { type: 'info', desc: 'Apenas termine la detección, se arma la disposición sola.' });
+    markVar(); return;
+  }
+
+  function lado() {
+    const g = grupos(); const sel = ui.sel;
+    const orden = filas().reduce((a, f) => (a.includes(f.linea) ? a : a.concat(f.linea)), []);
+    const cnt = BOM.conteo(orden.map(id => g[id].l).concat([BOM.linea(GAB)]));
+    return `<div class="card t3-list"><div class="card-h"><div class="card-ico">${I('list-tree')}</div><div class="grow"><h3>Líneas del BOM</h3><div class="sub">${orden.length + 1} líneas · ${cnt.blocked} bloquean · ${cnt.warning} con reparos</div></div></div>
+      <div class="list" role="listbox" aria-label="Líneas del tablero" id="lista">
+        ${[[GAB, { l: BOM.linea(GAB), refs: ['Gabinete'], cant: 1 }]].concat(orden.map(id => [id, g[id]])).map(([id, x]) => { const enFam = !ui.fam || id === GAB || famDe(x.l) === ui.fam; return `<div class="t3-li ${sel === id ? 'on' : ''}" role="option" aria-selected="${sel === id}" tabindex="${sel === id || (!sel && id === GAB) ? 0 : -1}" data-l="${id}" style="${enFam ? '' : 'opacity:.35'}">${ui.color === 'compra' ? `<span class="dot" style="background:${Tablero3D.COLORES[BOM.compraDe(id).k] || '#94a3b8'}"></span>` : BOM.dot(x.l)}
+          <div style="min-width:0"><span class="mat">${esc(x.l.mat)}</span><span class="spec">${esc(x.l.spec)}</span></div><span class="refs">${esc(x.refs.join(', '))}</span></div>`; }).join('')}
+      </div>
+      <div id="det" style="border-top:1px solid var(--border)">${detalle()}</div></div>`;
+  }
+  function detalle() {
+    const l = ui.sel && BOM.linea(ui.sel);
+    if (!l) return `<div class="card-b muted" style="font-size:13px">${I('mouse-pointer-click')} Tocá un aparato en el tablero o elegí una línea: se resalta en los dos lados.</div>`;
+    const g = grupos()[l.id]; const c = BOM.compraDe(l.id);
+    if (!g && l.id !== GAB) return `<div class="card-b col gap8"><div class="note info" style="padding:8px 10px">${I('info')}<div style="font-size:12px"><b>${esc(l.mat)} no va en el TGBT</b>Sale de ${esc((l.fuentes || []).join(', '))}. Este tablero muestra solo lo que se monta en él.</div></div><div class="row gap8"><button class="btn sm out" data-href="d-bom-editor.html?linea=${l.id}">${I('table-2')}Abrir en el BOM</button></div></div>`;
+    const enTab = g ? g.cant : 1;
+    return `<div class="card-b col gap8">
+      <div class="row gap8">${BOM.chipSt(l, true)}${BOM.chipOrg(l)}<span class="ost ${c.k === 'NONE' || c.k === 'SIN' ? 'EXPIRED' : c.k}" title="${esc(c.prov || '')}">${esc(c.t)}</span></div>
+      <dl class="dl"><dt>En este tablero</dt><dd>${L.num(enTab)} ${l.u} · ${esc(g ? g.refs.join(', ') : 'envolvente')}</dd><dt>En todo el proyecto</dt><dd>${L.num(l.comprar)} ${l.u} a comprar</dd>${c.oc ? `<dt>Orden de compra</dt><dd>${esc(c.oc)}</dd>` : ''}</dl>
+      ${l.motivo ? `<div class="note bad" style="padding:8px 10px">${I('triangle-alert')}<div style="font-size:12px">${esc(l.motivo)}</div></div>` : ''}
+      <div class="row wrap gap8"><button class="btn sm pri" data-href="d-bom-editor.html?linea=${l.id}">${I('table-2')}Abrir en el BOM</button>${l.estado === 'blocked' ? `<button class="btn sm out" data-href="d-bom-editor.html?vista=guiada">${I('lock-open')}Destrabar</button>` : ''}<button class="btn sm ghost" id="aislar-l">${I('focus')}Aislar</button></div></div>`;
+  }
+
+  function toolbar() {
+    return `<div class="t3-tb">
+      <div class="cad-tb" role="toolbar" aria-label="Herramientas del tablero">
+        ${vista === '3d' ? `<button id="b-rst" aria-label="Reiniciar la vista" title="Reiniciar la vista (0)">${I('rotate-ccw')}</button>
+        <button id="b-exp" class="${ui.exp ? 'on' : ''}" aria-pressed="${ui.exp}" aria-label="Vista explotada" title="Vista explotada: separa las filas">${I('layers-2')}</button>
+        <button id="b-door" class="${ui.abierta ? '' : 'on'}" aria-pressed="${!ui.abierta}" aria-label="${ui.abierta ? 'Cerrar la puerta' : 'Abrir la puerta'}" title="${ui.abierta ? 'Cerrar la puerta' : 'Abrir la puerta'}">${I(ui.abierta ? 'door-open' : 'door-closed')}</button>
+        <button id="b-zin" aria-label="Acercar" title="Acercar (+)">${I('zoom-in')}</button><button id="b-zout" aria-label="Alejar" title="Alejar (−)">${I('zoom-out')}</button>` : ''}
+        <button id="b-cot" class="${ui.cotas ? 'on' : ''}" aria-pressed="${ui.cotas}" aria-label="Cotas" title="Cotas y ocupación por fila">${I('ruler-dimension-line')}</button>
+      </div>
+      <select class="inp" id="fam" aria-label="Aislar por familia"><option value="">Todas las familias</option>${famlias().map(f => `<option ${ui.fam === f ? 'selected' : ''}>${esc(f)}</option>`).join('')}</select>
+      <div class="seg" role="group" aria-label="Color"><button id="c-est" class="${ui.color === 'estado' ? 'on' : ''}">Por estado del BOM</button><button id="c-com" class="${ui.color === 'compra' ? 'on' : ''}">Por estado de compra</button></div>
+    </div>`;
+  }
+  function leyenda() {
+    const C = Tablero3D.COLORES;
+    const it = ui.color === 'compra' ? [[C.CONFIRMED, 'Confirmado'], [C.SENT, 'En espera'], [C.NONE, 'Sin asignar (bloqueada)']] : [[C.ready, 'Lista'], [C.warning, 'Con reparos'], [C.blocked, 'Bloquea la cotización']];
+    return `<div class="t3-leg" aria-label="Leyenda">${it.slice(0, 3).map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('')}</div>`;
+  }
+
+  function vTabla() {
+    const fs = filas(); const occ = Tablero3D.ocupacion(T);
+    page.innerHTML = `<div class="row" style="justify-content:space-between">${seg}<span class="muted" style="font-size:12px">${fs.reduce((a, f) => a + f.cant, 0)} aparatos en ${T.filas.length} filas · el mismo armado que ven el 3D y el frente</span></div>
+      <div class="card"><div class="tbl-wrap" style="border:0;border-radius:18px"><table class="tbl bom"><thead><tr><th>Fila</th><th>Referencias</th><th>Material / Especificación</th><th>Estado</th><th>Compra</th><th class="r">Cant.</th><th class="r">Módulos</th></tr></thead><tbody>
+      ${T.filas.map((f, i) => `<tr><td colspan="7" class="t3-grp"><span class="lbl">Fila ${i + 1} · ${esc(f.n)} · ${occ[i].usados} de ${occ[i].capacidad} módulos</span></td></tr>` + fs.filter(x => x.fila === i + 1).map(x => { const c = BOM.compraDe(x.linea); return `<tr data-l="${x.linea}" class="${x.linea === ui.sel ? 'sel' : ''} ${x.l.estado === 'blocked' ? 'warn' : ''}" style="cursor:pointer" tabindex="0"><td class="muted">${x.fila}</td><td><b>${esc(x.ref)}</b></td><td><span class="mat">${esc(x.l.mat)}</span><span class="spec">${esc(x.l.spec)}</span></td><td>${BOM.chipSt(x.l, true)}</td><td><span class="ost ${c.k === 'NONE' || c.k === 'SIN' ? 'EXPIRED' : c.k}">${esc(c.t)}</span></td><td class="r qty">${x.cant}</td><td class="r">${x.ancho}</td></tr>`; }).join('')).join('')}
+      </tbody></table></div></div>
+      <div class="note">${I('info')}<div><b>Lista de armado</b>Es lo que el taller usa para montar el tablero. Las líneas bloqueadas aparecen igual, en rojo: así el faltante se ve antes de que frene el armado.</div></div>`;
+  }
+
+  function vVisual() {
+    page.innerHTML = `<div class="row" style="justify-content:space-between">${seg}${sin3d ? `<span class="bdg wa" style="height:26px">${I('monitor-x')}Este navegador no puede mostrar el 3D: te mostramos el frente con la misma selección</span>` : `<span class="muted" style="font-size:12px">${vista === '3d' ? 'Arrastrá para girar · rueda para acercar' : 'Frente en escala · sin WebGL'}</span>`}</div>
+      <div class="t3-lay">${lado()}<div class="cad t3-stage" id="stage">${toolbar()}<div id="vis" style="position:absolute;inset:0"></div>${leyenda()}
+        ${vista === '3d' ? `<div class="t3-keys"><span class="kbd">← → ↑ ↓</span>girar <span class="kbd">+ −</span>zoom <span class="kbd">0</span>reiniciar</div>` : ''}</div></div>`;
+    const el = document.getElementById('vis');
+    const opts = { tablero: T, lineas: BOM.lineas(), gabinete: GAB, color: ui.color, compra: compra(), titulo: 'TGBT · TD-26-0412', onSeleccion: id => { ui.sel = id; sincLista(true); } };
+    try { ctl = vista === '3d' ? Tablero3D.montar(el, opts) : Tablero3D.frente(el, Object.assign(opts, { cotas: ui.cotas })); }
+    catch (e) { return L.go('d-bom-3d.html?estado=sin-3d'); }
+    if (ui.sel) ctl.seleccionar(ui.sel);
+    if (ui.fam) ctl.aislar(ui.fam);
+    bindTools();
+  }
+  function sincLista(desdeVista) {
+    document.querySelectorAll('.t3-li').forEach(r => { const on = r.dataset.l === ui.sel; r.classList.toggle('on', on); r.setAttribute('aria-selected', on); r.tabIndex = on ? 0 : -1; if (on && desdeVista) r.scrollIntoView({ block: 'nearest' }); });
+    document.getElementById('det').innerHTML = detalle(); bindDet(); L.fixLinks(page);
+    const p = new URLSearchParams(location.search); ui.sel ? p.set('linea', ui.sel) : p.delete('linea'); history.replaceState(null, '', '?' + p);
+  }
+  function elegir(id) { ui.sel = id === ui.sel ? null : id; if (vista === 'tabla') { vTabla(); markVar(); L.fixLinks(page); const r = page.querySelector(`tr[data-l="${ui.sel}"]`); r && r.focus(); return; } ctl && ctl.seleccionar(ui.sel); sincLista(); }
+  function bindDet() { const b = document.getElementById('aislar-l'); if (b) b.onclick = () => { const l = BOM.linea(ui.sel); ui.fam = l.tipo ? famDe(l) : null; ctl && ctl.aislar(ui.fam); document.getElementById('fam').value = ui.fam || ''; render(true); }; }
+  function bindTools() {
+    const g = id => document.getElementById(id);
+    const btn = (id, fn) => g(id) && (g(id).onclick = fn);
+    btn('b-rst', () => ctl.reiniciar());
+    btn('b-exp', () => { ui.exp = !ui.exp; ctl.explotar(ui.exp); if (ui.exp) ui.abierta = true; refrescaTb(); });
+    btn('b-door', () => { ui.abierta = !ui.abierta; ctl.puerta(ui.abierta); if (!ui.abierta && ui.exp) { ui.exp = false; ctl.explotar(false); } refrescaTb(); });
+    btn('b-zin', () => ctl.zoom(0.85)); btn('b-zout', () => ctl.zoom(1.18));
+    btn('b-cot', () => { ui.cotas = !ui.cotas; ctl.cotas(ui.cotas); refrescaTb(); });
+    btn('c-est', () => { ui.color = 'estado'; ctl.color('estado'); render(true); });
+    btn('c-com', () => { ui.color = 'compra'; ctl.color('compra', compra()); render(true); });
+    g('fam').onchange = e => { ui.fam = e.target.value || null; ctl.aislar(ui.fam); render(true); };
+    bindDet();
+    if (vista === '3d' && ui.cotas) ctl.cotas(true);
+  }
+  function refrescaTb() { const tb = document.querySelector('.t3-tb'); tb.outerHTML = toolbar(); bindTools(); }
+  function render(soloLado) {
+    if (vista === 'tabla') { vTabla(); markVar(); L.fixLinks(page); return; }
+    if (soloLado && ctl) { const lay = document.querySelector('.t3-list'); lay.outerHTML = lado(); refrescaTb(); const lg = document.querySelector('.t3-leg'); lg.outerHTML = leyenda(); L.fixLinks(page); return; }
+    if (ctl) { ctl.destruir(); ctl = null; }
+    vVisual(); markVar(); L.fixLinks(page);
+  }
+  function markVar() { if (sin3d) { const b = page.querySelector('[data-vista="3d"]'); if (b) { b.disabled = true; b.title = 'Sin WebGL en este navegador'; } } page.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === pedida || (sin3d && b.dataset.vista === 'frente' && pedida === '3d'))); }
+
+  page.addEventListener('click', e => { const r = e.target.closest('[data-l]'); if (r) elegir(r.dataset.l); });
+  page.addEventListener('keydown', e => {
+    const r = e.target.closest('.t3-li');
+    if (r && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); const n = e.key === 'ArrowDown' ? r.nextElementSibling : r.previousElementSibling; if (n) { n.focus(); elegir(n.dataset.l); } }
+    if (r && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); elegir(r.dataset.l); }
+    const tr = e.target.closest('tr[data-l]'); if (tr && e.key === 'Enter') elegir(tr.dataset.l);
+  });
+
+  document.getElementById('csv').onclick = () => {
+    const txt = Tablero3D.csv(filas());
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv' })); a.download = 'tgbt-lista-de-armado.csv'; document.body.appendChild(a); a.click(); a.remove(); } catch (e) { /* sin descarga en el marco */ }
+    L.toast('Lista de armado exportada', { desc: `tgbt-lista-de-armado.csv · ${filas().length} renglones · separador «;»` });
+  };
+  document.getElementById('png').onclick = () => {
+    if (!ctl || !ctl.png || !ctl.png()) return L.toast('El PNG sale de la vista 3D', { type: 'info', desc: vista === 'frente' ? 'Desde el frente se exporta el SVG en escala.' : 'Pasá a la vista 3D para exportar la imagen.' });
+    const url = ctl.png(); try { const a = document.createElement('a'); a.href = url; a.download = 'tgbt-3d.png'; document.body.appendChild(a); a.click(); a.remove(); } catch (e) {}
+    L.toast('Imagen exportada', { desc: 'tgbt-3d.png · con la selección y el color actual' });
+  };
+
+  L.on(() => { if (ctl) ctl.actualizar(BOM.lineas()); render(!!ctl); });
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

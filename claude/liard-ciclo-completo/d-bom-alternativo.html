@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>BOM alternativo · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="bom.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="s5" data-user="martina"
+      data-crumbs="Proyectos|d-ing-proyectos.html>Hospital Regional Cañuelas · Pabellón B|d-ing-proyecto.html>BOM alternativo"
+      data-title="BOM alternativo · ABB" data-sub="La misma ingeniería con otra marca: mismos componentes base y atributos esenciales; cambian marca y gama.">
+<div id="act">
+  <button class="btn out" id="nueva" data-icon="plus">Otra alternativa</button>
+  <button class="btn pri" id="enviar" data-icon="send">Cotizar con la alternativa</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="bom.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const I = (n, c) => L.icon(n, c), esc = L.esc;
+  const vista = L.q('vista') || 'lado', estado = L.q('estado');
+  const A = BOM.ALTERNATIVA;
+  const IEC = { mod: 'Aparato modular: se reemplaza por uno equivalente del mismo tipo. Revisá la coordinación con el aguas arriba.',
+    pot: 'Interruptor de potencia: cambia la marca respecto del sistema ensayado (barras y soportes del fabricante original). Según IEC 61439 el tablerista asume la verificación de diseño de esa parte.' };
+  const st = () => Object.assign({ incluir: Object.fromEntries(Object.keys(A.lineas).map(k => [k, true])), envio: 'ambas' }, L.get('x.bom.alt') || {});
+  const guardar = s => L.set('x.bom.alt', s);
+
+  if (estado === 'limite') {
+    page.innerHTML = `<div class="note warn">${I('gauge')}<div><b>Llegaste al tope de BOM alternativos de tu plan</b>El plan Profesional permite 2 alternativas por proyecto y el Hospital ya tiene «Alternativa ABB» y «Alternativa nacional». Borrá una o pasá al plan Empresa (alternativas sin tope).</div></div>
+      <div class="grid2"><div class="card pad col gap8"><span class="lbl">Alternativa ABB</span><b>5 líneas cambian · enviada con la solicitud</b><span class="muted" style="font-size:13px">Creada por Martina Giménez el 30/09/2026</span><div class="row"><button class="btn sm out" data-href="d-bom-alternativo.html">${I('eye')}Abrir</button></div></div>
+        <div class="card pad col gap8"><span class="lbl">Alternativa nacional</span><b>3 líneas cambian · borrador</b><span class="muted" style="font-size:13px">Creada por Lucas Ferreyra el 28/09/2026</span><div class="row"><button class="btn sm dan" id="borrar">${I('trash-2')}Borrar</button></div></div></div>
+      <div class="row"><button class="btn pri" data-href="d-pla-plan.html">${I('gauge')}Ver planes</button></div>`;
+    document.getElementById('borrar').onclick = () => L.dialog({ title: 'Borrar «Alternativa nacional»', icon: 'trash-2', desc: 'Es un borrador: no se envió a ningún distribuidor.', actions: [{ t: 'Cancelar' }, { t: 'Borrar', cls: 'dan', fn: () => L.toast('Alternativa borrada', { desc: 'Ya podés crear otra.' }) }] });
+    document.getElementById('nueva').classList.add('dis'); return;
+  }
+
+  function filas() {
+    const s = st();
+    return BOM.lineas().filter(l => l.estado !== 'blocked').map(l => {
+      const a = A.lineas[l.id]; const m = BOM.mejor(l);
+      const o = { l, precio: m.precio, plazo: m.plazo, stock: m.stock };
+      if (a && s.incluir[l.id]) { o.a = a; o.aprecio = Math.round(m.precio * a.f / 10) * 10; o.aplazo = a.plazo; o.astock = !a.stock0; }
+      else if (a) o.off = a;
+      return o;
+    });
+  }
+  function totales(fs) {
+    const t = { o: 0, a: 0, po: 0, pa: 0, sin: 0, cambian: 0, pot: 0 };
+    fs.forEach(f => { t.o += f.precio * f.l.comprar; t.a += (f.a ? f.aprecio : f.precio) * f.l.comprar; t.po = Math.max(t.po, f.plazo || 0); t.pa = Math.max(t.pa, f.a ? f.aplazo : (f.plazo || 0)); if (f.a) { t.cambian++; if (!f.astock) t.sin++; if (f.a.iec === 'pot') t.pot++; } });
+    return t;
+  }
+  function fila(f) {
+    const l = f.l; const d = f.a ? (f.aprecio - f.precio) * l.comprar : 0;
+    const alt = f.a ? `<span class="mat">${esc(A.marca)} ${esc(f.a.gama)}</span><span class="spec">${f.astock ? 'en stock' : '<span style="color:var(--rose-600)">sin stock</span>'} · ${f.aplazo} días</span>`
+      : f.off ? `<span class="spec">${esc(A.marca)} ${esc(f.off.gama)} · no incluida</span>` : '<span class="spec">igual al original</span>';
+    return `<tr class="${f.a && f.a.iec === 'pot' ? 'warn' : ''}">
+      <td><span class="mat">${esc(l.mat)}</span><span class="spec">${esc(l.spec)}</span></td>
+      <td class="r qty">${BOM.qty(l.comprar, l.u)}</td>
+      <td><span class="spec" style="margin:0">${esc(l.marca || 'Cualquier marca')}${l.gama ? ' ' + esc(l.gama) : ''}</span><span class="spec">${L.ars(f.precio)} c/u · ${f.plazo != null ? f.plazo + ' días' : 'a cotizar'}</span></td>
+      <td>${alt}</td>
+      <td class="r">${f.a ? `<span class="delta ${d < 0 ? 'menos' : 'mas'}">${d < 0 ? '−' : '+'}${L.ars(Math.abs(d))}</span>` : '<span class="muted">—</span>'}</td>
+      <td>${f.a ? (f.a.iec === 'pot' ? `<span class="bdg wa" title="${esc(IEC.pot)}">${I('shield-alert')}verificación de diseño</span>` : `<span class="bdg" title="${esc(IEC.mod)}">${I('check')}equivalente</span>`) : ''}</td>
+      <td>${A.lineas[l.id] ? `<button class="switch" data-manual="1" data-inc="${l.id}" role="switch" aria-checked="${!!f.a}" aria-label="Incluir ${esc(l.mat)} en la alternativa"></button>` : ''}</td></tr>`;
+  }
+
+  function render() {
+    const fs = filas(); const t = totales(fs); const s = st();
+    const vis = vista === 'diferencias' ? fs.filter(f => A.lineas[f.l.id]) : fs;
+    const dif = t.a - t.o;
+    page.innerHTML = `<div class="row" style="justify-content:space-between"><div class="seg" data-param="vista" data-default="lado" role="group" aria-label="Vista"><button data-vista="lado">Lado a lado</button><button data-vista="diferencias">Solo lo que cambia</button></div><span class="muted" style="font-size:12px">Creada por Martina Giménez el 30/09/2026 · desde el <a class="src" href="d-bom-editor.html">${I('table-2')}Editor del BOM</a></span></div>
+      <div class="alt-tot">
+        <div class="alt-col"><div class="row"><span class="lbl">BOM original</span><span class="tag-existe">existe</span><span class="ml-auto muted" style="font-size:12px">${fs.length} líneas cotizables · marcas preferidas</span></div>
+          <div class="row"><b class="money">${L.ars(t.o)}</b><span class="muted" style="font-size:12px">sin IVA</span></div>
+          <dl class="dl"><dt>Plazo de la línea más lenta</dt><dd>${t.po} días</dd><dt>Sin stock</dt><dd>0 líneas</dd><dt>Diseño</dt><dd style="font-family:var(--sans)">verificado por el fabricante</dd></dl></div>
+        <div class="alt-col b"><div class="row"><span class="lbl">${esc(A.n)}</span><span class="tag-s5">s5</span><span class="ml-auto muted" style="font-size:12px">${t.cambian} líneas cambian de marca</span></div>
+          <div class="row"><b class="money">${L.ars(t.a)}</b><span class="delta ${dif < 0 ? 'menos' : 'mas'}">${dif < 0 ? '−' : '+'}${L.ars(Math.abs(dif))} (${dif < 0 ? '−' : '+'}${L.pct(Math.abs(dif) / t.o * 100, 1)})</span></div>
+          <dl class="dl"><dt>Plazo de la línea más lenta</dt><dd class="${t.pa > t.po ? 'up' : ''}">${t.pa} días</dd><dt>Sin stock</dt><dd class="${t.sin ? 'up' : ''}">${t.sin} ${t.sin === 1 ? 'línea' : 'líneas'}</dd><dt>Diseño</dt><dd style="font-family:var(--sans)">${t.pot ? `${t.pot} ${t.pot === 1 ? 'aparato' : 'aparatos'} a verificar` : 'sin cambios de potencia'}</dd></dl></div>
+      </div>
+      ${t.pot ? `<div class="note warn">${I('shield-alert')}<div><b>IEC 61439: cambiar la marca de un interruptor de potencia o del gabinete puede pasarte la responsabilidad del diseño</b>El TGBT está armado sobre el sistema ensayado de un fabricante. Si cambiás ${t.pot === 1 ? 'el interruptor de potencia' : 'los interruptores de potencia'} (Tmax XT en lugar de Compact NSX), la verificación de diseño de esa parte deja de cubrirla el fabricante y la asume Tableros Delta, además de la verificación de rutina de siempre. Los aparatos modulares equivalentes no cambian eso. <a class="src" href="d-tal-protocolo.html?tablero=tgbt">${I('clipboard-check')}Ver el protocolo del TGBT</a></div></div>` : `<div class="note ok">${I('shield-check')}<div><b>Sin cambios de potencia</b>Solo cambian aparatos modulares equivalentes: el diseño verificado no cambia.</div></div>`}
+      <div class="card"><div class="card-h"><div class="card-ico">${I('git-compare-arrows')}</div><div class="grow"><h3>Línea por línea</h3><div class="sub">Precios unitarios sin IVA: el original es la mejor oferta con stock; la alternativa, la lista ABB de Eléctrica Norte y Casa Volta. El match es canónico: mismos componente base y atributos esenciales.</div></div>
+        <div class="r">${vista === 'diferencias' ? `<span class="bdg">${vis.length} de ${fs.length} líneas</span>` : ''}</div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl bom"><thead><tr><th>Material / Especificación</th><th class="r">A comprar</th><th>Original</th><th>Alternativa</th><th class="r">Diferencia</th><th>IEC 61439</th><th><span class="sr">Incluir</span></th></tr></thead><tbody>${vis.map(fila).join('')}</tbody></table></div></div>
+      <div class="card pad col gap16"><div class="row"><h3 style="font-size:var(--text-base)">Cómo le llega al distribuidor</h3><span class="tag-s5">s5</span></div>
+        <div class="flow">
+          <div><span class="n">1 · VOS</span><b>Elegís qué se envía</b><div class="col gap4">${[['ambas', 'Original y alternativa'], ['original', 'Solo el original'], ['alternativa', 'Solo la alternativa']].map(([k, t]) => `<label class="check"><input type="radio" name="envio" value="${k}" ${s.envio === k ? 'checked' : ''}>${t}</label>`).join('')}</div></div>
+          <div><span class="n">2 · LA SOLICITUD</span><b>Una línea, dos opciones</b><span class="muted">Cada línea que cambia viaja una sola vez, con el original y la alternativa aceptada al lado. La cantidad es la misma: no se pide dos veces.</span></div>
+          <div><span class="n">3 · EL DISTRIBUIDOR</span><b>Cotiza la que puede cumplir</b><span class="muted">Por línea elige original, alternativa o ninguna, con su precio, stock y plazo. No puede proponer una tercera marca fuera de la contraoferta.</span></div>
+          <div><span class="n">4 · VOS</span><b>Adjudicás por línea</b><span class="muted">En la cotización ves las dos respuestas lado a lado. Si adjudicás un aparato de potencia de la alternativa, el aviso IEC 61439 queda en la OC.</span></div>
+        </div></div>`;
+    page.querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === vista));
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => {
+    const sw = e.target.closest('[data-inc]'); if (!sw) return;
+    const s = st(); s.incluir[sw.dataset.inc] = !s.incluir[sw.dataset.inc]; guardar(s);
+    const l = BOM.linea(sw.dataset.inc); L.toast(s.incluir[sw.dataset.inc] ? 'Línea incluida en la alternativa' : 'La línea vuelve al original', { desc: l.mat + ' · ' + l.spec });
+  });
+  page.addEventListener('change', e => { if (e.target.name === 'envio') { const s = st(); s.envio = e.target.value; guardar(s); } });
+  document.getElementById('nueva').onclick = () => L.dialog({ title: 'Otra alternativa', icon: 'plus', desc: 'Copia el BOM y cambia la marca en las líneas que esa marca puede cubrir con los mismos atributos esenciales.',
+    body: `<div class="field"><label for="am">Marca</label><select id="am" class="inp"><option>Siemens</option><option>Chint</option><option>WEG</option></select></div><span class="muted" style="font-size:12px">Tu plan permite 2 alternativas por proyecto: esta sería la segunda.</span>`,
+    actions: [{ t: 'Cancelar' }, { t: 'Crear', fn: ov => L.toast('Alternativa creada como borrador', { desc: ov.querySelector('#am').value + ' · revisá las líneas antes de enviarla' }) }] });
+  document.getElementById('enviar').onclick = () => {
+    const s = st(); const t = totales(filas());
+    const txt = { ambas: 'el original y la alternativa', original: 'solo el original', alternativa: 'solo la alternativa' }[s.envio];
+    L.dialog({ title: 'Cotizar con la alternativa', icon: 'send', desc: `Se pide precio de ${txt} a los 4 distribuidores. ${t.cambian} líneas llevan alternativa.`,
+      body: t.pot && s.envio !== 'original' ? `<label class="check"><input type="checkbox" id="iec"> Entiendo que si adjudico un interruptor de potencia ABB, Tableros Delta asume la verificación de diseño de esa parte (IEC 61439).</label>` : '',
+      actions: [{ t: 'Cancelar' }, { t: 'Pedir cotización', fn: ov => { const c = ov.querySelector('#iec'); if (c && !c.checked) { c.focus(); L.toast('Confirmá el aviso de IEC 61439', { type: 'warning' }); return false; }
+        L.set('x.bom.alt.enviada', true);
+        L.update(st => (st.avisos ||= []).unshift({ id: 'b-alt-' + Date.now(), t: 'Se pidió cotización con BOM alternativo', d: `${t.cambian} líneas con ${A.n} · ${txt}`, i: 'git-compare-arrows', tipo: 'pr', cuando: 'recién', href: 'd-bom-alternativo.html' }));
+        L.toast('Cotización pedida', { desc: `${t.cambian} líneas con alternativa · 4 distribuidores`, action: 'Ver la cotización', onAction: () => L.go('d-com-cotizacion.html') }); } }] });
+  };
+  L.on(render); render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

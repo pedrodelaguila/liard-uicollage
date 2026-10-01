@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Correo al distribuidor · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="compras.css">
+</head>
+<body data-role="cli" data-h="s5">
+<main id="page" class="c-inbox"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-prov.js"></script><script src="compras.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page'); const esc = L.esc;
+  const ocId = L.q('oc') || 'OC-2026-031-1';
+  let mk = L.q('mail');
+  function render() {
+    const pth = C.ordenPath(ocId); const o = Object.assign({ ped: pth.ped }, pth.oc); const pr = C.prov(o.prov);
+    const hilo = C.hilo(ocId).filter(m => m.lado === 'prov' && !m.futuro);
+    const m = hilo.find(x => x.k === mk) || hilo[0]; mk = m.k;
+    const ls = C.lineasOC(o) || [];
+    const ct = C.contraDe(ocId);
+    const body = m.k === 'nuevo' ? `<p>Hola, equipo de ${esc(pr.n)}:</p><p><b>Tableros Delta S.R.L.</b> (Ezeiza) te envió un pedido por <b>${o.lineas} líneas</b> para la obra <b>Hospital Regional Cañuelas · Pabellón B</b>.</p>
+        <table><tbody><tr><td style="color:var(--muted-foreground)">Código</td><td style="color:var(--muted-foreground)">Material</td><td style="text-align:right;color:var(--muted-foreground)">Cant.</td><td style="text-align:right;color:var(--muted-foreground)">Subtotal</td></tr>${ls.map(x => `<tr><td>${esc(x.codigo)}</td><td>${esc(x.l.mat)} ${esc(x.l.spec)}</td><td style="text-align:right">${L.num(x.q)}</td><td style="text-align:right">${L.ars(x.sub)}</td></tr>`).join('')}<tr><td colspan="3"><b>Total +IVA</b></td><td style="text-align:right"><b>${L.ars(o.total)}</b></td></tr></tbody></table>
+        <p>Respondé antes del <b>${L.fecha(o.vence || C.sumaDias(o.ped.enviado, 2))} a las 18:00</b>. Podés confirmar, rechazar o proponer otro precio, plazo o un equivalente por línea.</p><p class="muted" style="font-size:12px">Los datos de contacto del comprador se habilitan cuando confirmás el pedido. Los pagos se arreglan entre las partes, por fuera de liard.</p>`
+      : m.k === 'recordatorio' ? `<p>Hola, equipo de ${esc(pr.n)}:</p><p>El pedido <b>${esc(o.id)}</b> de Tableros Delta vence <b>mañana a las 18:00</b>. Si no respondés, el comprador puede pedírselo a otro distribuidor.</p>`
+      : m.k === 'decision' ? `<p>Hola, equipo de ${esc(pr.n)}:</p><p>Tableros Delta respondió tu contraoferta en <b>${esc(o.id)}</b>:</p><ul style="margin:0;padding-left:18px">${ct.lineas.map(x => `<li><b>${esc(C.linea(x.linea).mat)}</b> · ${esc(x.despues)}: ${(ct.decision || {})[ct.lineas.indexOf(x)] === 'ok' || ct.estado === 'aceptada' ? 'aceptado' : 'rechazado'}</li>`).join('')}</ul><p>${ct.estado === 'aceptada' ? 'Ya podés confirmar el pedido con estos cambios.' : 'Revisá las líneas rechazadas y confirmá o rechazá el pedido.'}</p>`
+      : m.k === 'contacto' ? `<p>Ya podés ver el contacto de Tableros Delta S.R.L. para coordinar la entrega de ${esc(o.id)}: Sofía Benítez, compras.</p>`
+      : `<p>${esc(m.t)}.</p><p class="muted">${esc(m.d)}</p>`;
+    page.innerHTML = `<aside aria-label="Carpetas"><div class="row gap8" style="padding:4px 10px 14px"><span class="av sm ${C.COLOR[o.prov]}">${C.INI[o.prov]}</span><div style="font-size:12px;min-width:0"><b class="trunc" style="display:block">ventas@${esc(m.mail)}.com.ar</b><div class="muted">${esc(pr.n)}</div></div></div>
+        <div class="f on">${L.icon('inbox')}Recibidos <span class="ml-auto mono" style="font-size:11px">${hilo.length}</span></div><div class="f">${L.icon('send')}Enviados</div><div class="f">${L.icon('archive')}Archivo</div>
+        <div class="note" style="margin-top:auto"><span>${L.icon('info')}</span><div style="font-size:11.5px">Así le llega el aviso a un distribuidor que todavía no abrió liard. <span class="tag-s5">s5</span></div></div>
+        <a class="btn ghost sm" href="d-com-pedidos.html?vista=correos&oc=${o.id}">${L.icon('arrow-left')}Volver a liard</a></aside>
+      <div class="lst" aria-label="Correos">${hilo.slice().reverse().map(x => `<a href="#" data-mk="${x.k}" class="${x.k === m.k ? 'on' : ''}"><span class="row" style="justify-content:space-between"><b>liard</b><span class="muted mono" style="font-size:11px">${L.fechaCorta(x.cuando.slice(0, 10))} ${C.hora(x.cuando)}</span></span><span style="display:block">${esc(x.t)}</span><span class="muted">${esc(x.d)}</span></a>`).join('')}</div>
+      <div class="rd"><div class="c-mail"><div class="mh"><span>De</span><span>liard &lt;avisos@liard.com.ar&gt;</span><span>Para</span><span>ventas@${esc(m.mail)}.com.ar</span><span>Asunto</span><b>${esc(m.t)}</b><span>Fecha</span><span>${L.fecha(m.cuando.slice(0, 10))} ${C.hora(m.cuando)}</span></div>
+        <div class="mb"><span class="brand">${L.LOGO_LOCKUP.replace('<svg', '<svg class="logo"')}</span>${body}
+          <div class="row gap8">${m.k === 'nuevo' || m.k === 'recordatorio' ? `<a class="btn pri" href="d-prov-solicitudes.html?oc=${o.id}">${L.icon('clipboard-list')}Responder el pedido</a><a class="btn out" href="m-prov-responder.html">${L.icon('smartphone')}Desde el teléfono</a>` : `<a class="btn pri" href="d-prov-solicitudes.html?oc=${o.id}">Ver el pedido</a>`}</div>
+          <div class="foot">Recibís este correo porque ${esc(pr.n)} está registrado como distribuidor en liard. <a href="#" id="baja" style="text-decoration:underline">Dejar de recibir avisos de pedidos</a></div></div></div></div>`;
+    L.fixLinks(page);
+  }
+  page.addEventListener('click', e => {
+    const a = e.target.closest('[data-mk]'); if (a) { e.preventDefault(); mk = a.dataset.mk; render(); }
+    if (e.target.closest('#baja')) { e.preventDefault(); L.toast('En el prototipo no se da de baja', { type: 'info', desc: 'En el producto se configura desde Listas y sincronización.' }); }
+  });
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

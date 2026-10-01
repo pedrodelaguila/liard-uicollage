@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Mantenimiento · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css">
+</head>
+<body data-role="ing" data-active="mantenimiento" data-h="h2" data-user="hernan"
+  data-crumbs="Mantenimiento"
+  data-title="Mantenimiento y as-built"
+  data-sub="Los tableros que entregaste, lo que de verdad se instaló, el plan preventivo y lo que se puede volver a vender.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="tableros"><button data-vista="tableros">Tableros</button><button data-vista="plan">Plan preventivo</button><button data-vista="oportunidades">Oportunidades</button></div>
+  <button class="btn pri" id="etq" data-icon="qr-code">Imprimir etiquetas QR</button>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const est = L.q('estado'), vista = L.q('vista') || 'tableros';
+  const qrUsados = () => CP.x('qrUsados') ?? K.plan.qrUsados;
+  if (est === 'vacio') {
+    CP.vacio(page, 'wrench', 'Todavía no entregaste tableros con liard',
+      'Cuando un tablero sale con su protocolo firmado y su remito, queda acá con su as-built (lo que de verdad se instaló), el plan de mantenimiento y el QR que abre su ficha. Así, cuando el cliente vuelve dentro de dos años, re-cotizás la lista vieja con precios de hoy.',
+      `<a class="btn pri" href="d-tal-taller.html">${L.icon('factory')}Ver el taller</a>`);
+    return;
+  }
+  const lista = () => {
+    const extra = CP.tableros().filter(t => t.estado === 'entregado' || t.estado === 'listo').map(t => ({ id: t.id, cod: t.cod, n: t.n, obra: 'Hospital Regional Cañuelas · Pabellón B', cliente: 'Constructora Ribera S.A.', proyecto: 'p1', serie: t.serie, entrega: '2026-10-02', anios: 0, estado: t.estado === 'listo' ? 'programado' : 'garantia', aparatos: CP.items(t.id).length, discont: 0, protocolo: true, prox: '2027-10-02', nuevo: true }));
+    return extra.concat(K.entregados);
+  };
+  const EST = { programado: ['pr', 'calendar-clock', 'Entrega programada'], garantia: ['ok', 'shield-check', 'En garantía'], vigente: ['gr', 'circle-check', 'En servicio'] };
+
+  function tableros() {
+    const ls = lista(); const obras = {}; ls.forEach(t => (obras[t.obra] ||= []).push(t));
+    return `<div class="tbl-wrap"><table class="tbl"><thead><tr><th style="width:250px">Tablero</th><th>Serie</th><th>Entregado</th><th>Estado</th><th>Último mant.</th><th>Próximo</th><th>Señales</th><th></th></tr></thead><tbody>
+      ${Object.entries(obras).map(([o, ts]) => `<tr><td colspan="8" class="cp-grp" style="padding:8px 14px"><b style="font-size:13px">${L.esc(o)}</b> <span class="muted">· ${L.esc(ts[0].cliente)}</span></td></tr>` + ts.map(t => { const e = EST[t.estado];
+        return `<tr data-ab="${t.id}" style="cursor:pointer"><td><b class="mono" style="color:var(--bom-material)">${L.esc(t.cod)}</b>${t.nuevo ? ' <span class="tag-nuevo">recién</span>' : ''}<div class="muted">${L.esc(t.n)} · ${t.aparatos} aparatos</div></td><td class="mono" style="white-space:nowrap">${L.esc(t.serie)}</td><td class="mono" style="white-space:nowrap">${L.fecha(t.entrega)}${t.anios ? `<div class="muted" style="font-family:var(--sans)">hace ${t.anios} años</div>` : ''}</td>
+          <td><span class="st ${e[0]}">${L.icon(e[1])}${e[2]}</span></td><td class="mono">${t.ultimo ? L.fecha(t.ultimo) : '—'}</td>
+          <td class="mono" style="${t.vencido ? 'color:var(--rose-600);font-weight:600' : ''}">${t.prox ? L.fecha(t.prox) : '—'}${t.vencido ? `<div style="font-family:var(--sans);font-size:11.5px">vencido</div>` : ''}</td>
+          <td style="max-width:240px"><div class="row wrap gap4">${t.anios >= 8 ? `<span class="bdg wa">${t.anios} años</span> ` : ''}${t.discont ? `<span class="bdg er">${t.discont} discontinuados</span> ` : ''}${!t.protocolo ? '<span class="bdg">Sin protocolo</span>' : ''}${K.pedidosServicio.some(p => p.tablero === t.id) ? '<span class="bdg pri">Pedido de servicio</span>' : ''}</div></td>
+          <td class="r"><button class="btn xs out" data-ab="${t.id}">${L.icon('panel-right-open')}As-built</button></td></tr>`; }).join('')).join('')}
+    </tbody></table></div>`;
+  }
+  function plan() {
+    const meses = ['2026-09', '2026-10', '2026-11', '2026-12', '2027-01', '2027-02'];
+    const nom = { '2026-09': 'Septiembre', '2026-10': 'Octubre', '2026-11': 'Noviembre', '2026-12': 'Diciembre', '2027-01': 'Enero 2027', '2027-02': 'Febrero 2027' };
+    const hechas = CP.x('hechas') || {};
+    const tareas = K.preventivo.filter(p => !hechas[p.id]).map(p => Object.assign({}, p, { mes: p.vencida ? '2026-09' : p.f.slice(0, 7) }));
+    return `<div class="note info">${L.icon('info')}<div><b>Plan preventivo sugerido, no obligatorio</b>Termografía anual y reapriete de bornes y barras, prueba semestral de diferenciales. Se arma a partir de la fecha de entrega y lo podés ajustar por cliente; lo vencido aparece primero.</div></div>
+      <div class="cp-cal">${meses.map(m => `<div class="cp-mes"><span class="t">${nom[m]}${m === '2026-09' ? ' <span class="bdg er">vencidas</span>' : ''}</span>${tareas.filter(t => t.mes === m).map(t => { const tb = lista().find(x => x.id === t.tablero); return `<button class="cp-tarea ${t.vencida ? 'venc' : ''}" data-tarea="${t.id}"><b>${L.esc(t.tarea)}</b>${L.esc(tb.cod)} · ${L.esc(tb.obra)}<br><span class="mono">${L.fecha(t.f)}</span></button>`; }).join('') || '<span class="muted" style="font-size:12px">Sin tareas</span>'}</div>`).join('')}</div>
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('bell')}</div><div class="grow"><h3>Avisos al cliente</h3><div class="sub">Un mes antes de cada tarea, con el QR del tablero</div></div><button class="switch" aria-checked="true" aria-label="Avisar al cliente un mes antes"></button></div></div>`;
+  }
+  function oportunidades() {
+    const ls = lista(); const viejos = ls.filter(t => t.anios >= 8);
+    return `<div class="grid2">
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('inbox')}</div><div class="grow"><h3>Pedidos de repuesto y ampliaciones</h3><div class="sub">Llegan desde el QR del tablero o los cargás vos</div></div><span class="tag-h3">h3</span></div>
+        <div class="list">${K.pedidosServicio.map(p => { const t = ls.find(x => x.id === p.tablero); const st = (CP.x('servicio.' + p.id) || p.estado);
+          return `<div class="li" style="align-items:flex-start"><div class="card-ico" style="width:34px;height:34px">${L.icon(p.tipo === 'Repuesto' ? 'package' : 'circle-plus')}</div><div class="grow"><div class="t"><span class="mono">${L.esc(p.id)}</span> · ${L.esc(p.tipo)} · ${L.esc(t.cod)} ${L.esc(t.obra)}</div><div class="d">${L.esc(p.d)}</div><div class="d">${L.fecha(p.fecha)} · ${L.esc(p.de)}</div></div><div class="col gap4" style="align-items:flex-end"><span class="bdg ${st === 'nuevo' ? 'wa' : 'pri'}">${st === 'nuevo' ? 'Nuevo' : 'Cotizando'}</span><a class="btn xs pri" href="d-com-recotizar.html?origen=${t.id}">${L.icon('refresh-cw')}Re-cotizar con precios de hoy</a></div></div>`; }).join('')}</div></div>
+      <div class="card"><div class="card-h"><div class="card-ico" style="color:var(--amber-600)">${L.icon('trending-up')}</div><div class="grow"><h3>Oportunidades comerciales</h3><div class="sub">Tableros viejos y aparatos que ya no se fabrican</div></div><span class="tag-h3">h3</span></div>
+        <div class="card-b col gap16">${viejos.map(t => { const d = K.discontinuados[t.id] || [];
+          return `<div class="col gap8" style="padding-bottom:12px;border-bottom:1px solid var(--border)"><div class="row gap8"><b class="mono" style="color:var(--bom-material)">${L.esc(t.cod)}</b><span>${L.esc(t.obra)}</span><span class="bdg wa ml-auto">${t.anios} años</span></div>
+            ${d.length ? d.map(x => `<div class="col gap4" style="font-size:12.5px"><span class="cp-mst er">${L.icon('ban')}${x.cant} × ${L.esc(x.t)}</span><span class="muted" style="padding-left:20px">Reemplazo por atributos: ${L.esc(x.reemplazo)}</span></div>`).join('') : `<span class="muted" style="font-size:12.5px">Todos sus aparatos siguen en catálogo. Le toca termografía (vencida el ${L.fecha(t.prox)}).</span>`}
+            <div class="row gap8">${d.length ? `<a class="btn xs pri" href="d-com-recotizar.html?origen=${t.id}">${L.icon('refresh-cw')}Cotizar el recambio</a>` : ''}<button class="btn xs out" data-ofrecer="${t.id}">${L.icon('send')}Ofrecer ${d.length ? 'modernización' : 'mantenimiento'}</button></div></div>`; }).join('')}
+          <div class="note ai">${L.icon('sparkles')}<div><b>Cómo se detectan</b>Se cruzan los aparatos del as-built con los catálogos vigentes de los distribuidores: si ninguno ofrece ese componente base con esos atributos, se marca discontinuado y se propone el reemplazo por <strong>los mismos atributos esenciales</strong>, nunca por nombre.</div></div>
+        </div></div></div>`;
+  }
+
+  function render() {
+    const ls = lista();
+    const venc = ls.filter(t => t.vencido).length;
+    page.innerHTML = `<div class="kpis">
+      <div class="kpi pri"><b>${ls.length}</b><span>Tableros entregados</span><small>${new Set(ls.map(t => t.obra)).size} obras</small></div>
+      <div class="kpi ${venc ? 'bad' : 'ok'}"><b>${venc}</b><span>Mantenimientos vencidos</span><small>termografía y reapriete</small></div>
+      <div class="kpi warn"><b>${K.pedidosServicio.length}</b><span>Pedidos de servicio</span><small>${K.pedidosServicio.filter(p => (CP.x('servicio.' + p.id) || p.estado) === 'nuevo').length} sin responder</small></div>
+      <div class="kpi"><b>${ls.filter(t => t.anios >= 8).length}</b><span>Con 8 años o más</span><small>${ls.reduce((a, t) => a + t.discont, 0)} aparatos discontinuados</small></div>
+      <div class="kpi ${qrUsados() >= K.plan.qrIncluidos ? 'bad' : qrUsados() / K.plan.qrIncluidos > 0.9 ? 'warn' : ''}"><b>${qrUsados()}/${K.plan.qrIncluidos}</b><span>Etiquetas QR del plan</span><small>Profesional · ${K.plan.qrIncluidos - qrUsados()} disponibles</small></div>
+    </div>
+    ${est === 'limite' || qrUsados() >= K.plan.qrIncluidos ? `<div class="note warn">${L.icon('gauge')}<div><b>Usaste las ${K.plan.qrIncluidos} etiquetas QR del plan Profesional</b>Los tableros ya etiquetados siguen funcionando. Para emitir más, pasá al plan Empresa o comprá un paquete de 50. <a class="src" href="d-pla-plan.html">${L.icon('gauge')}Plan y consumo</a></div></div>` : ''}
+    ${vista === 'plan' ? plan() : vista === 'oportunidades' ? oportunidades() : tableros()}`;
+    page.querySelectorAll('[data-ab]').forEach(el => el.onclick = e => { e.stopPropagation(); asbuilt(el.dataset.ab); });
+    page.querySelectorAll('[data-tarea]').forEach(b => b.onclick = () => tarea(b.dataset.tarea));
+    page.querySelectorAll('[data-ofrecer]').forEach(b => b.onclick = () => { const t = lista().find(x => x.id === b.dataset.ofrecer); L.dialog({ title: 'Ofrecer a ' + t.cliente, icon: 'send', body: `<div class="field"><label for="of-t">Mensaje</label><textarea class="inp" id="of-t">Hola, el ${t.cod} que les entregamos en ${t.entrega.slice(0, 4)} cumple ${t.anios} años. ${t.discont ? 'Tiene ' + t.discont + ' aparatos que ya no se fabrican: les acercamos el costo de recambio con precios de hoy.' : 'Les proponemos la termografía anual y el reapriete.'}</textarea></div>`, actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Enviar', icon: 'send', fn: () => L.toast('Propuesta enviada', { desc: t.cliente }) }] }); });
+  }
+  function asbuilt(id) {
+    const t = lista().find(x => x.id === id); const ab = K.asbuilt[id]; const h = K.historial[id] || [];
+    const ov = L.sheet(`<div class="dlg-h" style="padding:20px 22px 12px"><div class="card-ico">${L.icon('archive')}</div><div class="grow"><span class="lbl">Serie ${L.esc(t.serie)}</span><h2 class="mono">${L.esc(t.cod)}</h2><p>${L.esc(t.obra)} · ${L.esc(t.cliente)} · entregado ${L.fecha(t.entrega)}</p></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+      <div style="padding:0 22px 12px" class="row gap8"><a class="btn sm out" href="m-cli-tablero.html?tablero=${id}">${L.icon('qr-code')}Lo que ve el cliente</a><a class="btn sm pri" href="d-com-recotizar.html?origen=${id}">${L.icon('refresh-cw')}Re-cotizar con precios de hoy</a></div>
+      <div data-tabs-scope><div class="tabs" data-tabs style="padding:0 22px"><a href="#" data-tab="bom" class="on">As-built</a><a href="#" data-tab="docs">Documentos</a><a href="#" data-tab="hist">Historial</a></div>
+      <div data-panel="bom" style="padding:8px 22px 22px">${ab ? ab.lineas.map(x => `<div class="cp-mat" style="grid-template-columns:70px minmax(0,1fr) auto"><span class="ref">${L.esc(x.ref)}</span><div><span class="m">${L.esc(x.mat)}</span><span class="s">${L.esc(x.spec)} · ${L.esc(x.marca)}</span>${x.cambio ? `<div style="font-size:11.5px;color:var(--amber-700);margin-top:2px">${L.icon('git-compare-arrows')} ${L.esc(x.cambio)}</div>` : ''}</div><span class="mono qty">${x.cant} u</span></div>`).join('') + `<div class="note info" style="margin-top:12px">${L.icon('info')}<div><b>El as-built es lo que se instaló, no lo que se presupuestó</b>Incluye las contraofertas aceptadas y los cambios de obra. Es la lista que se re-cotiza.</div></div>`
+        : `<div class="empty" style="padding:32px 12px"><div class="e-ico">${L.icon('archive')}</div><h3>Se arma al entregar</h3><p>El as-built sale del BOM aprobado más los cambios de obra y las contraofertas aceptadas. ${t.nuevo ? 'Se completa cuando se firme el remito de entrega.' : ''}</p></div>`}</div>
+      <div data-panel="docs" hidden style="padding:8px 22px 22px">${(ab ? ab.docs : ['Unifilar', 'Protocolo de ensayos de rutina', 'Remito de entrega']).map(d => `<button class="cp-doc" data-doc="${L.esc(d)}"><span class="ico-b">${L.icon('file-text')}<small>PDF</small></span><span class="grow"><b style="font-size:13.5px;display:block">${L.esc(d)}</b><span class="muted" style="font-size:12px">Visible en el QR</span></span>${L.icon('download')}</button>`).join('')}${!t.protocolo ? `<div class="note warn">${L.icon('triangle-alert')}<div><b>Sin protocolo de ensayos cargado</b>Se entregó antes de usar liard. Podés subir el escaneo del protocolo en papel.</div></div>` : ''}</div>
+      <div data-panel="hist" hidden style="padding:16px 22px 22px">${h.length ? `<div class="timeline">${h.map(x => `<div class="tl"><div class="tl-i ${x.tipo}">${L.icon(x.i)}</div><div><b>${L.esc(x.t)}</b><small>${L.fecha(x.f)} · ${L.esc(x.d)}</small></div></div>`).join('')}</div>` : '<p class="muted" style="font-size:13px">Sin intervenciones registradas.</p>'}<button class="btn sm out" data-reg style="margin-top:8px">${L.icon('plus')}Registrar intervención</button></div></div>`, { label: 'As-built ' + t.cod });
+    ov.querySelector('.pnl').style.width = 'min(620px, 100%)';
+    ov.addEventListener('click', e => { const d = e.target.closest('[data-doc]'); if (d) L.toast(d.dataset.doc, { type: 'info', desc: t.cod + ' · ' + t.serie + '.pdf' }); if (e.target.closest('[data-reg]')) { ov.remove(); tarea(null, id); } });
+  }
+  function tarea(tid, tabId) {
+    const p = tid ? K.preventivo.find(x => x.id === tid) : null; const t = lista().find(x => x.id === (p ? p.tablero : tabId));
+    L.dialog({ title: (p ? p.tarea : 'Intervención') + ' · ' + t.cod, icon: 'thermometer', desc: t.obra,
+      body: `<div class="grid2"><div class="field"><label for="tm-f">Fecha</label><input class="inp mono" id="tm-f" value="01/10/2026"></div><div class="field"><label for="tm-x">Temperatura máx. (°C)</label><input class="inp mono" id="tm-x" value="44"></div></div><div class="field"><label for="tm-o">Observaciones</label><textarea class="inp" id="tm-o">Sin puntos calientes. Reapriete de bornes de Q0 y barras.</textarea></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Registrar como hecha', icon: 'check', fn: () => { if (p) CP.x('hechas.' + p.id, true); render(); L.toast('Intervención registrada', { desc: 'Queda en el historial del ' + t.cod + ' y en su QR' }); } }] });
+  }
+  document.getElementById('etq').onclick = () => {
+    const sin = lista().filter(t => t.nuevo || !t.protocolo);
+    if (qrUsados() >= K.plan.qrIncluidos || est === 'limite') { L.toast('No quedan etiquetas QR en el plan', { type: 'warning', action: 'Ver planes', onAction: () => L.go('d-pla-plan.html') }); return; }
+    L.dialog({ title: 'Imprimir etiquetas QR', icon: 'qr-code', desc: 'Planilla A4 de etiquetas de poliéster 100 × 70 mm. Cada una abre la ficha pública de su tablero.', body: `<div class="col gap8">${lista().slice(0, 4).map(t => `<label class="check"><input type="checkbox" ${sin.includes(t) || t.estado === 'programado' ? 'checked' : ''}> <b class="mono">${L.esc(t.cod)}</b> · ${L.esc(t.obra)} · ${L.esc(t.serie)}</label>`).join('')}</div><div class="cp-etq" style="margin-top:6px">${CP.qr('TD-26-0301', 92)}<div><b>TGBT</b><small>Serie TD-26-0301<br>Escaneá para ver planos, protocolo y pedir servicio</small></div></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Imprimir', icon: 'printer', fn: dl => { const n = dl.querySelectorAll('input:checked').length; CP.x('qrUsados', Math.min(K.plan.qrIncluidos, qrUsados() + n)); render(); L.toast(n + ' etiqueta' + (n === 1 ? '' : 's') + ' a la impresora', { desc: 'Quedan ' + (K.plan.qrIncluidos - qrUsados()) + ' en el plan' }); } }] });
+  };
+  L.on(render);
+  render();
+  if (L.q('tablero')) asbuilt(L.q('tablero'));
+} };
+</script>
+</body></html>

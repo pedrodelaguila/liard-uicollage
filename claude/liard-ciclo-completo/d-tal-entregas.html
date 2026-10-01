@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Obras y entregas · liard</title>
+<link rel="stylesheet" href="ui.css"><link rel="stylesheet" href="campo.css">
+</head>
+<body data-role="ing" data-active="obra" data-h="h1" data-user="sofia"
+  data-crumbs="Obras>Hospital Regional Cañuelas"
+  data-title="Obras y entregas"
+  data-sub="Lo pedido, lo recibido y lo pendiente de cada OC, los remitos de entrega y los cambios que pide la obra.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="recepcion"><button data-vista="recepcion">Recepción</button><button data-vista="alcance">Alcance</button><button data-vista="entregas">Entregas</button></div>
+  <a class="btn out" href="m-tal-recibir.html" data-icon="smartphone">En el teléfono</a>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-campo.js"></script>
+<script src="app.js"></script><script src="campo.js"></script>
+<script>
+window.MOCK = { init() {
+  const K = window.CAMPO, page = document.getElementById('page');
+  const est = L.q('estado'), vista = L.q('vista') || 'recepcion';
+  if (est === 'error') { CP.error(page, 'No pudimos cargar los remitos', 'El servicio de recepciones no respondió. Lo que cargaste desde el teléfono quedó guardado en el equipo y se sube cuando vuelva la conexión.', 'd-tal-taller.html'); return; }
+  if (est === 'cargando') { CP.cargando(page, 2); return; }
+
+  // Líneas por OC (de la adjudicación) con pedido / recibido / pendiente
+  function lineasOC(o) {
+    const adj = CP.adj();
+    return Object.keys(adj).filter(l => adj[l] === o.prov).map(id => {
+      const l = CP.lin(id); const rec = CP.recibido(id); const pend = Math.max(0, l.comprar - rec);
+      const contra = o.contra && o.contra.lineas ? o.contra.lineas.find(c => c.linea === id) : null;
+      let frena = '';
+      if (pend > 0) {
+        const pn = C_prov(o).replace(/ S\.A\.$/, '');
+        const of = (B.ofertas[id] || {})[o.prov] || {};
+        const eta = o.status === 'CONFIRMED' ? (() => { const d = new Date((o.respondido || B.HOY) + 'T12:00:00'); d.setDate(d.getDate() + (of.plazo || 3)); return d.toISOString().slice(0, 10); })() : null;
+        if (o.status === 'SENT') frena = pn + ' · OC sin confirmar';
+        else if (o.status === 'CONFIRMED') frena = rec > 0 ? pn + ' · parcial, resto ' + L.fechaCorta(K.remitoHoy.promesa) : pn + ' · sin remito, llega ' + L.fechaCorta(eta);
+        else frena = 'OC ' + CP.OST[o.status].toLowerCase() + ': re-adjudicar';
+        if (contra) frena = pn + ' · contraoferta de ' + contra.cambio;
+      }
+      return { id, l, rec, pend, frena, contra };
+    });
+  }
+  const C_prov = o => CP.prov(o.prov).n;
+  const recsP1 = () => CP.recs().filter(r => r.proyecto === 'p1');
+
+  function kpis() {
+    const ped = CP.ped(); const ls = ped.ordenes.flatMap(lineasOC);
+    const tot = ls.length, compl = ls.filter(x => x.pend === 0).length, parc = ls.filter(x => x.rec > 0 && x.pend > 0).length;
+    const listos = CP.tableros().filter(t => t.estado === 'listo').length, entreg = CP.tableros().filter(t => t.estado === 'entregado').length;
+    const ca = CP.x('alcance') || {};
+    return `<div class="kpis">
+      <div class="kpi pri"><b>${ped.ordenes.length}</b><span>OC de ${L.esc(ped.id)}</span><small>${ped.ordenes.filter(o => o.status === 'CONFIRMED').length} confirmada${ped.ordenes.filter(o => o.status === 'CONFIRMED').length === 1 ? '' : 's'} · ${ped.ordenes.filter(o => o.status === 'SENT').length} en espera</small></div>
+      <div class="kpi ok"><b>${compl}/${tot}</b><span>Líneas recibidas completas</span><small>${recsP1().length} remito${recsP1().length === 1 ? '' : 's'} cargado${recsP1().length === 1 ? '' : 's'}</small></div>
+      <div class="kpi ${parc ? 'warn' : ''}"><b>${parc}</b><span>Entregas parciales</span><small>con saldo pendiente</small></div>
+      <div class="kpi"><b>${entreg}/${CP.tableros().length}</b><span>Tableros entregados a obra</span><small>${listos} listo${listos === 1 ? '' : 's'} para remito</small></div>
+      <div class="kpi ${ca.emitido ? 'ok' : 'warn'}"><b>1</b><span>Cambio de alcance</span><small>${ca.emitido ? 'adicional emitido' : 'sin resolver'}</small></div>
+    </div>`;
+  }
+
+  // ---------- Recepción ----------
+  function recepcion() {
+    const ped = CP.ped();
+    return ped.ordenes.map(o => { const ls = lineasOC(o); const rec = ls.filter(x => x.pend === 0).length; const remitos = recsP1().filter(r => r.oc === o.id);
+      return `<div class="card">
+        <div class="card-h"><div class="card-ico">${L.icon('package')}</div><div class="grow"><div class="row gap8"><h3 class="mono">${L.esc(o.id)}</h3><span class="ost ${o.status}">${CP.OST[o.status]}</span><span class="tag-existe">existe</span>${remitos.length ? `<span class="ost PARTIAL">${rec === ls.length ? 'Recibida' : 'Entrega parcial'}</span>` : ''}</div><div class="sub">${L.esc(C_prov(o))} · ${o.lineas} líneas · ${L.ars(o.total)} +IVA · ${o.status === 'SENT' ? 'vence ' + L.fecha(o.vence) : 'respondió ' + L.fecha(o.respondido)}</div></div>
+          <div class="r"><span class="muted" style="font-size:12.5px">${rec}/${ls.length} completas</span><div class="bar ok" style="width:120px"><i style="width:${ls.length ? rec / ls.length * 100 : 0}%"></i></div><button class="btn sm ${o.status === 'CONFIRMED' ? 'pri' : 'out'}" data-recibir="${o.id}">${L.icon('package-check')}Registrar remito</button></div></div>
+        <div class="tbl-wrap" style="border:0;border-radius:0"><table class="tbl bom"><thead><tr><th>Material / Especificación</th><th class="r">Pedido</th><th class="r">Recibido</th><th class="r">Pendiente</th><th>Quién lo frena</th><th>Tableros</th></tr></thead><tbody>
+          ${ls.map(x => { const tabs = CP.tableros().filter(t => CP.items(t.id).some(it => it.linea === x.id));
+            return `<tr class="${x.pend && x.rec ? 'warn' : ''}"><td><span class="mat">${L.esc(x.l.mat)}</span><span class="spec">${L.esc(x.l.spec)}${x.l.marca ? ' · ' + L.esc(x.l.marca) : ''}</span></td>
+            <td class="r qty">${L.num(x.l.comprar)} ${x.l.u}</td><td class="r qty" style="color:${x.rec ? 'var(--emerald-700)' : 'var(--muted-foreground)'}">${L.num(x.rec)}</td><td class="r qty" style="color:${x.pend ? 'var(--amber-700)' : 'var(--muted-foreground)'}">${x.pend ? L.num(x.pend) : '—'}</td>
+            <td style="font-family:var(--sans);font-size:12.5px;max-width:280px">${x.pend ? `<span class="cp-mst ${o.status === 'SENT' ? 'wa' : x.contra ? 'pr' : 'wa'}">${L.icon(o.status === 'SENT' ? 'clock' : x.contra ? 'repeat' : 'truck')}${L.esc(x.frena)}</span>` : `<span class="cp-mst ok">${L.icon('circle-check')}Completo</span>`}</td>
+            <td style="font-family:var(--sans)">${tabs.map(t => `<span class="bdg mono ${t.estado === 'frenado' ? 'er' : ''}" style="margin:0 3px 3px 0">${L.esc(t.cod)}</span>`).join('') || '<span class="muted">—</span>'}</td></tr>`; }).join('')}
+        </tbody></table></div>
+        ${remitos.length ? `<div class="list" style="border-top:1px solid var(--border)">${remitos.map(r => `<div class="li">${L.icon('receipt')}<div class="grow"><div class="t mono">${L.esc(r.remito)}</div><div class="d">${L.fecha(r.fecha)} · recibió ${L.esc((B.usuarios[r.por] || {}).n || r.por)} · ${r.lineas.length} líneas${r.foto ? ' · con foto' : ''}${r.nota ? ' · ' + L.esc(r.nota) : ''}</div></div>${r.faltante ? '<span class="bdg wa">Faltante avisado a compras</span>' : '<span class="bdg ok">Conforme</span>'}<button class="btn xs ghost" data-remito="${r.id}">${L.icon('eye')}Ver</button></div>`).join('')}</div>` : ''}
+        ${o.status === 'SENT' ? `<div class="row" style="padding:12px 20px;border-top:1px solid var(--border);font-size:12.5px"><span class="muted">${L.icon('info')} Mientras ${L.esc(C_prov(o))} no confirme no hay plazo de entrega: el taller toma lo común del stock.</span><a class="btn xs out ml-auto" href="d-prov-solicitudes.html?oc=${o.id}">${L.icon('external-link')}Ver la solicitud</a></div>` : ''}
+      </div>`; }).join('') + `
+      <div class="card">
+        <div class="card-h"><div class="card-ico">${L.icon('archive')}</div><div class="grow"><h3>Otras obras · Torre Alem 1450</h3><div class="sub">Entregas parciales de OC-2026-027-1 en dos remitos</div></div></div>
+        <div class="list">${CP.recs().filter(r => r.proyecto === 'p2').map(r => { const pend = r.lineas.filter(x => x.recibido < x.pedido); return `<div class="li"><div class="card-ico" style="width:34px;height:34px">${L.icon('receipt')}</div><div class="grow"><div class="t"><span class="mono">${L.esc(r.remito)}</span> · ${L.esc(r.oc)} · ${L.esc(CP.prov(r.prov).n)}</div><div class="d">${L.fecha(r.fecha)} · ${r.lineas.map(x => L.esc(x.t) + ' ' + L.num(x.recibido) + '/' + L.num(x.pedido) + (x.u ? ' ' + x.u : '')).join(' · ')}</div>${r.nota ? `<div class="d" style="margin-top:2px">${L.esc(r.nota)}</div>` : ''}</div>${pend.length ? `<span class="ost PARTIAL">Parcial</span>` : `<span class="bdg ok">Completo</span>`}</div>`; }).join('')}</div>
+      </div>`;
+  }
+
+  // ---------- Cambio de alcance ----------
+  function alcance() {
+    const A = K.alcance, s = CP.x('alcance') || {}, ped = CP.ped();
+    const its = A.items.map(it => { const l = CP.lin(it.linea); const prov = CP.adj()[it.linea]; const o = ped.ordenes.find(x => x.prov === prov); const of = B.ofertas[it.linea][prov]; return Object.assign({ l, prov, o, precio: of.precio, sub: of.precio * it.cant }, it); });
+    const mat = its.reduce((a, x) => a + x.sub, 0), mo = A.hMO * K.tarifaHora;
+    let m = L.get('presupuesto.margen'); m = m == null ? 0.25 : (m > 1 ? m / 100 : m);
+    const neto = Math.round((mat + mo) * (1 + m)), iva = Math.round(neto * B.cambio.iva / 100);
+    const porProv = {}; its.forEach(x => { (porProv[x.prov] ||= { o: x.o, items: [], sub: 0 }); porProv[x.prov].items.push(x); porProv[x.prov].sub += x.sub; });
+    const paso = s.emitido ? 4 : s.oc ? 3 : s.bom ? 2 : 1;
+    return `<div class="card">
+      <div class="card-h"><div class="card-ico" style="color:var(--amber-600)">${L.icon('git-branch-plus')}</div><div class="grow"><div class="row gap8"><h3>${L.esc(A.id)} · 2 circuitos más en sala de máquinas</h3><span class="tag-h2">h2</span></div><div class="sub">Pedido el ${L.fecha(A.fecha)} por ${L.esc(A.pide)} · ${L.esc(A.via)}</div></div>
+        <div class="r">${s.emitido ? `<span class="st ok">${L.icon('circle-check')}Resuelto</span>` : `<span class="st wa">${L.icon('circle-alert')}Paso ${paso} de 3</span>`}</div></div>
+      <div class="card-b col gap16"><p style="font-size:14px">${L.esc(A.desc)}</p>
+        <div class="note warn">${L.icon('triangle-alert')}<div><b>La OC de Eléctrica Norte ya se envió y el TGBT está en armado (${CP.tab('tgbt').avance} %)</b>No se edita la OC enviada: el material extra sale como pedido adicional, y el TGBT suma 2 salidas (quedan 4 módulos de reserva libres según AEA 771.20).</div></div>
+      </div></div>
+    <div class="cp-imp">
+      <div class="card"><div class="card-h"><span class="cp-step ${s.bom ? 'ok' : 'pri'}">${s.bom ? L.icon('check') : '1'}</span><div class="grow"><h3>Impacto en el BOM</h3><div class="sub">Líneas que suman cantidad · TGBT</div></div></div>
+        <div class="card-b">${its.map(x => `<div class="cp-mat" style="grid-template-columns:62px minmax(0,1fr) auto"><span class="ref">${L.esc(x.ref)}</span><div><span class="m">${L.esc(x.l.mat)}</span><span class="s">${L.esc(x.l.spec)}</span></div><span class="mono qty" style="color:var(--emerald-700);font-weight:700">+${L.num(x.cant)} ${x.l.u}</span></div>`).join('')}
+          <div class="muted" style="font-size:12px">Origen <span class="org man">Manual</span> · referencia la minuta de obra. Lo aplica ingeniería en el editor: el taller no toca el BOM.</div>
+          <div class="row wrap gap8" style="margin-top:auto">${s.bom ? `<span class="cp-mst ok">${L.icon('circle-check')}Enviado a Martina Giménez</span>` : `<button class="btn pri" data-paso="bom">${L.icon('send')}Mandar a ingeniería</button>`}<a class="btn out" href="d-bom-editor.html?linea=l01">${L.icon('table-2')}Abrir BOM</a></div></div></div>
+      <div class="card"><div class="card-h"><span class="cp-step ${s.oc ? 'ok' : paso === 2 ? 'pri' : ''}">${s.oc ? L.icon('check') : '2'}</span><div class="grow"><h3>Impacto en las OC</h3><div class="sub">Pedido adicional a ${L.esc(ped.id)}</div></div></div>
+        <div class="card-b">${Object.entries(porProv).map(([p, g]) => `<div class="col gap4" style="padding-bottom:8px;border-bottom:1px solid var(--border)"><div class="row gap8"><b style="font-size:13px">${L.esc(CP.prov(p).n)}</b><span class="ost ${g.o.status}">${CP.OST[g.o.status]}</span><span class="ml-auto money" style="font-size:13px">${L.ars(g.sub)}</span></div><span class="muted" style="font-size:12px">${L.esc(g.o.id)} ${g.o.status === 'SENT' ? 'todavía sin respuesta: se puede sumar antes de que confirme' : 'ya confirmada: va como OC adicional'} · ${g.items.map(x => '+' + L.num(x.cant) + ' ' + x.l.u + ' ' + x.l.mat.split(' ')[0].toLowerCase()).join(', ')}</span></div>`).join('')}
+          <div class="cp-sum t"><span>Material adicional</span><span class="money">${L.ars(mat)} +IVA</span></div>
+          <div class="ml-auto" style="margin-top:auto">${s.oc ? `<span class="cp-mst ok">${L.icon('circle-check')}${L.esc(s.oc)} enviado</span>` : `<button class="btn ${paso === 2 ? 'pri' : 'out dis'}" data-paso="oc">${L.icon('shopping-cart')}Generar pedido adicional</button>`}</div></div></div>
+      <div class="card"><div class="card-h"><span class="cp-step ${s.emitido ? 'ok' : paso === 3 ? 'pri' : ''}">${s.emitido ? L.icon('check') : '3'}</span><div class="grow"><h3>Adicional al comitente</h3><div class="sub">Constructora Ribera S.A.</div></div></div>
+        <div class="card-b"><div class="cp-sum"><span>Materiales (precio de hoy)</span><span class="money">${L.ars(mat)}</span></div><div class="cp-sum"><span>Mano de obra · ${A.hMO} h × ${L.ars(K.tarifaHora)}</span><span class="money">${L.ars(mo)}</span></div><div class="cp-sum"><span>Margen ${L.pct(m * 100)}</span><span class="money">${L.ars(neto - mat - mo)}</span></div>
+          <div class="cp-sum t"><span>Adicional sin IVA</span><span class="money">${L.ars(neto)}</span></div><div class="cp-sum muted"><span>IVA ${B.cambio.iva} % (cálculo de presentación)</span><span class="money">${L.ars(iva)}</span></div><div class="cp-sum"><span>Total con IVA</span><b class="money">${L.ars(neto + iva)}</b></div>
+          <div class="muted" style="font-size:12px">Margen tomado del <a class="src" href="d-com-presupuesto.html">${L.icon('file-spreadsheet')}presupuesto de la obra</a>. Validez 7 días · dólar BNA ${L.ars(B.cambio.dolarBNA)} del ${L.fecha(B.cambio.fecha)}.</div>
+          <div class="ml-auto" style="margin-top:auto">${s.emitido ? `<span class="cp-mst ok">${L.icon('circle-check')}AD-01 enviado al comitente</span>` : `<button class="btn ${paso === 3 ? 'pri' : 'out dis'}" data-paso="emitir">${L.icon('file-down')}Emitir adicional</button>`}</div></div></div>
+    </div>`;
+  }
+
+  // ---------- Entregas a obra ----------
+  function entregas() {
+    const tabs = CP.tableros(); const listos = tabs.filter(t => t.estado === 'listo'); const mias = CP.x('remitosEntrega') || [];
+    return `<div class="card"><div class="card-h"><div class="card-ico">${L.icon('truck')}</div><div class="grow"><h3>Tableros del Hospital Cañuelas</h3><div class="sub">Se entregan con remito propio, protocolo firmado y placa con QR</div></div><span class="tag-nuevo">Nuevo</span>
+        <div class="r"><button class="btn pri ${listos.length ? '' : 'dis'}" id="nuevoRe">${L.icon('file-plus')}Nuevo remito de entrega</button></div></div>
+      <div class="tbl-wrap" style="border:0;border-radius:0 0 18px 18px"><table class="tbl"><thead><tr><th>Tablero</th><th>Estado</th><th>Protocolo</th><th>Remito</th><th>Entrega al comitente</th></tr></thead><tbody>
+        ${tabs.map(t => { const pr = CP.x('protocolos.' + t.id) || {}; const re = mias.find(r => r.tableros.includes(t.cod)); return `<tr><td><b class="mono" style="color:var(--bom-material)">${L.esc(t.cod)}</b><div class="muted">${L.esc(t.n)}</div></td><td><span class="st ${CP.EST_ST[t.estado]}">${L.icon(CP.EST_IC[t.estado])}${CP.EST[t.estado]}</span></td>
+          <td>${pr.firmado ? `<span class="cp-mst ok">${L.icon('stamp')}Firmado ${L.fecha(pr.fecha)}</span>` : `<a class="src" href="d-tal-protocolo.html?tablero=${t.id}">${L.icon('clipboard-check')}${t.estado === 'ensayo' ? 'En ensayo · completar' : 'Pendiente'}</a>`}</td>
+          <td class="mono">${re ? L.esc(re.id) : '—'}</td><td class="mono">${re ? L.fecha(re.fecha) : L.fecha(K.taller[t.id].entrega)}${re ? '' : ' <span class="muted" style="font-family:var(--sans)">(previsto)</span>'}</td></tr>`; }).join('')}
+      </tbody></table></div></div>
+      ${listos.length ? '' : `<div class="note info">${L.icon('info')}<div><b>Todavía no hay tableros listos para entregar</b>El TSG-PB está en ensayo: cuando firmes su protocolo pasa a «listo» y lo podés sumar a un remito. <a class="src" href="d-tal-protocolo.html?tablero=tsgpb">${L.icon('clipboard-check')}Abrir el protocolo del TSG-PB</a></div></div>`}
+      <div class="card"><div class="card-h"><div class="card-ico">${L.icon('archive')}</div><div class="grow"><h3>Remitos de entrega emitidos</h3><div class="sub">Todas las obras</div></div></div>
+        <div class="list">${mias.concat(K.entregas).map(r => `<div class="li"><div class="card-ico" style="width:34px;height:34px">${L.icon('receipt')}</div><div class="grow"><div class="t"><span class="mono">${L.esc(r.id)}</span> · ${L.esc(B.proyectos.find(p => p.id === r.proyecto).n)}</div><div class="d">${L.fecha(r.fecha)} · ${r.tableros.map(L.esc).join(', ')}${r.recibe ? ' · recibe ' + L.esc(r.recibe) : ''}</div></div>${r.estado === 'firmado' ? `<span class="bdg ok">Firmado en obra</span>` : r.estado === 'programado' ? `<span class="bdg pri">Programado</span>` : `<span class="bdg wa">Esperando firma</span>`}<button class="btn xs ghost" data-verre="${L.esc(r.id)}">${L.icon('file-text')}PDF</button></div>`).join('')}</div></div>`;
+  }
+
+  function render() {
+    page.innerHTML = kpis() + (vista === 'alcance' ? alcance() : vista === 'entregas' ? entregas() : recepcion());
+    page.querySelectorAll('[data-recibir]').forEach(b => b.onclick = () => L.go('m-tal-recibir.html?oc=' + b.dataset.recibir));
+    page.querySelectorAll('[data-remito]').forEach(b => b.onclick = () => { const r = CP.recs().find(x => x.id === b.dataset.remito);
+      L.sheet(`<div class="cp-ficha"><div class="row"><div class="card-ico">${L.icon('receipt')}</div><div class="grow"><span class="lbl">Remito · ${L.esc(r.oc)}</span><h2 class="mono" style="font-size:18px">${L.esc(r.remito)}</h2></div><button class="btn icon sm ghost" data-x aria-label="Cerrar">${L.icon('x')}</button></div>
+        <div class="cp-foto ok" role="img" aria-label="Foto del remito"><span>Foto del remito firmado</span></div>
+        <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Línea</th><th class="r">Pedido</th><th class="r">Recibido</th></tr></thead><tbody>${r.lineas.map(x => { const l = x.linea ? CP.lin(x.linea) : null; return `<tr><td>${L.esc(l ? l.mat + ' ' + l.spec : x.t)}</td><td class="r mono">${L.num(x.pedido)}</td><td class="r mono" style="color:${x.recibido < x.pedido ? 'var(--amber-700)' : 'var(--emerald-700)'}">${L.num(x.recibido)}</td></tr>`; }).join('')}</tbody></table></div>
+        ${r.nota ? `<div class="note ${r.faltante ? 'warn' : 'info'}">${L.icon('info')}<div>${L.esc(r.nota)}</div></div>` : ''}</div>`, { label: 'Remito ' + r.remito }); });
+    page.querySelectorAll('[data-paso]').forEach(b => b.onclick = () => paso(b.dataset.paso));
+    page.querySelectorAll('[data-verre]').forEach(b => b.onclick = () => L.toast('Remito ' + b.dataset.verre + '.pdf', { type: 'info', desc: 'Con la firma de quien recibe y los protocolos anexos' }));
+    const nr = document.getElementById('nuevoRe'); if (nr) nr.onclick = nuevoRemito;
+  }
+  function paso(k) {
+    const s = Object.assign({}, CP.x('alcance') || {});
+    if (k === 'bom') { s.bom = true; CP.x('alcance', s); CP.aviso({ t: 'Cambio de alcance CA-01 en el TGBT', d: 'Sumar 2 circuitos (Q15–Q16): revisá el BOM', i: 'git-branch-plus', tipo: 'wa', href: 'd-tal-entregas.html?vista=alcance' }); L.toast('Mandado a ingeniería', { desc: 'Martina Giménez lo ve en Avisos y en el editor del BOM' }); }
+    if (k === 'oc') L.dialog({ title: 'Generar el pedido adicional', icon: 'shopping-cart', desc: 'Se arma PED-2026-031-A con una OC por distribuidor, con los mismos precios y condiciones que la cotización vigente. Cada distribuidor confirma o propone cambios como en un pedido normal.',
+      body: `<div class="note info">${L.icon('info')}<div>Eléctrica Norte todavía no confirmó OC-2026-031-1: le llega como agregado a la misma solicitud. Ohm y Electro Sur reciben una OC nueva.</div></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Enviar pedido adicional', icon: 'send', fn: () => { s.oc = 'PED-2026-031-A'; CP.x('alcance', s); CP.aviso({ t: 'Pedido adicional PED-2026-031-A enviado', d: '3 distribuidores · cambio de alcance CA-01', i: 'send', tipo: 'pr', href: 'd-com-pedidos.html' }); render(); L.toast('Pedido adicional enviado', { desc: 'PED-2026-031-A · 3 distribuidores' }); } }] });
+    if (k === 'emitir') L.dialog({ title: 'Emitir el adicional AD-01', icon: 'file-down', desc: 'Se manda a Constructora Ribera S.A. con el detalle por línea, la mano de obra y la validez. Cuando lo aprueben se suma al presupuesto de la obra.',
+      body: `<div class="field"><label for="ad-m">Para</label><input class="inp" id="ad-m" value="vnunez@constructoraribera.com.ar"></div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Emitir y enviar', icon: 'send', fn: () => { s.emitido = true; CP.x('alcance', s); CP.aviso({ t: 'Adicional AD-01 enviado al comitente', d: 'Constructora Ribera · 2 circuitos sala de máquinas', i: 'file-down', tipo: 'ok', href: 'd-tal-entregas.html?vista=alcance' }); render(); L.toast('Adicional emitido', { desc: 'AD-01.pdf enviado a Constructora Ribera' }); } }] });
+    render();
+  }
+  function nuevoRemito() {
+    const listos = CP.tableros().filter(t => t.estado === 'listo');
+    L.dialog({ title: 'Remito de entrega a obra', icon: 'truck', desc: 'Hospital Regional Cañuelas · Pabellón B · Ruta 3 km 63, Cañuelas',
+      body: `<div class="col gap8">${listos.map(t => `<label class="check"><input type="checkbox" checked value="${t.id}"> <b class="mono">${L.esc(t.cod)}</b> · ${L.esc(t.n)} · serie ${L.esc(t.serie)}</label>`).join('')}</div>
+        <div class="grid2"><div class="field"><label for="re-f">Fecha</label><input class="inp mono" id="re-f" value="02/10/2026"></div><div class="field"><label for="re-r">Recibe en obra</label><input class="inp" id="re-r" value="Diego Acosta (jefe de obra)"></div></div>
+        <div class="muted" style="font-size:12px">Se adjunta el protocolo firmado de cada tablero. Quien recibe firma desde el teléfono.</div>`,
+      actions: [{ t: 'Cancelar', cls: 'out' }, { t: 'Emitir remito', icon: 'file-plus', fn: dl => { const sel = [...dl.querySelectorAll('input[type=checkbox]:checked')].map(i => i.value); if (!sel.length) return false;
+        const id = 'RE-0001-00000' + (330 + (CP.x('remitosEntrega') || []).length);
+        CP.x('remitosEntrega', [{ id, proyecto: 'p1', fecha: '2026-10-02', tableros: sel.map(x => CP.tab(x).cod), recibe: dl.querySelector('#re-r').value, estado: 'pendiente' }].concat(CP.x('remitosEntrega') || []));
+        sel.forEach(x => CP.setTab(x, { estado: 'entregado' }));
+        CP.aviso({ t: 'Remito ' + id + ' emitido', d: sel.map(x => CP.tab(x).cod).join(', ') + ' · entrega el 02/10', i: 'truck', tipo: 'ok', href: 'd-tal-entregas.html?vista=entregas' });
+        render(); L.toast('Remito emitido', { desc: id + ' · ' + sel.length + ' tablero' + (sel.length > 1 ? 's' : '') }); } }] });
+  }
+  L.on(render);
+  render();
+} };
+</script>
+</body></html>

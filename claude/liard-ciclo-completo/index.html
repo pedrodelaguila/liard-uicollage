@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>liard · ciclo completo · propuestas de UI v1</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 110 100'%3E%3Cpath fill='%230058BE' d='M71 0v49L35 34V15L52 8zM34 35v65H0V49zM109 35v65H72V50z'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="gallery.css">
+</head>
+<body>
+<header class="g-head">
+  <div class="g-top">
+    <div>
+      <div class="brand" id="brand"></div>
+      <h1>Funcionalidades pendientes · propuestas de UI v1</h1>
+      <p>Del plano al tablero en servicio: ingeniería, presupuesto, compras, fabricación, obra, mantenimiento y comercial. Cada marco es una pantalla real e independiente: se hace clic adentro, se abre a tamaño completo con «abrir» y comparte el estado de la demo con las demás.</p>
+      <p>Cada sección y cada pantalla llevan su horizonte: <b>existe en dev</b>, <b>Sprint 4 pendiente</b>, <b>Sprint 5 planificado</b> o <b>propuesta</b> (0–6 meses, 6–18 meses, concepto). Que un flujo funcione acá no significa que el sprint esté terminado: el plan de construcción está en <a href="PLAN.md">PLAN.md</a>.</p>
+      <div class="g-pills">
+        <span class="g-pill">Datos de ejemplo: empresas, personas, obras y precios ficticios</span>
+        <span class="g-pill">Detección, IA, correos y pagos simulados</span>
+        <span class="g-pill" id="resumen"></span>
+        <span class="g-pill">Tokens y componentes de <b>front/src</b> · rama <b>dev</b></span>
+      </div>
+    </div>
+    <div class="g-side">
+      <button class="g-btn pri" id="reset">Reiniciar demo</button>
+      <a class="g-btn" href="QA.md">Informe de QA</a>
+      <a class="g-btn" href="PLAN.md">Plan de construcción</a>
+      <a class="g-btn" href="shots/v1/0-galeria.png">Capturas</a>
+    </div>
+  </div>
+</header>
+<div class="g-sticky"><div class="g-sticky-in"><div id="filtros"></div><nav id="nav" aria-label="Secciones"></nav></div></div>
+<main id="secciones"></main>
+<footer class="g-foot">liard · galería de prototipos · los marcos de la galería corren con estado propio (mirar no cambia la demo); las pantallas abiertas con «abrir» comparten el estado en este navegador. Íconos lucide (ISC) · three.js r161 (MIT).</footer>
+
+<script src="sections/a-ingenieria.js"></script>
+<script src="sections/b-bom.js"></script>
+<script src="sections/c-compras.js"></script>
+<script src="sections/d-proveedor.js"></script>
+<script src="sections/e-campo.js"></script>
+<script src="sections/f-plataforma.js"></script>
+<script>
+  document.getElementById('brand').innerHTML = '<svg viewBox="0 0 323.28 100" fill="currentColor" fill-rule="evenodd" role="img" aria-label="liard"><path d="M70.71,0.00 71.27,0.19 71.27,49.20 70.80,49.67 34.79,34.05 34.79,14.78 35.26,14.31 48.54,9.26 51.54,7.77Z M34.23,34.42 34.61,34.61 34.61,99.16 34.33,99.44 0.46,99.44 0.00,98.97 0.18,48.83Z M108.32,34.42 109.07,34.42 109.07,99.16 108.79,99.44 71.74,99.44 71.27,98.78 71.27,50.14 73.06,49.11Z M319.54,36.29 322.44,36.39 323.09,37.04 323.28,79.88 322.90,98.78 321.88,99.44 313.64,99.44 312.43,98.59 312.24,95.79 311.58,95.70 308.03,97.94 304.10,99.44 301.11,100.00 295.31,100.00 290.07,98.88 285.58,96.82 282.58,94.58 279.69,91.48 276.88,86.44 275.76,82.69 275.39,79.51 275.76,72.97 277.26,68.47 278.56,66.04 280.43,63.42 283.14,60.70 286.14,58.65 288.76,57.34 293.99,55.84 299.43,55.47 304.29,56.22 307.66,57.34 311.96,59.96 312.24,59.68 312.24,37.23 313.08,36.39Z M147.04,36.48 156.30,36.39 157.33,37.60 157.33,97.85 157.15,98.41 155.74,99.44 147.88,99.44 146.95,99.06 146.29,98.22 146.29,37.41Z M172.49,37.41 175.02,37.51 176.89,38.44 178.85,40.60 179.41,42.47 179.22,45.46 178.47,46.96 176.89,48.54 174.27,49.67 172.20,49.67 169.77,48.73 168.00,47.14 166.88,43.97 167.25,41.54 168.56,39.29 170.89,37.69Z M209.53,55.56 212.43,55.47 216.93,56.03 219.17,56.59 223.65,58.46 229.09,62.40 232.73,67.35 234.60,72.02 235.16,75.40 235.35,98.03 234.69,99.06 233.94,99.44 225.90,99.44 224.50,98.41 224.31,95.79 223.84,95.70 221.97,97.19 219.36,98.50 214.86,99.81 207.57,100.00 205.50,99.62 201.20,98.31 196.53,95.70 192.88,92.42 191.01,89.80 188.95,85.31 187.83,79.88 188.20,73.71 190.07,67.91 192.88,63.61 195.78,60.70 198.21,59.02 203.63,56.59Z M262.67,55.75 269.68,56.22 271.17,56.59 272.01,57.43 272.20,65.67 270.98,66.70 270.05,66.70 266.31,65.57 262.20,65.57 259.95,66.32 257.42,68.47 255.93,72.02 255.93,98.03 255.55,98.78 254.53,99.44 245.73,99.25 244.70,97.85 244.70,74.46 245.82,67.54 248.25,62.86 250.04,60.70 252.84,58.46 254.90,57.34 258.45,56.22Z M169.49,56.31 177.26,56.22 178.01,56.59 178.85,57.81 178.85,98.03 178.38,98.88 177.26,99.44 169.40,99.44 168.28,98.88 167.62,97.66 167.62,59.49 168.00,57.25Z M209.44,65.39 206.64,66.13 204.20,67.44 201.30,70.15 199.06,74.84 199.06,80.82 200.92,85.13 204.57,88.58 208.50,90.27 214.49,90.27 216.35,89.71 219.17,88.21 222.63,84.57 223.75,82.31 224.50,79.14 224.12,74.65 222.25,70.53 219.17,67.44 214.86,65.57Z M297.00,65.39 294.18,66.13 291.75,67.44 288.29,71.09 286.99,73.71 286.42,76.14 286.61,80.63 287.36,83.06 289.23,86.06 292.50,88.77 294.94,89.89 297.37,90.45 299.24,90.64 302.23,90.27 305.98,88.77 307.85,87.46 310.00,85.13 311.30,82.87 312.05,80.44 312.05,75.21 310.56,71.46 309.06,69.41 307.10,67.63 302.60,65.57Z"/></svg><span>ciclo completo</span>';
+</script>
+<script src="gallery.js"></script>
+</body>
+</html>

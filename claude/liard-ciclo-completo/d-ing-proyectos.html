@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=1440">
+<title>Proyectos · liard</title>
+<link rel="stylesheet" href="ingenieria.css">
+</head>
+<body data-role="ing" data-active="proyectos" data-h="existe" data-user="martina"
+  data-title="Proyectos" data-sub="Tus obras y sus tableros, con el estado de cada plano a la vista.">
+<div id="act">
+  <div class="seg" data-param="vista" data-default="grilla" aria-label="Vista de proyectos">
+    <button data-vista="grilla" data-icon="layout-grid">Grilla</button>
+    <button data-vista="lista" data-icon="list">Lista</button>
+    <button data-vista="etapas" data-icon="square-kanban">Por etapa</button>
+  </div>
+</div>
+<main id="page"></main>
+<script src="icons.js"></script><script src="data.js"></script><script src="data-ingenieria.js"></script><script src="ingenieria.js"></script>
+<script>
+window.MOCK = { init() {
+  const page = document.getElementById('page');
+  const vista = L.q('vista') || 'grilla';
+  const estado = L.q('estado');
+  const f = { q: '', st: 'Todos', fecha: 'Todas' };
+  const ETQ = ['Todos', 'Listo', 'En Proceso', 'Requiere Atención', 'Pendiente', 'Sin Planos'];
+  const FECHAS = ['Todas', 'Últimos 7 días', 'Este mes', 'Entrega antes de fin de año'];
+  const usuarios = L.get('usuarios');
+
+  // Lo que te toca hoy: se arma con el estado, así que lo que resolvés en otra pantalla deja de aparecer acá.
+  function hoy() {
+    const pl = L.get('planos'); const lin = L.get('lineas');
+    const asc = pl.find(p => p.id === 'tsasc'); const bom = pl.find(p => p.id === 'tsbombas');
+    const l09 = lin.find(l => l.id === 'l09'); const l11 = lin.find(l => l.id === 'l11');
+    const rev = I.priv('rev.aplicada', false); const apr = I.priv('apr.aceptadas', []);
+    const it = [];
+    if (asc.status === 'ERROR') it.push({ c: 'er', i: 'scissors', t: 'Recortá el TS-ASC en zonas', d: 'Hospital Cañuelas · la detección cortó por tiempo (504) y no se reintenta sola', h: 'd-ing-proyecto.html?estado=error' });
+    if (bom.sinId) it.push({ c: 'wa', i: 'scan-search', t: `Revisá ${bom.sinId} ${bom.sinId === 1 ? 'símbolo' : 'símbolos'} del TS-BOMBAS`, d: 'Hospital Cañuelas · uno completa el seccionador que frena al taller', h: 'd-ing-plano.html?plano=tsbombas' });
+    if (!rev) it.push({ c: 'vi', i: 'git-compare-arrows', t: 'Llegó la revisión 2 del TS-BOMBAS', d: 'Constructora Ribera · suma la bomba 4 y cambia el seccionador general', h: 'd-ing-revisiones.html' });
+    if (l09.estado === 'blocked') it.push({ c: 'er', i: 'octagon-pause', t: 'El seccionador NH00 no se puede cotizar', d: 'Falta «Corriente nominal» · frena el armado del TS-BOMBAS', h: 'd-bom-editor.html?linea=l09' });
+    if (l11.estado === 'blocked') it.push({ c: 'wa', i: 'circle-alert', t: 'Al multimedidor PM5100 le falta el formato', d: '96×96 frontal o riel DIN · sin eso no hay match', h: 'd-bom-editor.html?linea=l11' });
+    if (apr.length < 3) it.push({ c: 'pr', i: 'brain', t: 'Corregiste lo mismo varias veces', d: `${3 - apr.length} ${3 - apr.length === 1 ? 'patrón' : 'patrones'} de Constructora Ribera para recordar`, h: 'd-ing-aprendizaje.html' });
+    return it.slice(0, 6);
+  }
+
+  function filtrar(ps) {
+    const t = f.q.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    return ps.filter(p => (!t || (p.n + ' ' + p.cliente).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').includes(t))
+      && (f.st === 'Todos' || p.label === f.st)
+      && (f.fecha === 'Todas' || (f.fecha === 'Últimos 7 días' ? p.actualizado >= '2026-09-24' : f.fecha === 'Este mes' ? p.actualizado >= '2026-09-01' : p.entrega <= '2026-12-31')));
+  }
+  const conteoTxt = c => {
+    if (!c.total) return '<span>Sin planos cargados</span>';
+    if (c.completed === c.total) return `<span><span class="dot ok"></span> <b>${c.completed}</b> de <b>${c.total}</b> planos listos</span>`;
+    const p = [`<span><b>${c.total}</b> planos:</span>`];
+    if (c.completed) p.push(`<span><span class="dot ok"></span> <b>${c.completed}</b> listos</span>`);
+    if (c.processing) p.push(`<span><span class="dot pr"></span> <b>${c.processing}</b> en proc.</span>`);
+    if (c.stale) p.push(`<span class="wa"><span class="dot wa"></span> <b>${c.stale}</b> por revisar</span>`);
+    if (c.error) p.push(`<span class="er"><span class="dot er"></span> <b>${c.error}</b> error</span>`);
+    if (c.pending) p.push(`<span><span class="dot"></span> <b>${c.pending}</b> espera</span>`);
+    return p.join('');
+  };
+  const fechaLarga = iso => new Date(iso + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short', year: 'numeric' }).replace('.', '');
+  const etapa = id => { const e = BI.proyEtapa[id]; return e ? { ...BI.etapas.find(x => x.k === e.k), ...e } : { k: 'ing', t: 'Ingeniería', i: 'layers', d: 'Proyecto recién creado' }; };
+
+  function card(p) {
+    const e = etapa(p.id);
+    return `<article class="pcard" tabindex="0" data-p="${p.id}" aria-label="Abrir ${L.esc(p.n)}">
+      <div class="pcard-h"><div class="pcard-ico">${L.icon('layers')}</div>
+        <div class="grow"><h3>${L.esc(p.n)}</h3><div class="cli trunc">${L.esc(p.cliente)}</div></div>
+        <button class="btn icon sm ghost" data-menu="${p.id}" aria-label="Más opciones de ${L.esc(p.n)}">${L.icon('ellipsis-vertical')}</button></div>
+      <div class="pcard-st">${I.pbadge(p.label)}<span class="pct">${p.pct}%</span></div>
+      ${I.tri(p.planos)}
+      <div class="pcard-c">${conteoTxt(p.planos)}</div>
+      <div class="pcard-etapa">${L.icon(e.i)}<span class="grow trunc"><b>${L.esc(e.t)}</b> · ${L.esc(e.d)}</span><span class="tag-h1">h1</span></div>
+      <div class="pcard-f">${L.icon('calendar')} <span class="grow" style="margin-left:6px">${fechaLarga(p.actualizado)}</span><a href="#" data-p="${p.id}">Ver proyecto ${L.icon('arrow-up-right')}</a></div>
+    </article>`;
+  }
+
+  function grilla(ps) {
+    return `<div class="ing-grid">${ps.map(card).join('')}
+      <div class="pnew" data-href="d-ing-carga.html" role="button" tabindex="0" aria-label="Iniciar nuevo proyecto"><div class="pcard-ico">${L.icon('plus')}</div><b>Iniciar Nuevo Proyecto</b><span style="font-size:var(--text-xs)">Cargá tus planos eléctricos en DXF o PDF</span></div></div>`;
+  }
+  function lista(ps) {
+    return `<div class="tbl-wrap"><table class="tbl plist"><thead><tr><th>Proyecto</th><th>Estado</th><th>Planos</th><th>Etapa <span class="tag-h1">h1</span></th><th class="r">Monto estimado</th><th>Entrega</th><th>Responsable</th></tr></thead><tbody>
+      ${ps.map(p => { const e = etapa(p.id); const u = usuarios[p.resp]; return `<tr data-p="${p.id}" style="cursor:pointer">
+        <td><b style="font-size:var(--text-sm)">${L.esc(p.n)}</b><div class="muted">${L.esc(p.cliente)}</div></td>
+        <td>${I.pbadge(p.label)}</td>
+        <td><div class="col gap4">${I.tri(p.planos)}<span class="muted mono" style="font-size:11px">${p.planos.completed}/${p.planos.total} listos</span></div></td>
+        <td><span class="row gap8">${L.icon(e.i)}${L.esc(e.t)}</span></td>
+        <td class="r money">${p.monto ? L.ars(p.monto) + ' <span class="muted">+IVA</span>' : '<span class="muted">—</span>'}</td>
+        <td class="mono">${L.fecha(p.entrega)}</td>
+        <td><span class="row gap8"><span class="av xs ${u.c}">${u.ini}</span>${L.esc(u.n.split(' ')[0])}</span></td></tr>`; }).join('')}
+      </tbody></table></div>`;
+  }
+  function etapas(ps) {
+    return `<div class="kanban">${BI.etapas.map(e => { const del = ps.filter(p => etapa(p.id).k === e.k); return `<section class="kcol" aria-label="${e.t}">
+      <div class="kcol-h">${L.icon(e.i)}<div><b>${e.t}</b><small>${e.d}</small></div><span class="cnt">${del.length}</span></div>
+      ${del.length ? del.map(p => `<div class="kcard" data-p="${p.id}" role="button" tabindex="0"><b>${L.esc(p.n)}</b><small>${L.esc(p.cliente)}</small>${I.tri(p.planos)}<div>${I.pbadge(p.label)}</div><span class="money muted">${p.monto ? '$ ' + L.num(p.monto / 1e6, 1) + ' M +IVA' : 'Sin monto todavía'}</span><small>${L.icon('arrow-right')} ${L.esc(etapa(p.id).d)}</small></div>`).join('') : '<div class="kempty">Ninguna obra en esta etapa</div>'}
+    </section>`; }).join('')}</div>`;
+  }
+
+  function render() {
+    if (estado === 'cargando') {
+      page.innerHTML = `<div class="ing-tools"><div class="skel" style="height:44px;flex:1;border-radius:999px"></div><div class="skel" style="height:44px;width:130px;border-radius:999px"></div><div class="skel" style="height:44px;width:130px;border-radius:999px"></div></div>
+        <div class="ing-grid" aria-busy="true" aria-label="Cargando proyectos">${Array.from({ length: 6 }, () => '<div class="skel" style="height:278px;border-radius:18px"></div>').join('')}</div>`;
+      return;
+    }
+    if (estado === 'vacio') {
+      page.innerHTML = `<div class="card pad">
+        <div class="row" style="justify-content:space-between;align-items:flex-start"><div><h3 style="font-size:var(--text-base)">Primeros pasos</h3><p class="muted" style="font-size:var(--text-xs);margin-top:2px">Tres pasos y tenés la primera cotización. <span class="tag-existe">existe</span></p></div><button class="btn sm ghost" id="hidefs">Ocultar los primeros pasos</button></div>
+        <div class="col gap8" style="margin-top:14px;font-size:var(--text-sm)">
+          ${['Subí la tabla de referencia y los planos', 'Procesá los planos y revisá la lista', 'Cotizá y emití los pedidos'].map((t, i) => `<div class="row gap8"><span class="${i ? '' : 'on'}" style="width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font:600 11px var(--mono);border:1px solid ${i ? 'var(--border)' : 'var(--primary)'};background:${i ? 'var(--card)' : 'var(--primary)'};color:${i ? 'var(--muted-foreground)' : '#fff'}">${i + 1}</span>${t}</div>`).join('')}
+        </div></div>
+        <div class="card"><div class="empty"><div class="e-ico">${L.icon('folder-kanban')}</div><h3>Todavía no tenés proyectos</h3>
+          <p>Un proyecto es una obra: le subís la tabla de referencia del estudio y un plano DXF o PDF por tablero. liard cuenta los aparatos, arma el BOM y lo cotiza con tus distribuidores.</p>
+          <button class="btn pri" data-href="d-ing-carga.html">${L.icon('plus')}Nuevo proyecto</button></div>
+          <div class="grid3" style="padding:0 24px 24px">
+            ${[['scan-search', 'Detección con revisión', 'Cada símbolo que no se reconoce queda marcado en el plano para que lo resuelvas.'], ['table-2', 'BOM con trazabilidad', 'La cantidad dibujada y la cantidad a comprar, con el plano del que sale cada una.'], ['shopping-cart', 'Cotización y OC', 'Matching por componente base y atributos: nunca un código inventado.']].map(([i, t, d]) => `<div class="note info">${L.icon(i)}<div><b>${t}</b>${d}</div></div>`).join('')}
+          </div></div>`;
+      page.querySelector('#hidefs').onclick = e => { e.target.closest('.card').remove(); L.toast('Primeros pasos ocultos', { type: 'info', desc: 'Los volvés a ver desde tu cuenta.' }); };
+      return;
+    }
+    const todos = I.proyectos(); const ps = filtrar(todos); const h = hoy();
+    page.innerHTML = `
+      ${h.length ? `<section class="card" aria-label="Lo que te toca hoy"><div class="card-h"><div class="card-ico">${L.icon('sun')}</div><div><h3>Lo que te toca hoy</h3><div class="sub">Lo que frena tus obras, ordenado por lo que más atrasa. Se arma solo con el estado de cada plano, línea y pedido.</div></div><div class="r"><span class="tag-h1">Propuesta</span></div></div>
+        <div class="hoy">${h.map(x => `<div class="hoy-i" data-href="${x.h}" role="link" tabindex="0"><span class="hi ${x.c}">${L.icon(x.i)}</span><div class="grow"><b>${L.esc(x.t)}</b><small>${L.esc(x.d)}</small></div><span class="go">${L.icon('chevron-right')}</span></div>`).join('')}</div></section>` : ''}
+      <div class="ing-tools">
+        <div class="search">${L.icon("search")}<input class="inp" id="q" placeholder="Buscar proyectos…" aria-label="Buscar proyectos" value="${L.esc(f.q)}"><kbd>/</kbd></div>
+        <button class="btn out ing-pill" id="fst" aria-haspopup="menu">${L.icon('funnel')}Estado${f.st !== 'Todos' ? `: ${L.esc(f.st)}` : ''}${L.icon('chevron-down')}</button>
+        <button class="btn out ing-pill" id="ffe" aria-haspopup="menu">${L.icon('calendar')}${f.fecha === 'Todas' ? 'Fecha' : L.esc(f.fecha)}${L.icon('chevron-down')}</button>
+        ${(f.st !== 'Todos' || f.fecha !== 'Todas' || f.q) ? '<button class="btn ghost sm" id="clr">Limpiar filtros</button>' : ''}
+      </div>
+      <div id="res">${ps.length ? (vista === 'lista' ? lista(ps) : vista === 'etapas' ? etapas(ps) : grilla(ps)) : `<div class="card"><div class="empty"><div class="e-ico">${L.icon('search')}</div><h3>No hay proyectos con esos filtros</h3><p>Probá con otra palabra o sacá el filtro de estado.</p><button class="btn out" id="clr2">Limpiar filtros</button></div></div>`}</div>
+      ${vista !== 'grilla' ? `<p class="muted" style="font-size:12px">${vista === 'etapas' ? 'Por etapa' : 'Lista'}: <span class="tag-h1">propuesta</span> · misma data que la grilla. La etapa sale del último paso con algo pendiente (planos, BOM, OC, taller, entrega).</p>` : ''}
+      <div class="ing-pag"><span>Mostrando 1–${ps.length} de ${ps.length} proyectos</span><span>por página</span><select class="inp" style="width:70px;height:32px" aria-label="Proyectos por página"><option>6</option><option>12</option></select><div class="pg"><button class="btn icon sm ghost" aria-label="Página anterior" disabled>${L.icon('chevron-left')}</button><b>1</b><button class="btn icon sm ghost" aria-label="Página siguiente" disabled>${L.icon('chevron-right')}</button></div></div>`;
+    bind();
+  }
+
+  function menu(anchor, opts) {
+    document.querySelectorAll('.menu').forEach(m => m.remove());
+    const r = anchor.getBoundingClientRect();
+    const m = document.createElement('div'); m.className = 'menu'; m.setAttribute('role', 'menu');
+    m.style.left = (r.left + window.scrollX) + 'px'; m.style.top = (r.bottom + window.scrollY + 6) + 'px';
+    m.innerHTML = opts.map((o, i) => `<button role="menuitem" data-o="${i}" ${o.dan ? 'style="color:var(--destructive)"' : ''}>${o.i ? L.icon(o.i) : ''}${L.esc(o.t)}${o.on ? `<span class="ml-auto">${L.icon('check')}</span>` : ''}</button>`).join('');
+    document.body.appendChild(m);
+    m.addEventListener('click', e => { const b = e.target.closest('[data-o]'); if (!b) return; m.remove(); opts[+b.dataset.o].fn(); });
+    setTimeout(() => document.addEventListener('click', function cl(e) { if (!m.contains(e.target)) { m.remove(); document.removeEventListener('click', cl); } }), 0);
+  }
+  function abrir(id) {
+    if (id === 'p1') return L.go('d-ing-proyecto.html');
+    if (id === 'p5' || I.priv('nuevos', []).some(p => p.id === id)) return L.go('d-ing-carga.html?paso=2');
+    const p = I.proyectos().find(x => x.id === id);
+    L.toast('Esta obra no tiene detalle en la demo', { type: 'info', desc: `«${p.n}» se ve igual que Hospital Cañuelas, que es la obra cargada completa.`, action: 'Abrir Cañuelas', onAction: () => L.go('d-ing-proyecto.html') });
+  }
+  function bind() {
+    const q = page.querySelector('#q');
+    q.oninput = () => { f.q = q.value; const pos = q.selectionStart; render(); const n = page.querySelector('#q'); n.focus(); n.setSelectionRange(pos, pos); };
+    page.querySelector('#fst').onclick = e => { e.stopPropagation(); menu(e.currentTarget, ETQ.map(t => ({ t, on: f.st === t, fn: () => { f.st = t; render(); } }))); };
+    page.querySelector('#ffe').onclick = e => { e.stopPropagation(); menu(e.currentTarget, FECHAS.map(t => ({ t, on: f.fecha === t, fn: () => { f.fecha = t; render(); } }))); };
+    page.querySelectorAll('#clr, #clr2').forEach(b => b.onclick = () => { f.q = ''; f.st = 'Todos'; f.fecha = 'Todas'; render(); });
+    page.querySelectorAll('[data-p]').forEach(el => {
+      el.addEventListener('click', e => { if (e.target.closest('[data-menu]')) return; e.preventDefault(); abrir(el.dataset.p); });
+      el.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target === el) abrir(el.dataset.p); });
+    });
+    page.querySelectorAll('[data-menu]').forEach(b => b.onclick = e => {
+      e.stopPropagation(); const id = b.dataset.menu; const p = I.proyectos().find(x => x.id === id);
+      menu(b, [
+        { t: 'Ver proyecto', i: 'arrow-up-right', fn: () => abrir(id) },
+        { t: 'Subir planos', i: 'upload', fn: () => L.go('d-ing-carga.html?paso=2') },
+        { t: 'Eliminar proyecto', i: 'trash-2', dan: true, fn: () => {
+          const sin = p.planos.processing + p.planos.pending;
+          L.dialog({ title: `Eliminar «${p.n}»`, icon: 'trash-2', desc: `¿Estás seguro de que querés eliminar "${L.esc(p.n)}"? El proyecto va a dejar de aparecer en tu lista y no vas a poder deshacer esta acción.${sin ? ` Tiene ${sin} ${sin === 1 ? 'plano' : 'planos'} sin terminar: el trabajo en cola se cancela.` : ''}`,
+            actions: [{ t: 'Cancelar' }, { t: 'Eliminar', cls: 'dan', icon: 'trash-2', fn: () => {
+              L.update(s => { s.proyectos = s.proyectos.filter(x => x.id !== id); s.x ??= {}; s.x.ing ??= {}; s.x.ing.nuevos = (s.x.ing.nuevos || []).filter(x => x.id !== id); });
+              L.toast('Proyecto eliminado', { desc: p.n });
+            } }] });
+        } },
+      ]);
+    });
+  }
+  document.addEventListener('keydown', e => { if (e.key === '/' && document.activeElement?.tagName !== 'INPUT') { e.preventDefault(); page.querySelector('#q')?.focus(); } });
+  L.on(() => { if (!document.activeElement || document.activeElement.id !== 'q') render(); });
+  render();
+} };
+</script>
+<script src="app.js"></script>
+</body>
+</html>
